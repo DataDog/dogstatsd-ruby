@@ -97,6 +97,25 @@ describe Statsd do
     end
   end
 
+  describe "#histogram" do
+    it "should send a message with a 'h' type, per the nearbuy fork" do
+      @statsd.histogram('ohmy', 536)
+      @statsd.socket.recv.must_equal ['ohmy:536|h']
+      @statsd.histogram('ohmy', -107.3)
+      @statsd.socket.recv.must_equal ['ohmy:-107.3|h']
+    end
+
+    describe "with a sample rate" do
+      before { class << @statsd; def rand; 0; end; end } # ensure delivery
+      it "should format the message according to the statsd spec" do
+        @statsd.gauge('begrutten-suffusion', 536, :sample_rate=>0.1)
+        @statsd.socket.recv.must_equal ['begrutten-suffusion:536|g|@0.1']
+      end
+    end
+  end
+
+
+
   describe "#timing" do
     it "should format the message according to the statsd spec" do
       @statsd.timing('foobar', 500)

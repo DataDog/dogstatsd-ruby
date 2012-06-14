@@ -99,6 +99,19 @@ class Statsd
     send_stats stat, value, :g, opts
   end
 
+  # Sends a value to be tracked as a histogram to the statsd server.
+  #
+  # @param [String] stat stat name.
+  # @param [Numeric] histogram value.
+  # @param [Hash] opts the options to create the metric with
+  # @option opts [Numeric] :sample_rate sample rate, 1 for always
+  # @option opts [Array<String>] :tags An array of tags
+  # @example Report the current user count:
+  #   $statsd.histogram('user.count', User.count)
+  def histogram(stat, value, opts={})
+    send_stats stat, value, :h, opts
+  end
+
   # Sends a timing (in ms) for the given stat to the statsd server. The
   # sample_rate determines what percentage of the time this report is sent. The
   # statsd server then uses the sample_rate to correctly track the average
