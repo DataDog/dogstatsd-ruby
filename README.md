@@ -9,7 +9,7 @@ A client for DogStatsd, an extension of the Statsd metric server for Datadog.
 Quick Start Guide
 -----------------
 
-First install `dogstatsd-ruby`:
+First install the library:
 
     gem install dogstatsd-ruby
 
@@ -24,8 +24,8 @@ Then start instrumenting your code:
     # Increment a counter.
     statsd.increment('page.views')
 
-    # Record a gauge.
-    statsd.gauge('users.online', 123)
+    # Record a gauge 50% of the time.
+    statsd.gauge('users.online', 123, :sample_rate=>0.5)
 
     # Sample a histogram
     statsd.histogram('file.upload.size', 1234)
