@@ -10,8 +10,8 @@ Gem::Specification.new do |s|
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["Rein Henrichs"]
   s.date = "2012-05-30"
-  s.description = "A Ruby StatsD client"
-  s.email = "rein@phpfog.com"
+  s.description = "A Ruby DogStatsd client"
+  s.email = "help@datadoghq.com"
   s.extra_rdoc_files = [
     "LICENSE.txt",
     "README.rdoc"
@@ -29,7 +29,7 @@ Gem::Specification.new do |s|
     "spec/statsd_spec.rb",
     "statsd-ruby.gemspec"
   ]
-  s.homepage = "http://github.com/jeremy/statsd-ruby"
+  s.homepage = "http://github.com/datadog/statsd-ruby"
   s.licenses = ["MIT"]
   s.require_paths = ["lib"]
   s.rubygems_version = "1.8.23"
