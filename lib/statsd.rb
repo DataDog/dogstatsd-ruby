@@ -1,13 +1,14 @@
 require 'socket'
 
-# = Statsd: A Statsd client (https://github.com/etsy/statsd)
+# = Statsd: A DogStatsd client (https://www.datadoghq.com)
 #
-# @example Set up a global Statsd client for a server on localhost:9125
+# @example Set up a global Statsd client for a server on localhost:8125
+#   require 'statsd'
 #   $statsd = Statsd.new 'localhost', 8125
 # @example Send some stats
-#   $statsd.increment 'garets'
-#   $statsd.timing 'glork', 320
-#   $statsd.gauge 'bork', 100
+#   $statsd.increment 'page.views'
+#   $statsd.timing 'page.load', 320
+#   $statsd.gauge 'users.online', 100
 # @example Use {#time} to time the execution of a block
 #   $statsd.time('account.activate') { @account.activate! }
 # @example Create a namespaced statsd client and increment 'account.activate'
