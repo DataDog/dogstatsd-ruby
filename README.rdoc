@@ -1,11 +1,13 @@
-= statsd-ruby {<img src="https://secure.travis-ci.org/jeremy/statsd-ruby.png" />}[http://travis-ci.org/jeremy/statsd-ruby]
+= dogstatsd-ruby {<img src="https://secure.travis-ci.org/datadog/dogstatsd-ruby.png"/>}[http://travis-ci.org/datadog/dogstatsd-ruby]
 
-A Ruby client for {StatsD}[https://github.com/etsy/statsd]
+A Ruby client for DogStatsd, a fork of {Statsd}[https://github.com/etsy/statsd]
+for Datadog. It will work fine for Statsd, but the extra Datadog features will
+not work.
 
 = Installing
 
 Bundler:
-  gem 'statsd-ruby', '~> 0.4.0', github: 'jeremy/statsd-ruby', require: 'statsd'
+  gem 'dogstatsd-ruby', '~> 0.4.0', github: 'datadog/dogstatsd-ruby', require: 'statsd'
 
 = Testing
 

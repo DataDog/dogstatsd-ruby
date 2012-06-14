@@ -28,6 +28,10 @@ class Statsd
     attr_accessor :logger
   end
 
+  def self.VERSION
+    "1.0.0"
+  end
+
   # @param [String] host your statsd host
   # @param [Integer] port your statsd port
   def initialize(host = '127.0.0.1', port = 8125)
