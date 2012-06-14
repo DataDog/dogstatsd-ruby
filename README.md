@@ -6,8 +6,8 @@ A client for DogStatsd, an extension of the Statsd metric server for Datadog.
 
 [![Build Status](https://secure.travis-ci.org/DataDog/dogstatsd-ruby.png)](http://travis-ci.org/DataDog/dogstatsd-ruby)
 
-Usage
------
+Quick Start Guide
+-----------------
 
 First install `dogstatsd-ruby`:
 
@@ -37,6 +37,12 @@ Then start instrumenting your code:
 
     # Tag a metric.
     statsd.histogram('query.time', 10, :tags => ["version:1"])
+
+Documentation
+-------------
+
+Full API documentation is available
+[here](http://www.rubydoc.info/github/DataDog/dogstatsd-ruby/master/frames).
 
 
 Feedback
