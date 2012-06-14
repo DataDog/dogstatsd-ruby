@@ -1,4 +1,4 @@
-= dogstatsd-ruby {<img src="https://secure.travis-ci.org/datadog/dogstatsd-ruby.png"/>}[http://travis-ci.org/datadog/dogstatsd-ruby]
+= dogstatsd-ruby {<img src="https://secure.travis-ci.org/DataDog/dogstatsd-ruby.png"/>}[http://travis-ci.org/DataDog/dogstatsd-ruby]
 
 A Ruby client for DogStatsd, a fork of {Statsd}[https://github.com/etsy/statsd]
 for Datadog. It will work fine for Statsd, but the extra Datadog features will

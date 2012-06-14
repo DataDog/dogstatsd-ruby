@@ -28,8 +28,9 @@ class Statsd
     attr_accessor :logger
   end
 
+  # Return the current version of the library.
   def self.VERSION
-    "1.0.0"
+    "0.4.0"
   end
 
   # @param [String] host your statsd host
