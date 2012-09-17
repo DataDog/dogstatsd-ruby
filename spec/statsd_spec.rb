@@ -114,7 +114,12 @@ describe Statsd do
     end
   end
 
-
+  describe "#set" do
+    it "should send a message with a 's' type, per the nearbuy fork" do
+      @statsd.set('my.set', 536)
+      @statsd.socket.recv.must_equal ['my.set:536|s']
+    end
+  end
 
   describe "#timing" do
     it "should format the message according to the statsd spec" do
@@ -266,7 +271,7 @@ describe Statsd do
   end
 
   describe "tagged" do
-  
+
     it "gauges support tags" do
       @statsd.gauge("gauge", 1, :tags=>%w(country:usa state:ny))
       @statsd.socket.recv.must_equal ['gauge:1|g|#country:usa,state:ny']
@@ -286,7 +291,7 @@ describe Statsd do
     it "timing support tags" do
       @statsd.timing("t", 200, :tags=>%w(country:canada other))
       @statsd.socket.recv.must_equal ['t:200|ms|#country:canada,other']
-      
+
       @statsd.time('foobar', :tags => ["123"]) { sleep(0.001); 'test' }
       @statsd.socket.recv.must_equal ['foobar:1|ms|#123']
     end

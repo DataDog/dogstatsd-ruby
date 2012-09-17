@@ -148,6 +148,18 @@ class Statsd
     timing(stat, ((Time.now - start) * 1000).round, opts)
     result
   end
+  # Sends a value to be tracked as a set to the statsd server.
+  #
+  # @param [String] stat stat name.
+  # @param [Numeric] set value.
+  # @param [Hash] opts the options to create the metric with
+  # @option opts [Numeric] :sample_rate sample rate, 1 for always
+  # @option opts [Array<String>] :tags An array of tags
+  # @example Record a unique visitory by id:
+  #   $statsd.set('visitors.uniques', User.id)
+  def set(stat, value, opts={})
+    send_stats stat, value, :s, opts
+  end
 
   private
 
