@@ -52,6 +52,16 @@ To suggest a feature, report a bug, or general discussion, head over
 [here](http://github.com/DataDog/dogstatsd-ruby/issues/).
 
 
+Change Log
+----------
+
+
+- 1.1.0
+    - Added `sets` metrics.
+- 1.0.0
+    - Initial release.
+
+
 Credits
 -------
 
