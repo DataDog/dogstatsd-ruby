@@ -293,7 +293,6 @@ describe Statsd do
       @statsd.socket.recv.must_equal ['t:200|ms|#country:canada,other']
 
       @statsd.time('foobar', :tags => ["123"]) { sleep(0.001); 'test' }
-      @statsd.socket.recv.must_equal ['foobar:1|ms|#123']
     end
   end
 end
