@@ -13,9 +13,9 @@ Gem::Specification.new do |s|
 
   s.extra_rdoc_files = [
     "LICENSE.txt",
-    "README.rdoc"
+    "README.md"
   ]
-  s.files = Dir["LICENSE.txt", "README.rdoc", "lib/**/*.rb",]
+  s.files = Dir["LICENSE.txt", "README.md", "lib/**/*.rb",]
   s.homepage = "http://github.com/datadog/dogstatsd-ruby"
   s.licenses = ["MIT"]
 
