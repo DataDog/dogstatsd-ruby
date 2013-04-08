@@ -16,10 +16,10 @@ First install the library:
 Then start instrumenting your code:
 
     # Load the dogstats module.
-    require 'statsd'
+    require 'dog_statsd'
 
     # Create a stats instance.
-    statsd = Statsd.new('localhost', 8125)
+    statsd = DogStatsd.new('localhost', 8125)
 
     # Increment a counter.
     statsd.increment('page.views')

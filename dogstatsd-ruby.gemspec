@@ -1,9 +1,9 @@
 $:.unshift File.expand_path("../lib", __FILE__)
-require "statsd"
+require "dog_statsd"
 
 Gem::Specification.new do |s|
   s.name = "dogstatsd-ruby"
-  s.version = Statsd.VERSION
+  s.version = DogStatsd.VERSION
 
   s.authors = ["Rein Henrichs"]
 
