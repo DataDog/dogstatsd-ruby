@@ -14,7 +14,7 @@ require 'socket'
 # @example Create a namespaced statsd client and increment 'account.activate'
 #   statsd = Statsd.new('localhost').tap{|sd| sd.namespace = 'account'}
 #   statsd.increment 'activate'
-class Statsd
+class DogStatsd
   # A namespace to prepend to all statsd calls.
   attr_reader :namespace
 
@@ -175,10 +175,10 @@ class Statsd
   end
 
   def send_to_socket(message)
-    self.class.logger.debug { "Statsd: #{message}" } if self.class.logger
+    self.class.logger.debug { "DogStatsd: #{message}" } if self.class.logger
     @socket.send(message, 0, @host, @port)
   rescue => boom
-    self.class.logger.error { "Statsd: #{boom.class} #{boom}" } if self.class.logger
+    self.class.logger.error { "DogStatsd: #{boom.class} #{boom}" } if self.class.logger
     nil
   end
 end
