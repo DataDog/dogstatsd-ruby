@@ -1,10 +1,10 @@
 PATH
   remote: .
   specs:
-    dogstatsd-ruby (1.0.0)
+    dogstatsd-ruby (1.1.0)
 
 GEM
-  remote: http://rubygems.org/
+  remote: https://rubygems.org/
   specs:
     git (1.2.5)
     jeweler (1.8.3)
