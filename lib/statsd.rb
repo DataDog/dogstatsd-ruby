@@ -24,6 +24,9 @@ class Statsd
   # StatsD port. Defaults to 8125.
   attr_accessor :port
 
+  # Default global tags
+  attr_accessor :tags
+
   class << self
     # Set to a standard logger instance to enable debug logging.
     attr_accessor :logger
@@ -36,10 +39,11 @@ class Statsd
 
   # @param [String] host your statsd host
   # @param [Integer] port your statsd port
-  def initialize(host = '127.0.0.1', port = 8125)
+  def initialize(host = '127.0.0.1', port = 8125, tags = [])
     self.host, self.port = host, port
     @prefix = nil
     @socket = UDPSocket.new
+    @tags = []
   end
 
   def namespace=(namespace) #:nodoc:
@@ -169,7 +173,8 @@ class Statsd
       # Replace Ruby module scoping with '.' and reserved chars (: | @) with underscores.
       stat = stat.to_s.gsub('::', '.').tr(':|@', '_')
       rate = "|@#{sample_rate}" unless sample_rate == 1
-      tags = "|##{opts[:tags].join(",")}" if opts[:tags]
+      ts = tags + (opts[:tags] || [])
+      tags = "|##{ts.join(",")}" unless ts.empty?
       send_to_socket "#{@prefix}#{stat}:#{delta}|#{type}#{rate}#{tags}"
     end
   end
