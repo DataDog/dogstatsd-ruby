@@ -2,7 +2,7 @@
 dogstatsd-ruby
 ==============
 
-A client for DogStatsd, an extension of the Statsd metric server for Datadog.
+A client for DogStatsD, an extension of the StatsD metric server for Datadog.
 
 [![Build Status](https://secure.travis-ci.org/DataDog/dogstatsd-ruby.png)](http://travis-ci.org/DataDog/dogstatsd-ruby)
 
