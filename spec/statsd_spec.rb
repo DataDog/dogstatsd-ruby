@@ -293,6 +293,12 @@ describe Statsd do
 
       @statsd.time('foobar', :tags => ["123"]) { sleep(0.001); 'test' }
     end
+
+    it "global tags" do
+      @statsd.tags = %w(country:usa other)
+      @statsd.increment("c")
+      @statsd.socket.recv.must_equal ['c:1|c|#country:usa,other']
+    end
   end
 end
 
