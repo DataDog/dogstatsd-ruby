@@ -299,6 +299,18 @@ describe Statsd do
       @statsd.increment("c")
       @statsd.socket.recv.must_equal ['c:1|c|#country:usa,other']
     end
+
+    it "global tags and regular tags" do
+      @statsd.tags = %w(country:usa other)
+      @statsd.increment("c", :tags=>%w(somethingelse))
+      @statsd.socket.recv.must_equal ['c:1|c|#country:usa,other,somethingelse']
+    end
+
+    it "nil global tags" do
+      @statsd.tags = nil
+      @statsd.increment("c")
+      @statsd.socket.recv.must_equal ['c:1|c']
+    end
   end
 end
 

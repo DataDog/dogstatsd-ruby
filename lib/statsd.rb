@@ -39,6 +39,7 @@ class Statsd
 
   # @param [String] host your statsd host
   # @param [Integer] port your statsd port
+  # @param [Array<String>] tags tags to be added to every metric
   def initialize(host = '127.0.0.1', port = 8125, tags = [])
     self.host, self.port = host, port
     @prefix = nil
@@ -173,7 +174,7 @@ class Statsd
       # Replace Ruby module scoping with '.' and reserved chars (: | @) with underscores.
       stat = stat.to_s.gsub('::', '.').tr(':|@', '_')
       rate = "|@#{sample_rate}" unless sample_rate == 1
-      ts = tags + (opts[:tags] || [])
+      ts = (tags || []) + (opts[:tags] || [])
       tags = "|##{ts.join(",")}" unless ts.empty?
       send_to_socket "#{@prefix}#{stat}:#{delta}|#{type}#{rate}#{tags}"
     end
