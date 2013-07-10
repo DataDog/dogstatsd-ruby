@@ -58,6 +58,7 @@ Change Log
 
 - 1.2.0
     - Added global tags.
+    - Added ability to set `namespace` and `tags` from `Statsd#initialize`.
 - 1.1.0
     - Added `sets` metrics.
 - 1.0.0
