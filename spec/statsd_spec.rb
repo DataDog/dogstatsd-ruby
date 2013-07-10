@@ -20,10 +20,18 @@ describe Statsd do
       @statsd.port.must_equal 1234
     end
 
-    it "should default the host to 127.0.0.1 and port to 8125" do
+    it "should default the host to 127.0.0.1, port to 8125, and tags to []" do
       statsd = Statsd.new
       statsd.host.must_equal '127.0.0.1'
       statsd.port.must_equal 8125
+      statsd.tags.must_equal []
+    end
+
+    it 'should be able to set host, port, and global tags' do
+      statsd = Statsd.new '1.3.3.7', 8126, :tags => %w(global)
+      statsd.host.must_equal '1.3.3.7'
+      statsd.port.must_equal 8126
+      statsd.tags.must_equal ['global']
     end
   end
 
@@ -294,13 +302,13 @@ describe Statsd do
       @statsd.time('foobar', :tags => ["123"]) { sleep(0.001); 'test' }
     end
 
-    it "global tags" do
+    it "global tags setter" do
       @statsd.tags = %w(country:usa other)
       @statsd.increment("c")
       @statsd.socket.recv.must_equal ['c:1|c|#country:usa,other']
     end
 
-    it "global tags and regular tags" do
+    it "global tags setter and regular tags" do
       @statsd.tags = %w(country:usa other)
       @statsd.increment("c", :tags=>%w(somethingelse))
       @statsd.socket.recv.must_equal ['c:1|c|#country:usa,other,somethingelse']

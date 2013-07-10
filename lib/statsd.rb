@@ -14,8 +14,10 @@ require 'socket'
 # @example Create a namespaced statsd client and increment 'account.activate'
 #   statsd = Statsd.new('localhost').tap{|sd| sd.namespace = 'account'}
 #   statsd.increment 'activate'
+# @example Create a statsd client with global tags
+#   statsd = Statsd.new 'localhost', 8125, :tags => 'tag1:true'
 class Statsd
-  # A namespace to prepend to all statsd calls.
+  # A namespace to prepend to all statsd calls. Defaults to no namespace.
   attr_reader :namespace
 
   # StatsD host. Defaults to 127.0.0.1.
@@ -24,7 +26,7 @@ class Statsd
   # StatsD port. Defaults to 8125.
   attr_accessor :port
 
-  # Default global tags
+  # Global tags to be added to every statsd call. Defaults to no tags.
   attr_accessor :tags
 
   class << self
@@ -39,12 +41,12 @@ class Statsd
 
   # @param [String] host your statsd host
   # @param [Integer] port your statsd port
-  # @param [Array<String>] tags tags to be added to every metric
-  def initialize(host = '127.0.0.1', port = 8125, tags = [])
+  # @option opts [Array<String>] :tags tags to be added to every metric
+  def initialize(host = '127.0.0.1', port = 8125, opts = {})
     self.host, self.port = host, port
     @prefix = nil
     @socket = UDPSocket.new
-    @tags = []
+    self.tags = opts[:tags]
   end
 
   def namespace=(namespace) #:nodoc:
@@ -58,6 +60,10 @@ class Statsd
 
   def port=(port) #:nodoc:
     @port = port || 8125
+  end
+
+  def tags=(tags) #:nodoc:
+    @tags = tags || []
   end
 
   # Sends an increment (count = 1) for the given stat to the statsd server.
