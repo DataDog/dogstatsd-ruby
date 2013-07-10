@@ -56,6 +56,8 @@ Change Log
 ----------
 
 
+- 1.2.0
+    - Added global tags.
 - 1.1.0
     - Added `sets` metrics.
 - 1.0.0
