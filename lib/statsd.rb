@@ -17,6 +17,10 @@ require 'socket'
 # @example Create a statsd client with global tags
 #   statsd = Statsd.new 'localhost', 8125, :tags => 'tag1:true'
 class Statsd
+
+  DEFAULT_HOST = '127.0.0.1'
+  DEFAULT_PORT = 8125
+
   # A namespace to prepend to all statsd calls. Defaults to no namespace.
   attr_reader :namespace
 
@@ -43,7 +47,7 @@ class Statsd
   # @param [Integer] port your statsd port
   # @option opts [String] :namespace set a namespace to be prepended to every metric name
   # @option opts [Array<String>] :tags tags to be added to every metric
-  def initialize(host = '127.0.0.1', port = 8125, opts = {})
+  def initialize(host = DEFAULT_HOST, port = DEFAULT_PORT, opts = {})
     self.host, self.port = host, port
     @prefix = nil
     @socket = UDPSocket.new
