@@ -12,7 +12,7 @@ require 'socket'
 # @example Use {#time} to time the execution of a block
 #   $statsd.time('account.activate') { @account.activate! }
 # @example Create a namespaced statsd client and increment 'account.activate'
-#   statsd = Statsd.new('localhost').tap{|sd| sd.namespace = 'account'}
+#   statsd = Statsd.new 'localhost', 8125, :namespace => 'account'
 #   statsd.increment 'activate'
 # @example Create a statsd client with global tags
 #   statsd = Statsd.new 'localhost', 8125, :tags => 'tag1:true'
@@ -41,17 +41,19 @@ class Statsd
 
   # @param [String] host your statsd host
   # @param [Integer] port your statsd port
+  # @option opts [String] :namespace set a namespace to be prepended to every metric name
   # @option opts [Array<String>] :tags tags to be added to every metric
   def initialize(host = '127.0.0.1', port = 8125, opts = {})
     self.host, self.port = host, port
     @prefix = nil
     @socket = UDPSocket.new
+    self.namespace = opts[:namespace]
     self.tags = opts[:tags]
   end
 
   def namespace=(namespace) #:nodoc:
     @namespace = namespace
-    @prefix = "#{namespace}."
+    @prefix = namespace.nil? ? nil : "#{namespace}."
   end
 
   def host=(host) #:nodoc:

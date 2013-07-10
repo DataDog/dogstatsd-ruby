@@ -20,17 +20,19 @@ describe Statsd do
       @statsd.port.must_equal 1234
     end
 
-    it "should default the host to 127.0.0.1, port to 8125, and tags to []" do
+    it "should default the host to 127.0.0.1, port to 8125, namespace to nil, and tags to []" do
       statsd = Statsd.new
       statsd.host.must_equal '127.0.0.1'
       statsd.port.must_equal 8125
+      statsd.namespace.must_equal nil
       statsd.tags.must_equal []
     end
 
-    it 'should be able to set host, port, and global tags' do
-      statsd = Statsd.new '1.3.3.7', 8126, :tags => %w(global)
+    it 'should be able to set host, port, namespace, and global tags' do
+      statsd = Statsd.new '1.3.3.7', 8126, :tags => %w(global), :namespace => 'space'
       statsd.host.must_equal '1.3.3.7'
       statsd.port.must_equal 8126
+      statsd.namespace.must_equal 'space'
       statsd.tags.must_equal ['global']
     end
   end
