@@ -25,13 +25,13 @@ class Statsd
   attr_reader :namespace
 
   # StatsD host. Defaults to 127.0.0.1.
-  attr_accessor :host
+  attr_reader :host
 
   # StatsD port. Defaults to 8125.
-  attr_accessor :port
+  attr_reader :port
 
   # Global tags to be added to every statsd call. Defaults to no tags.
-  attr_accessor :tags
+  attr_reader :tags
 
   class << self
     # Set to a standard logger instance to enable debug logging.

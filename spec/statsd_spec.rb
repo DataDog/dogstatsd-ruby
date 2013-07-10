@@ -33,16 +33,22 @@ describe Statsd do
       statsd.host.must_equal '1.3.3.7'
       statsd.port.must_equal 8126
       statsd.namespace.must_equal 'space'
+      statsd.instance_variable_get('@prefix').must_equal 'space.'
       statsd.tags.must_equal ['global']
     end
   end
 
-  describe "#host and #port" do
-    it "should set host and port" do
+  describe "writers" do
+    it "should set host, port, namespace, and global tags" do
       @statsd.host = '1.2.3.4'
       @statsd.port = 5678
+      @statsd.namespace = 'n4m35p4c3'
+      @statsd.tags = 't4g5'
+
       @statsd.host.must_equal '1.2.3.4'
       @statsd.port.must_equal 5678
+      @statsd.namespace.must_equal 'n4m35p4c3'
+      @statsd.tags.must_equal 't4g5'
     end
 
     it "should not resolve hostnames to IPs" do
@@ -58,6 +64,17 @@ describe Statsd do
     it "should set nil port to default" do
       @statsd.port = nil
       @statsd.port.must_equal 8125
+    end
+
+    it 'should set prefix to nil when namespace is set to nil' do
+      @statsd.namespace = nil
+      @statsd.namespace.must_equal nil
+      @statsd.instance_variable_get('@prefix').must_equal nil
+    end
+
+    it 'should set nil tags to default' do
+      @statsd.tags = nil
+      @statsd.tags.must_equal []
     end
   end
 
