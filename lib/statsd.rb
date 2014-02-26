@@ -178,9 +178,6 @@ class Statsd
     send_stats stat, value, :s, opts
   end
 
-  def _escape_event_content(string)
-    string = string.to_s.gsub("\n", "\\n")
-  end
   # This end point allows you to post events to the stream. You can tag them, set priority and even aggregate them with other events.
   #
   # Aggregation in the stream is made on hostname/event_type/source_type/aggregation_key.
@@ -188,7 +185,7 @@ class Statsd
   # it will be grouped with other events that don't have an event type.
   #
   # @param [String] title Event title
-  # @param [String] text Event text. Supports /n
+  # @param [String] text Event text. Supports \n
   # @param [Hash] opts the additional data about the event
   # @option opts [Time, nil] :date_happened (nil) Assign a timestamp to the event. Default is now when none
   # @option opts [String, nil] :hostname (nil) Assign a hostname to the event.
@@ -200,43 +197,44 @@ class Statsd
   # @example Report an aweful event:
   #   $statsd.event('Something terrible happened', 'The end is near if we do nothing', :alert_type=>'warning', :tags=>['end_of_times','urgent'])
   def event(title, text, opts={})
-    title = _escape_event_content title
-    text = _escape_event_content text
-    string = "_e{#{title.length},#{text.length}}:#{title}|#{text}"
+    escape_event_content title
+    escape_event_content text
+    event_string_data = "_e{#{title.length},#{text.length}}:#{title}|#{text}"
+
     date_happened = opts[:date_happened] || nil
-    if date_happened
-      string = "#{string}|d:#{date_happened}"
-    end
+    event_string_data << "|d:#{date_happened}" if date_happened
+
     hostname = opts[:hostname] || nil
-    if hostname
-      string = "#{string}|h:#{hostname}"
-    end
+    event_string_data << "|h:#{hostname}" if hostname
+
     aggregation_key = opts[:aggregation_key] || nil
-    if aggregation_key
-      string = "#{string}|k:#{aggregation_key}"
-    end
+    event_string_data << "|k:#{aggregation_key}" if aggregation_key
+
     priority = opts[:priority] || nil
-    if priority
-      string = "#{string}|p:#{priority}"
-    end
+    event_string_data << "|p:#{priority}" if priority
+
     source_type_name = opts[:source_type_name] || nil
-    if source_type_name
-      string = "#{string}|s:#{source_type_name}"
-    end
+    event_string_data << "|s:#{source_type_name}" if source_type_name
+
     alert_type = opts[:alert_type] || nil
-    if alert_type
-      string = "#{string}|t:#{alert_type}"
-    end
+    event_string_data << "|t:#{alert_type}" if alert_type
+
     tags = opts[:tags] || nil
     if tags
       tags = "#{tags.join(",")}" unless tags.empty?
-      string = "#{string}|##{tags}"
+      event_string_data << "|##{tags}"
     end
-    puts string
-    send_to_socket string
+
+    raise "Event #{title} payload is too big (more that 8KB), event discarded" if event_string_data.length > 8 * 1024
+
+    send_to_socket event_string_data
   end
 
   private
+
+  def escape_event_content(msg)
+    msg = msg.to_s.gsub("\n", "\\n")
+  end
 
   def send_stats(stat, delta, type, opts={})
     sample_rate = opts[:sample_rate] || 1
