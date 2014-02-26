@@ -112,7 +112,7 @@ class Statsd
   # counters.
   #
   # @param [String] stat stat name.
-  # @param [Numeric] gauge value.
+  # @param [Numeric] value gauge value.
   # @param [Hash] opts the options to create the metric with
   # @option opts [Numeric] :sample_rate sample rate, 1 for always
   # @option opts [Array<String>] :tags An array of tags
@@ -125,7 +125,7 @@ class Statsd
   # Sends a value to be tracked as a histogram to the statsd server.
   #
   # @param [String] stat stat name.
-  # @param [Numeric] histogram value.
+  # @param [Numeric] value histogram value.
   # @param [Hash] opts the options to create the metric with
   # @option opts [Numeric] :sample_rate sample rate, 1 for always
   # @option opts [Array<String>] :tags An array of tags
@@ -168,7 +168,7 @@ class Statsd
   # Sends a value to be tracked as a set to the statsd server.
   #
   # @param [String] stat stat name.
-  # @param [Numeric] set value.
+  # @param [Numeric] value set value.
   # @param [Hash] opts the options to create the metric with
   # @option opts [Numeric] :sample_rate sample rate, 1 for always
   # @option opts [Array<String>] :tags An array of tags
@@ -176,6 +176,64 @@ class Statsd
   #   $statsd.set('visitors.uniques', User.id)
   def set(stat, value, opts={})
     send_stats stat, value, :s, opts
+  end
+
+  def _escape_event_content(string)
+    string = string.to_s.gsub("\n", "\\n")
+  end
+  # This end point allows you to post events to the stream. You can tag them, set priority and even aggregate them with other events.
+  #
+  # Aggregation in the stream is made on hostname/event_type/source_type/aggregation_key.
+  # If there's no event type, for example, then that won't matter;
+  # it will be grouped with other events that don't have an event type.
+  #
+  # @param [String] title Event title
+  # @param [String] text Event text. Supports /n
+  # @param [Hash] opts the additional data about the event
+  # @option opts [Time, nil] :date_happened (nil) Assign a timestamp to the event. Default is now when none
+  # @option opts [String, nil] :hostname (nil) Assign a hostname to the event.
+  # @option opts [String, nil] :aggregation_key (nil) Assign an aggregation key to the event, to group it with some others
+  # @option opts [String, nil] :priority ('normal') Can be "normal" or "low"
+  # @option opts [String, nil] :source_type_name (nil) Assign a source type to the event
+  # @option opts [String, nil] :alert_type ('info') Can be "error", "warning", "info" or "success".
+  # @option opts [Array<String>, nil] :source_type_name (nil) An array of tags
+  # @example Report an aweful event:
+  #   $statsd.event('Something terrible happened', 'The end is near if we do nothing', :alert_type=>'warning', :tags=>['end_of_times','urgent'])
+  def event(title, text, opts={})
+    title = _escape_event_content title
+    text = _escape_event_content text
+    string = "_e{#{title.length},#{text.length}}:#{title}|#{text}"
+    date_happened = opts[:date_happened] || nil
+    if date_happened
+      string = "#{string}|d:#{date_happened}"
+    end
+    hostname = opts[:hostname] || nil
+    if hostname
+      string = "#{string}|h:#{hostname}"
+    end
+    aggregation_key = opts[:aggregation_key] || nil
+    if aggregation_key
+      string = "#{string}|k:#{aggregation_key}"
+    end
+    priority = opts[:priority] || nil
+    if priority
+      string = "#{string}|p:#{priority}"
+    end
+    source_type_name = opts[:source_type_name] || nil
+    if source_type_name
+      string = "#{string}|s:#{source_type_name}"
+    end
+    alert_type = opts[:alert_type] || nil
+    if alert_type
+      string = "#{string}|t:#{alert_type}"
+    end
+    tags = opts[:tags] || nil
+    if tags
+      tags = "#{tags.join(",")}" unless tags.empty?
+      string = "#{string}|##{tags}"
+    end
+    puts string
+    send_to_socket string
   end
 
   private

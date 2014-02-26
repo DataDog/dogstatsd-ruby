@@ -339,6 +339,16 @@ describe Statsd do
       @statsd.socket.recv.must_equal ['c:1|c']
     end
   end
+  describe "#event" do
+    it "First simple test with line break to be handled" do
+      @statsd.event('Title_test', 'Text_test \n second line')
+      @statsd.socket.recv.must_equal ['_e{10,24}:Title_test|Text_test \n second line']
+    end
+    it "Test with several tags" do
+      @statsd.event('Title_test', 'Text_test', :tags => %w(tag_test_1 tag_test_2))
+      @statsd.socket.recv.must_equal ['_e{10,9}:Title_test|Text_test|#tag_test_1,tag_test_2']
+    end
+  end
 end
 
 describe Statsd do
