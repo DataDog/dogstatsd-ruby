@@ -201,25 +201,24 @@ class Statsd
     escape_event_content text
     event_string_data = "_e{#{title.length},#{text.length}}:#{title}|#{text}"
 
-    date_happened = opts[:date_happened] || nil
-    event_string_data << "|d:#{date_happened}" if date_happened
-
-    hostname = opts[:hostname] || nil
-    event_string_data << "|h:#{hostname}" if hostname
-
-    aggregation_key = opts[:aggregation_key] || nil
-    event_string_data << "|k:#{aggregation_key}" if aggregation_key
-
-    priority = opts[:priority] || nil
-    event_string_data << "|p:#{priority}" if priority
-
-    source_type_name = opts[:source_type_name] || nil
-    event_string_data << "|s:#{source_type_name}" if source_type_name
-
-    alert_type = opts[:alert_type] || nil
-    event_string_data << "|t:#{alert_type}" if alert_type
-
+    # Create a dictionary to assign a key to every parameter's name, except for tags (treated differently)
+    # Goal: Simple and fast to add some other parameters
+    opt_keys = {
+      'date_happened' => 'd',
+      'hostname' => 'h',
+      'aggregation_key' => 'k',
+      'priority' => 'p',
+      'source_type_name' => 's',
+      'alert_type' => 't',
+    }
+    # We construct the string to be sent by adding '|key:value' parts to it when needed
+    opt_keys.each do |name,key|
+      if name != 'tags'
+        event_string_data << "|#{key}:#{opts[name.to_sym]}" if opts[name.to_sym]
+      end
+    end
     tags = opts[:tags] || nil
+    # Tags are joined and added as last part to the string to be sent
     if tags
       tags = "#{tags.join(",")}" unless tags.empty?
       event_string_data << "|##{tags}"
