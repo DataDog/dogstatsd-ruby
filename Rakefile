@@ -1,5 +1,4 @@
 require 'rubygems'
-require 'yard'
 require 'rake/testtask'
 require 'bundler'
 
@@ -11,6 +10,13 @@ Rake::TestTask.new(:spec) do |spec|
   spec.verbose = true
 end
 
-YARD::Rake::YardocTask.new
+begin
+  require 'yard'
+rescue LoadError
+else
+  namespace :build do
+    YARD::Rake::YardocTask.new :doc
+  end
+end
 
 Bundler::GemHelper.install_tasks
