@@ -343,7 +343,7 @@ describe Statsd do
     nb_tests = 100
     for i in 00..nb_tests
       title = Faker::Lorem.sentence(word_count = 10 * rand(3))
-      text = Faker::Lorem.paragraph(sentence_count = 10 * rand(5))
+      text = Faker::Lorem.paragraph(sentence_count = rand(5))
       title_len = title.length
       text_len = text.length
       nb_tags = 10 * rand(2)
