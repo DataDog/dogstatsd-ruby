@@ -227,12 +227,13 @@ class Statsd
     raise "Event #{title} payload is too big (more that 8KB), event discarded" if event_string_data.length > 8 * 1024
 
     send_to_socket event_string_data
+    puts event_string_data
   end
 
   private
 
   def escape_event_content(msg)
-    msg = msg.to_s.gsub("\n", "\\n")
+    msg = msg.sub! "\n", "\\n"
   end
 
   def send_stats(stat, delta, type, opts={})
