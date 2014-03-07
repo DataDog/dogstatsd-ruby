@@ -43,9 +43,12 @@ end
 text_index = ' Agent submit'
 test_text = "Test#{text_index}"
 sleep_time = 10
+nb_events = 4
 j = 0
 while true
-	statsd.event("Ruby Title #{j} #{test_text}", "Ruby Text #{j} #{test_text}", :hostname => hostnames.sample, :aggregation_key => aggregation_keys.sample, :priority => prioritys.sample,:alert_type => alert_types.sample, :tags => [tagss.sample,tagss.sample])
+	for i in 0..nb_events
+		statsd.event("Title #{i} #{test_text}", "Ruby Text #{j} #{test_text}", :hostname => hostnames.sample, :aggregation_key => aggregation_keys.sample, :priority => prioritys.sample,:alert_type => alert_types.sample, :tags => [tagss.sample,tagss.sample])
+	end
 	j = j + 1
 	sleep(sleep_time)
 end
