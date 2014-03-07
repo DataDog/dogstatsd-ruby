@@ -209,12 +209,21 @@ class Statsd
       'aggregation_key' => 'k',
       'priority' => 'p',
       'source_type_name' => 's',
-      'alert_type' => 't',
+      'alert_type' => 't'
     }
+    # Array with names because opt_keys is a hash and an iteration on it would be done in a random order
+    opt_names = [
+      'date_happened',
+      'hostname',
+      'aggregation_key',
+      'priority',
+      'source_type_name',
+      'alert_type',
+    ]
     # We construct the string to be sent by adding '|key:value' parts to it when needed
-    opt_keys.each do |name,key|
+    opt_names.each do |name|
       if name != 'tags'
-        event_string_data << "|#{key}:#{opts[name.to_sym]}" if opts[name.to_sym]
+        event_string_data << "|#{opt_keys[name]}:#{opts[name.to_sym]}" if opts[name.to_sym]
       end
     end
     tags = opts[:tags] || nil
