@@ -365,7 +365,7 @@ describe Statsd do
         @statsd.socket.recv.must_equal ["_e{#{title_break_line.length},#{text_break_line.length}}:#{title_break_line}|#{text_break_line}"]
       end
       it "Event data string too long > 8KB" do
-        long_text = "#{text} " * 2000
+        long_text = "#{text} " * 200000
         proc {@statsd.event(title, long_text)}.must_raise RuntimeError
       end
       it "With known alert_type" do
