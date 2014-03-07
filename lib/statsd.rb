@@ -211,15 +211,6 @@ class Statsd
       'source_type_name' => 's',
       'alert_type' => 't'
     }
-    # Array with names because opt_keys is a hash and an iteration on it would be done in a random order
-    opt_names = [
-      'date_happened',
-      'hostname',
-      'aggregation_key',
-      'priority',
-      'source_type_name',
-      'alert_type',
-    ]
     # We construct the string to be sent by adding '|key:value' parts to it when needed
     sorted_opt_keys = opt_keys.sort_by {|name,key| key}
     sorted_opt_keys.each do |name,key|
