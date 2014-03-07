@@ -212,8 +212,7 @@ class Statsd
       'alert_type' => 't'
     }
     # We construct the string to be sent by adding '|key:value' parts to it when needed
-    sorted_opt_keys = opt_keys.sort_by {|name,key| key}
-    sorted_opt_keys.each do |name,key|
+    opt_keys.sort_by { |name, key| key }.each do |name, key|
       if name != 'tags'
         event_string_data << "|#{key}:#{opts[name.to_sym]}" if opts[name.to_sym]
       end
