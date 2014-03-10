@@ -21,8 +21,7 @@ hostnames = Array.new
 
 # Generate random or nil values for every type of parameter
 # ONLY VALID VALUES (alert_type for instance only accepts a certain range of values)
-nb = 20
-for i in 0..nb
+20.times do |i|
 	titles.push("Title_#{i}")
 	texts.push("Text_#{i}")
 	tagss.push("tag_#{i}")

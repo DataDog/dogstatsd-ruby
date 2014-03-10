@@ -21,6 +21,17 @@ class Statsd
   DEFAULT_HOST = '127.0.0.1'
   DEFAULT_PORT = 8125
 
+  # Create a dictionary to assign a key to every parameter's name, except for tags (treated differently)
+  # Goal: Simple and fast to add some other parameters
+  OPTS_KEYS = [
+        ['date_happened', 'd'],
+        ['hostname', 'h'],
+        ['aggregation_key', 'k'],
+        ['priority', 'p'],
+        ['source_type_name', 's'],
+        ['alert_type', 't']
+  ]
+
   # A namespace to prepend to all statsd calls. Defaults to no namespace.
   attr_reader :namespace
 
@@ -201,20 +212,11 @@ class Statsd
     escape_event_content text
     event_string_data = "_e{#{title.length},#{text.length}}:#{title}|#{text}"
 
-    # Create a dictionary to assign a key to every parameter's name, except for tags (treated differently)
-    # Goal: Simple and fast to add some other parameters
-    opt_keys = {
-      'date_happened' => 'd',
-      'hostname' => 'h',
-      'aggregation_key' => 'k',
-      'priority' => 'p',
-      'source_type_name' => 's',
-      'alert_type' => 't'
-    }
     # We construct the string to be sent by adding '|key:value' parts to it when needed
-    opt_keys.sort_by { |name, key| key }.each do |name, key|
-      if name != 'tags'
-        event_string_data << "|#{key}:#{opts[name.to_sym]}" if opts[name.to_sym]
+    OPTS_KEYS.each do |name_key|
+      if name_key[0] != 'tags' && opts[name_key[0].to_sym]
+        value = opts[name_key[0].to_sym]
+        event_string_data << "|#{name_key[1]}:#{value}"
       end
     end
     tags = opts[:tags] || nil
