@@ -213,15 +213,20 @@ class Statsd
     event_string_data = "_e{#{title.length},#{text.length}}:#{title}|#{text}"
 
     # We construct the string to be sent by adding '|key:value' parts to it when needed
+    # All pipes ('|') in the metada are removed. Title and Text can keep theirs
     OPTS_KEYS.each do |name_key|
       if name_key[0] != 'tags' && opts[name_key[0].to_sym]
         value = opts[name_key[0].to_sym]
+        rm_pipes value
         event_string_data << "|#{name_key[1]}:#{value}"
       end
     end
     tags = opts[:tags] || nil
     # Tags are joined and added as last part to the string to be sent
     if tags
+      tags.each do |tag|
+        rm_pipes tag
+      end
       tags = "#{tags.join(",")}" unless tags.empty?
       event_string_data << "|##{tags}"
     end
@@ -229,12 +234,16 @@ class Statsd
     raise "Event #{title} payload is too big (more that 8KB), event discarded" if event_string_data.length > 8 * 1024
 
     send_to_socket event_string_data
+    puts event_string_data
   end
 
   private
 
   def escape_event_content(msg)
     msg = msg.sub! "\n", "\\n"
+  end
+  def rm_pipes(msg)
+    msg = msg.sub! "|", ""
   end
 
   def send_stats(stat, delta, type, opts={})
