@@ -21,6 +21,17 @@ class Statsd
   DEFAULT_HOST = '127.0.0.1'
   DEFAULT_PORT = 8125
 
+  # Create a dictionary to assign a key to every parameter's name, except for tags (treated differently)
+  # Goal: Simple and fast to add some other parameters
+  OPTS_KEYS = [
+        ['date_happened', 'd'],
+        ['hostname', 'h'],
+        ['aggregation_key', 'k'],
+        ['priority', 'p'],
+        ['source_type_name', 's'],
+        ['alert_type', 't']
+  ]
+
   # A namespace to prepend to all statsd calls. Defaults to no namespace.
   attr_reader :namespace
 
@@ -112,7 +123,7 @@ class Statsd
   # counters.
   #
   # @param [String] stat stat name.
-  # @param [Numeric] gauge value.
+  # @param [Numeric] value gauge value.
   # @param [Hash] opts the options to create the metric with
   # @option opts [Numeric] :sample_rate sample rate, 1 for always
   # @option opts [Array<String>] :tags An array of tags
@@ -125,7 +136,7 @@ class Statsd
   # Sends a value to be tracked as a histogram to the statsd server.
   #
   # @param [String] stat stat name.
-  # @param [Numeric] histogram value.
+  # @param [Numeric] value histogram value.
   # @param [Hash] opts the options to create the metric with
   # @option opts [Numeric] :sample_rate sample rate, 1 for always
   # @option opts [Array<String>] :tags An array of tags
@@ -168,7 +179,7 @@ class Statsd
   # Sends a value to be tracked as a set to the statsd server.
   #
   # @param [String] stat stat name.
-  # @param [Numeric] set value.
+  # @param [Numeric] value set value.
   # @param [Hash] opts the options to create the metric with
   # @option opts [Numeric] :sample_rate sample rate, 1 for always
   # @option opts [Array<String>] :tags An array of tags
@@ -178,7 +189,64 @@ class Statsd
     send_stats stat, value, :s, opts
   end
 
+  # This end point allows you to post events to the stream. You can tag them, set priority and even aggregate them with other events.
+  #
+  # Aggregation in the stream is made on hostname/event_type/source_type/aggregation_key.
+  # If there's no event type, for example, then that won't matter;
+  # it will be grouped with other events that don't have an event type.
+  #
+  # @param [String] title Event title
+  # @param [String] text Event text. Supports \n
+  # @param [Hash] opts the additional data about the event
+  # @option opts [Time, nil] :date_happened (nil) Assign a timestamp to the event. Default is now when none
+  # @option opts [String, nil] :hostname (nil) Assign a hostname to the event.
+  # @option opts [String, nil] :aggregation_key (nil) Assign an aggregation key to the event, to group it with some others
+  # @option opts [String, nil] :priority ('normal') Can be "normal" or "low"
+  # @option opts [String, nil] :source_type_name (nil) Assign a source type to the event
+  # @option opts [String, nil] :alert_type ('info') Can be "error", "warning", "info" or "success".
+  # @option opts [Array<String>, nil] :source_type_name (nil) An array of tags
+  # @example Report an aweful event:
+  #   $statsd.event('Something terrible happened', 'The end is near if we do nothing', :alert_type=>'warning', :tags=>['end_of_times','urgent'])
+  def event(title, text, opts={})
+    event_string = format_event(title, text, opts)
+    raise "Event #{title} payload is too big (more that 8KB), event discarded" if event_string.length > 8 * 1024
+
+    send_to_socket event_string
+  end
+  def format_event(title, text, opts={})
+    escape_event_content title
+    escape_event_content text
+    event_string_data = "_e{#{title.length},#{text.length}}:#{title}|#{text}"
+
+    # We construct the string to be sent by adding '|key:value' parts to it when needed
+    # All pipes ('|') in the metada are removed. Title and Text can keep theirs
+    OPTS_KEYS.each do |name_key|
+      if name_key[0] != 'tags' && opts[name_key[0].to_sym]
+        value = opts[name_key[0].to_sym]
+        rm_pipes value
+        event_string_data << "|#{name_key[1]}:#{value}"
+      end
+    end
+    tags = opts[:tags] || nil
+    # Tags are joined and added as last part to the string to be sent
+    if tags
+      tags.each do |tag|
+        rm_pipes tag
+      end
+      tags = "#{tags.join(",")}" unless tags.empty?
+      event_string_data << "|##{tags}"
+    end
+
+    raise "Event #{title} payload is too big (more that 8KB), event discarded" if event_string_data.length > 8 * 1024
+    return event_string_data
+  end
   private
+  def escape_event_content(msg)
+    msg = msg.sub! "\n", "\\n"
+  end
+  def rm_pipes(msg)
+    msg = msg.sub! "|", ""
+  end
 
   def send_stats(stat, delta, type, opts={})
     sample_rate = opts[:sample_rate] || 1
