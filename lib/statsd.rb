@@ -208,6 +208,12 @@ class Statsd
   # @example Report an aweful event:
   #   $statsd.event('Something terrible happened', 'The end is near if we do nothing', :alert_type=>'warning', :tags=>['end_of_times','urgent'])
   def event(title, text, opts={})
+    event_string = format_event(title, text, opts)
+    raise "Event #{title} payload is too big (more that 8KB), event discarded" if event_string.length > 8 * 1024
+
+    send_to_socket event_string
+  end
+  def format_event(title, text, opts={})
     escape_event_content title
     escape_event_content text
     event_string_data = "_e{#{title.length},#{text.length}}:#{title}|#{text}"
@@ -232,13 +238,9 @@ class Statsd
     end
 
     raise "Event #{title} payload is too big (more that 8KB), event discarded" if event_string_data.length > 8 * 1024
-
-    send_to_socket event_string_data
-    puts event_string_data
+    return event_string_data
   end
-
   private
-
   def escape_event_content(msg)
     msg = msg.sub! "\n", "\\n"
   end

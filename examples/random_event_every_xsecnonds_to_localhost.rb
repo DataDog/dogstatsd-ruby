@@ -40,7 +40,7 @@ end
 
 # Create several events that use random values from the sets of values created above, every sleep_time seconds
 text_index = ' Agent submit'
-test_text = "Test#{text_index}"
+test_text = "Test#{text_index} \n 2nd line"
 sleep_time = 10
 nb_events = 4
 j = 0
