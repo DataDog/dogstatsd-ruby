@@ -1,6 +1,8 @@
 source 'https://rubygems.org'
 gemspec
 
+gem 'rake', '10.1.0'
+
 group :development do
   gem "faker", "~> 1.2.0"
 end
