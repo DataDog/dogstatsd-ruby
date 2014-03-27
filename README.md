@@ -57,7 +57,8 @@ To suggest a feature, report a bug, or general discussion, head over
 Change Log
 ----------
 
-
+- 1.3.0
+    - Added support for submitting events.
 - 1.2.0
     - Added global tags.
     - Added ability to set `namespace` and `tags` from `Statsd#initialize`.
