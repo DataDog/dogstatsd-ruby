@@ -40,6 +40,20 @@ end
 statsd.histogram('query.time', 10, :tags => ["version:1"])
 ```
 
+You can also post events to your stream. You can tag them, set priority and even aggregate them with other events.
+
+Aggregation in the stream is made on hostname/event_type/source_type/aggregation_key.
+
+``` ruby
+# Post a simple message
+statsd.event("There might be a storm tomorrow", "A friend warned me earlier.")
+
+# Cry for help
+statsd.event("SO MUCH SNOW", "Started yesterday and it won't stop !!", :alert_type => "error", :tags => ["urgent", "endoftheworld"])
+```
+
+
+
 Documentation
 -------------
 
