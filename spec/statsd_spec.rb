@@ -339,6 +339,37 @@ describe Statsd do
       @statsd.socket.recv.must_equal ['c:1|c']
     end
   end
+
+  describe "batched" do
+
+      it "should allow to send single sample in one packet" do
+        @statsd.batch do
+            @statsd.increment("mycounter")
+        end
+        @statsd.socket.recv.must_equal ['mycounter:1|c']
+      end
+
+      it "should allow to send multiple sample in one packet" do
+        @statsd.batch do
+            @statsd.increment("mycounter")
+            @statsd.decrement("myothercounter")
+        end
+        @statsd.socket.recv.must_equal ['mycounter:1|c\nmyothercounter:-1|c']
+      end
+
+      it "should default back to single metric packet after the block" do
+        @statsd.batch do
+            @statsd.gauge("mygauge", 10)
+            @statsd.gauge("myothergauge", 20)
+        end
+        @statsd.increment("mycounter")
+        @statsd.increment("myothercounter")
+        @statsd.socket.recv.must_equal ['mygauge:10|g\nmyothergauge:20|g']
+        @statsd.socket.recv.must_equal ['mycounter:1|c']
+        @statsd.socket.recv.must_equal ['myothercounter:1|c']
+      end
+  end
+
   describe "#event" do
     nb_tests = 10
     for i in 00..nb_tests
