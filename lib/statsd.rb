@@ -44,6 +44,10 @@ class Statsd
   # Global tags to be added to every statsd call. Defaults to no tags.
   attr_reader :tags
 
+  attr_reader :buffer
+
+  attr_accessor :max_buffer_size
+
   class << self
     # Set to a standard logger instance to enable debug logging.
     attr_accessor :logger
@@ -58,12 +62,15 @@ class Statsd
   # @param [Integer] port your statsd port
   # @option opts [String] :namespace set a namespace to be prepended to every metric name
   # @option opts [Array<String>] :tags tags to be added to every metric
-  def initialize(host = DEFAULT_HOST, port = DEFAULT_PORT, opts = {})
+  def initialize(host = DEFAULT_HOST, port = DEFAULT_PORT, opts = {}, max_buffer_size=50)
     self.host, self.port = host, port
     @prefix = nil
     @socket = UDPSocket.new
     self.namespace = opts[:namespace]
     self.tags = opts[:tags]
+    @buffer = Array.new
+    self.max_buffer_size = max_buffer_size
+    alias :send :send_to_socket
   end
 
   def namespace=(namespace) #:nodoc:
@@ -213,6 +220,14 @@ class Statsd
 
     send_to_socket event_string
   end
+
+  def batch()
+    alias :send :send_to_buffer
+    yield
+    flush_buffer
+    alias :send :send_to_socket
+  end
+
   def format_event(title, text, opts={})
     escape_event_content title
     escape_event_content text
@@ -256,8 +271,20 @@ class Statsd
       rate = "|@#{sample_rate}" unless sample_rate == 1
       ts = (tags || []) + (opts[:tags] || [])
       tags = "|##{ts.join(",")}" unless ts.empty?
-      send_to_socket "#{@prefix}#{stat}:#{delta}|#{type}#{rate}#{tags}"
+      send "#{@prefix}#{stat}:#{delta}|#{type}#{rate}#{tags}"
     end
+  end
+
+  def send_to_buffer(message)
+    @buffer << message
+    if @buffer.length > @max_buffer_size
+      flush_buffer
+    end
+  end
+
+  def flush_buffer()
+    send_to_socket(@buffer.join('\n'))
+    @buffer = Array.new
   end
 
   def send_to_socket(message)
