@@ -44,8 +44,10 @@ class Statsd
   # Global tags to be added to every statsd call. Defaults to no tags.
   attr_reader :tags
 
+  # Buffer containing the statsd message before they are sent in batch
   attr_reader :buffer
 
+  # Maximum number of metrics in the buffer before it is flushed
   attr_accessor :max_buffer_size
 
   class << self
@@ -212,7 +214,7 @@ class Statsd
   # @option opts [String, nil] :source_type_name (nil) Assign a source type to the event
   # @option opts [String, nil] :alert_type ('info') Can be "error", "warning", "info" or "success".
   # @option opts [Array<String>, nil] :source_type_name (nil) An array of tags
-  # @example Report an aweful event:
+  # @example Report an awful event:
   #   $statsd.event('Something terrible happened', 'The end is near if we do nothing', :alert_type=>'warning', :tags=>['end_of_times','urgent'])
   def event(title, text, opts={})
     event_string = format_event(title, text, opts)
@@ -221,6 +223,13 @@ class Statsd
     send_to_socket event_string
   end
 
+  # Send several metrics in the same UDP Packet
+  #
+  # @example Send several metrics in one packet:
+  #   $statsd.batch do
+  #      statsd.gauge('users.online',156)
+  #      statsd.increment('page.views')
+  #    end
   def batch()
     alias :send :send_to_buffer
     yield

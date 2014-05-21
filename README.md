@@ -36,6 +36,12 @@ statsd.time('page.render') do
   render_page('home.html')
 end
 
+# Send several metric at the same time
+statsd.batch do
+  statsd.increment('page.views')
+  stattsd.gauge('users.online',123)
+end
+
 # Tag a metric.
 statsd.histogram('query.time', 10, :tags => ["version:1"])
 ```
