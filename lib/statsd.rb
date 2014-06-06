@@ -287,7 +287,7 @@ class Statsd
 
   def send_to_buffer(message)
     @buffer << message
-    if @buffer.length > @max_buffer_size
+    if @buffer.length >= @max_buffer_size
       flush_buffer
     end
   end

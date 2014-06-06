@@ -368,6 +368,26 @@ describe Statsd do
         @statsd.socket.recv.must_equal ['mycounter:1|c']
         @statsd.socket.recv.must_equal ['myothercounter:1|c']
       end
+
+      it "should flush when the buffer gets too big" do
+        @statsd.batch do |s|
+          # increment a counter 50 times in batch
+          51.times do
+            s.increment("mycounter")
+          end
+
+          # We should receive a packet of 50 messages that was automatically
+          # flushed when the buffer got too big
+          theoretical_reply = Array.new
+          50.times do
+            theoretical_reply.push('mycounter:1|c')
+          end
+          @statsd.socket.recv.must_equal [theoretical_reply.join('\n')]
+        end
+
+        # When the block finishes, the remaining buffer is flushed
+        @statsd.socket.recv.must_equal ['mycounter:1|c']
+      end
   end
 
   describe "#event" do
