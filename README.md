@@ -36,10 +36,11 @@ statsd.time('page.render') do
   render_page('home.html')
 end
 
-# Send several metric at the same time
-statsd.batch do
-  statsd.increment('page.views')
-  stattsd.gauge('users.online',123)
+# Send several metrics at the same time
+# All metrics will be buffered and sent in one packet when the block completes
+statsd.batch do |s|
+  s.increment('page.views')
+  s.gauge('users.online', 123)
 end
 
 # Tag a metric.

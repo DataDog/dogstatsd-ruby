@@ -343,24 +343,24 @@ describe Statsd do
   describe "batched" do
 
       it "should allow to send single sample in one packet" do
-        @statsd.batch do
-            @statsd.increment("mycounter")
+        @statsd.batch do |s|
+            s.increment("mycounter")
         end
         @statsd.socket.recv.must_equal ['mycounter:1|c']
       end
 
       it "should allow to send multiple sample in one packet" do
-        @statsd.batch do
-            @statsd.increment("mycounter")
-            @statsd.decrement("myothercounter")
+        @statsd.batch do |s|
+            s.increment("mycounter")
+            s.decrement("myothercounter")
         end
         @statsd.socket.recv.must_equal ['mycounter:1|c\nmyothercounter:-1|c']
       end
 
       it "should default back to single metric packet after the block" do
-        @statsd.batch do
-            @statsd.gauge("mygauge", 10)
-            @statsd.gauge("myothergauge", 20)
+        @statsd.batch do |s|
+            s.gauge("mygauge", 10)
+            s.gauge("myothergauge", 20)
         end
         @statsd.increment("mycounter")
         @statsd.increment("myothercounter")

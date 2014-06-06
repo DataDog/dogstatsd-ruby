@@ -224,15 +224,16 @@ class Statsd
   end
 
   # Send several metrics in the same UDP Packet
+  # They will be buffered and flushed when the block finishes
   #
   # @example Send several metrics in one packet:
-  #   $statsd.batch do
-  #      statsd.gauge('users.online',156)
-  #      statsd.increment('page.views')
+  #   $statsd.batch do |s|
+  #      s.gauge('users.online',156)
+  #      s.increment('page.views')
   #    end
   def batch()
     alias :send :send_to_buffer
-    yield
+    yield self
     flush_buffer
     alias :send :send_to_socket
   end
