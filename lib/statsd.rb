@@ -57,7 +57,7 @@ class Statsd
 
   # Return the current version of the library.
   def self.VERSION
-    "1.3.0"
+    "1.4.0"
   end
 
   # @param [String] host your statsd host
