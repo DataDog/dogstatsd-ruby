@@ -72,7 +72,7 @@ class Statsd
     self.tags = opts[:tags]
     @buffer = Array.new
     self.max_buffer_size = max_buffer_size
-    alias :send :send_to_socket
+    alias :send_packet :send_to_socket
   end
 
   def namespace=(namespace) #:nodoc:
@@ -232,10 +232,10 @@ class Statsd
   #      s.increment('page.views')
   #    end
   def batch()
-    alias :send :send_to_buffer
+    alias :send_packet :send_to_buffer
     yield self
     flush_buffer
-    alias :send :send_to_socket
+    alias :send_packet :send_to_socket
   end
 
   def format_event(title, text, opts={})
@@ -281,7 +281,7 @@ class Statsd
       rate = "|@#{sample_rate}" unless sample_rate == 1
       ts = (tags || []) + (opts[:tags] || [])
       tags = "|##{ts.join(",")}" unless ts.empty?
-      send "#{@prefix}#{stat}:#{delta}|#{type}#{rate}#{tags}"
+      send_packet "#{@prefix}#{stat}:#{delta}|#{type}#{rate}#{tags}"
     end
   end
 
