@@ -354,7 +354,7 @@ describe Statsd do
             s.increment("mycounter")
             s.decrement("myothercounter")
         end
-        @statsd.socket.recv.must_equal ['mycounter:1|c\nmyothercounter:-1|c']
+        @statsd.socket.recv.must_equal ["mycounter:1|c\nmyothercounter:-1|c"]
       end
 
       it "should default back to single metric packet after the block" do
@@ -364,7 +364,7 @@ describe Statsd do
         end
         @statsd.increment("mycounter")
         @statsd.increment("myothercounter")
-        @statsd.socket.recv.must_equal ['mygauge:10|g\nmyothergauge:20|g']
+        @statsd.socket.recv.must_equal ["mygauge:10|g\nmyothergauge:20|g"]
         @statsd.socket.recv.must_equal ['mycounter:1|c']
         @statsd.socket.recv.must_equal ['myothercounter:1|c']
       end
@@ -382,7 +382,7 @@ describe Statsd do
           50.times do
             theoretical_reply.push('mycounter:1|c')
           end
-          @statsd.socket.recv.must_equal [theoretical_reply.join('\n')]
+          @statsd.socket.recv.must_equal [theoretical_reply.join("\n")]
         end
 
         # When the block finishes, the remaining buffer is flushed
