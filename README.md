@@ -78,6 +78,8 @@ To suggest a feature, report a bug, or general discussion, head over
 Change Log
 ----------
 
+- 1.4.1
+    - Fixed bug in message separator when batching metrics
 - 1.4.0
     - Added support for metrics batching
 - 1.3.0
