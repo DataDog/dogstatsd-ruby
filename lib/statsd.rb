@@ -293,7 +293,7 @@ class Statsd
   end
 
   def flush_buffer()
-    send_to_socket(@buffer.join('\n'))
+    send_to_socket(@buffer.join("\n"))
     @buffer = Array.new
   end
 
