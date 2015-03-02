@@ -477,6 +477,48 @@ describe Statsd do
       end
     end
   end
+
+  describe "#service_check" do
+    nb_tests = 10
+    for i in 00..nb_tests
+      name = Faker::Lorem.sentence(word_count =  rand(3))
+      status = rand(4)
+      hostname = "hostname_test"
+      nb_tags = 10 * rand(2)
+      tags = Array.new
+      for j in 0..nb_tags
+        tag = String(Faker::Lorem.words(num = 10 * rand(10)))
+        tags.push(tag)
+      end
+      tags_joined = tags.join(",")
+
+      it "Only name and status" do
+        @statsd.service_check(name, status)
+        @statsd.socket.recv.must_equal [@statsd.format_service_check(name, status)]
+      end
+      it "With hostname" do
+        @statsd.service_check(name, status, :hostname => hostname)
+        @statsd.socket.recv.must_equal ["_sc|#{name}|#{status}|h:#{hostname}"]
+      end
+
+      it "With message" do
+        @statsd.service_check(name, status, :message => 'testing | m: \n')
+        @statsd.socket.recv.must_equal ["_sc|#{name}|#{status}|m:testing  m\\: \\n"]
+      end
+
+      it "With tags" do
+        @statsd.service_check(name, status, :tags => tags)
+        @statsd.socket.recv.must_equal ["_sc|#{name}|#{status}|##{tags_joined}"]
+      end
+
+      it "With hostname, message, and tags" do
+        @statsd.service_check(name, status, :message => 'testing | m: \n', :hostname => 'hostname_test',
+                              :tags => tags)
+        @statsd.socket.recv.must_equal ["_sc|#{name}|#{status}|h:#{hostname}|##{tags_joined}|m:testing  m\\: \\n"]
+      end
+
+    end
+  end
 end
 
 describe Statsd do
