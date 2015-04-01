@@ -63,23 +63,19 @@ class Statsd
   # @option opts [String] :namespace set a namespace to be prepended to every metric name
   # @option opts [Array<String>] :tags tags to be added to every metric
   def initialize(opts = {})
-    
+
     @host = opts[:host] || DEFAULT_HOST
     @port = opts[:port] || DEFAULT_PORT
     @namespace = opts[:namespace]
     @max_buffer_size = opts[:max_buffer_size]
     @tags = opts[:tags]
-    
+
     @socket = UDPSocket.new
     @buffer = Array.new
 
     # Start by _not_ buffering
     alias :send_stat :send_to_socket
 
-  end
-
-  def tags=(tags) #:nodoc:
-    @tags = tags || []
   end
 
   # Sends an increment (count = 1) for the given stat to the statsd server.
@@ -259,15 +255,15 @@ class Statsd
   def prefix
     @namespace.to_s.length > 0 ? "#{@namespace}." : ""
   end
-  
+
   private
-  
 
   def escape_event_content(msg)
-    msg = msg.sub! "\n", "\\n"
+    msg.sub! "\n", "\\n"
   end
+
   def rm_pipes(msg)
-    msg = msg.sub! "|", ""
+    msg.sub! "|", ""
   end
 
   def send_stats(stat, delta, type, opts={})
@@ -276,7 +272,7 @@ class Statsd
       # Replace Ruby module scoping with '.' and reserved chars (: | @) with underscores.
       stat = stat.to_s.gsub('::', '.').tr(':|@', '_')
       rate = "|@#{sample_rate}" unless sample_rate == 1
-      ts = (tags || []) + (opts[:tags] || [])
+      ts = (@tags || []) + (opts[:tags] || [])
       tags = "|##{ts.join(",")}" unless ts.empty?
       send_stat "#{self.prefix}#{stat}:#{delta}|#{type}#{rate}#{tags}"
     end
