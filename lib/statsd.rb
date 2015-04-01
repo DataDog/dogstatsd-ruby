@@ -33,21 +33,19 @@ class Statsd
   ]
 
   # A namespace to prepend to all statsd calls. Defaults to no namespace.
-  attr_reader :namespace
+  attr_accessor :namespace
 
   # StatsD host. Defaults to 127.0.0.1.
-  attr_reader :host
+  attr_accessor :host
 
   # StatsD port. Defaults to 8125.
-  attr_reader :port
+  attr_accessor :port
 
   # Global tags to be added to every statsd call. Defaults to no tags.
-  attr_reader :tags
-
-  # Buffer containing the statsd message before they are sent in batch
-  attr_reader :buffer
+  attr_accessor :tags
 
   # Maximum number of metrics in the buffer before it is flushed
+  # FIXME: this should be based on the message size not the amount of messages - i.e. MTU of the network connection...
   attr_accessor :max_buffer_size
 
   class << self
@@ -60,32 +58,24 @@ class Statsd
     "1.4.1"
   end
 
-  # @param [String] host your statsd host
-  # @param [Integer] port your statsd port
+  # @option opts [String] :host your statsd host
+  # @option opts [Integer] :port your statsd port
   # @option opts [String] :namespace set a namespace to be prepended to every metric name
   # @option opts [Array<String>] :tags tags to be added to every metric
-  def initialize(host = DEFAULT_HOST, port = DEFAULT_PORT, opts = {}, max_buffer_size=50)
-    self.host, self.port = host, port
-    @prefix = nil
+  def initialize(opts = {})
+    
+    @host = opts[:host] || DEFAULT_HOST
+    @port = opts[:port] || DEFAULT_PORT
+    @namespace = opts[:namespace]
+    @max_buffer_size = opts[:max_buffer_size]
+    @tags = opts[:tags]
+    
     @socket = UDPSocket.new
-    self.namespace = opts[:namespace]
-    self.tags = opts[:tags]
     @buffer = Array.new
-    self.max_buffer_size = max_buffer_size
+
+    # Start by _not_ buffering
     alias :send_stat :send_to_socket
-  end
 
-  def namespace=(namespace) #:nodoc:
-    @namespace = namespace
-    @prefix = namespace.nil? ? nil : "#{namespace}."
-  end
-
-  def host=(host) #:nodoc:
-    @host = host || '127.0.0.1'
-  end
-
-  def port=(port) #:nodoc:
-    @port = port || 8125
   end
 
   def tags=(tags) #:nodoc:
@@ -265,7 +255,13 @@ class Statsd
     raise "Event #{title} payload is too big (more that 8KB), event discarded" if event_string_data.length > 8 * 1024
     return event_string_data
   end
+  
   private
+  
+  def prefix
+    @namespace.to_s.length > 0 ? "#{@namespace}:" : ""
+  end
+
   def escape_event_content(msg)
     msg = msg.sub! "\n", "\\n"
   end
@@ -281,7 +277,7 @@ class Statsd
       rate = "|@#{sample_rate}" unless sample_rate == 1
       ts = (tags || []) + (opts[:tags] || [])
       tags = "|##{ts.join(",")}" unless ts.empty?
-      send_stat "#{@prefix}#{stat}:#{delta}|#{type}#{rate}#{tags}"
+      send_stat "#{self.prefix}#{stat}:#{delta}|#{type}#{rate}#{tags}"
     end
   end
 
