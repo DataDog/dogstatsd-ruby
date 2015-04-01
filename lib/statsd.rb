@@ -255,12 +255,13 @@ class Statsd
     raise "Event #{title} payload is too big (more that 8KB), event discarded" if event_string_data.length > 8 * 1024
     return event_string_data
   end
-  
-  private
-  
+
   def prefix
     @namespace.to_s.length > 0 ? "#{@namespace}:" : ""
   end
+  
+  private
+  
 
   def escape_event_content(msg)
     msg = msg.sub! "\n", "\\n"
