@@ -257,7 +257,7 @@ class Statsd
   end
 
   def prefix
-    @namespace.to_s.length > 0 ? "#{@namespace}:" : ""
+    @namespace.to_s.length > 0 ? "#{@namespace}." : ""
   end
   
   private
