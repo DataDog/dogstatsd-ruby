@@ -20,6 +20,7 @@ class Statsd
 
   DEFAULT_HOST = '127.0.0.1'
   DEFAULT_PORT = 8125
+  DEFAULT_MAX_BUFFER_SIZE = 50
 
   # Create a dictionary to assign a key to every parameter's name, except for tags (treated differently)
   # Goal: Simple and fast to add some other parameters
@@ -36,10 +37,10 @@ class Statsd
   attr_accessor :namespace
 
   # StatsD host. Defaults to 127.0.0.1.
-  attr_accessor :host
+  attr_writer :host
 
   # StatsD port. Defaults to 8125.
-  attr_accessor :port
+  attr_writer :port
 
   # Global tags to be added to every statsd call. Defaults to no tags.
   attr_accessor :tags
@@ -66,8 +67,9 @@ class Statsd
 
     @host = opts[:host] || DEFAULT_HOST
     @port = opts[:port] || DEFAULT_PORT
+    @max_buffer_size = opts[:max_buffer_size] || DEFAULT_MAX_BUFFER_SIZE
+
     @namespace = opts[:namespace]
-    @max_buffer_size = opts[:max_buffer_size]
     @tags = opts[:tags]
 
     @socket = UDPSocket.new
@@ -76,6 +78,20 @@ class Statsd
     # Start by _not_ buffering
     alias :send_stat :send_to_socket
 
+  end
+  
+  # host or default...
+  def host
+    @host || DEFAULT_HOST
+  end
+  
+  # port or default
+  def port
+    @port || DEFAULT_PORT
+  end
+  
+  def tags
+    @tags || []
   end
 
   # Sends an increment (count = 1) for the given stat to the statsd server.
@@ -292,7 +308,7 @@ class Statsd
 
   def send_to_socket(message)
     self.class.logger.debug { "Statsd: #{message}" } if self.class.logger
-    @socket.send(message, 0, @host, @port)
+    @socket.send(message, 0, host, port)
   rescue => boom
     self.class.logger.error { "Statsd: #{boom.class} #{boom}" } if self.class.logger
     nil
