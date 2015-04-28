@@ -8,7 +8,7 @@ describe Statsd do
   end
 
   before do
-    @statsd = Statsd.new('localhost', 1234)
+    @statsd = Statsd.new(:host => 'localhost', :port => 1234)
     @statsd.socket = FakeUDPSocket.new
   end
 
@@ -29,11 +29,11 @@ describe Statsd do
     end
 
     it 'should be able to set host, port, namespace, and global tags' do
-      statsd = Statsd.new '1.3.3.7', 8126, :tags => %w(global), :namespace => 'space'
+      statsd = Statsd.new :host => '1.3.3.7', :port => 8126, :tags => %w(global), :namespace => 'space'
       statsd.host.must_equal '1.3.3.7'
       statsd.port.must_equal 8126
       statsd.namespace.must_equal 'space'
-      statsd.instance_variable_get('@prefix').must_equal 'space.'
+      statsd.prefix.must_equal 'space.'
       statsd.tags.must_equal ['global']
     end
   end
