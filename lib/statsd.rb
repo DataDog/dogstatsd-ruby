@@ -252,25 +252,26 @@ class Statsd
         event_string_data << "|#{name_key[1]}:#{value}"
       end
     end
-    tags = opts[:tags] || nil
+    full_tags = tags + (opts[:tags] || [])
     # Tags are joined and added as last part to the string to be sent
-    if tags
-      tags.each do |tag|
+    unless full_tags.empty?
+      full_tags.each do |tag|
         rm_pipes tag
       end
-      tags = "#{tags.join(",")}" unless tags.empty?
-      event_string_data << "|##{tags}"
+      event_string_data << "|##{full_tags.join(',')}"
     end
 
     raise "Event #{title} payload is too big (more that 8KB), event discarded" if event_string_data.length > 8 * 1024
     return event_string_data
   end
+
   private
+
   def escape_event_content(msg)
-    msg = msg.sub! "\n", "\\n"
+    msg.sub! "\n", "\\n"
   end
   def rm_pipes(msg)
-    msg = msg.sub! "|", ""
+    msg.sub! "|", ""
   end
 
   def send_stats(stat, delta, type, opts={})

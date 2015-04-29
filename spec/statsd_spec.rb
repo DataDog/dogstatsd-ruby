@@ -451,6 +451,20 @@ describe Statsd do
         @statsd.event(title, text, :tags => tags)
         @statsd.socket.recv.must_equal ["#{@statsd.format_event(title, text)}|##{tags_joined}"]
       end
+      it "Takes into account the common tags" do
+        basic_result = @statsd.format_event(title, text)
+        common_tag = 'common'
+        @statsd.instance_variable_set :@tags, [common_tag]
+        @statsd.event(title, text)
+        @statsd.socket.recv.must_equal ["#{basic_result}|##{common_tag}"]
+      end
+      it "combines common and specific tags" do
+        basic_result = @statsd.format_event(title, text)
+        common_tag = 'common'
+        @statsd.instance_variable_set :@tags, [common_tag]
+        @statsd.event(title, text, :tags => tags)
+        @statsd.socket.recv.must_equal ["#{basic_result}|##{common_tag},#{tags_joined}"]
+      end
       it "With alert_type, priority, hostname, several tags" do
         @statsd.event(title, text, :alert_type => 'warning', :priority => 'low', :hostname => 'hostname_test', :tags => tags)
         opts = {
