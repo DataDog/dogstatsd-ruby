@@ -20,6 +20,7 @@ class Statsd
 
   DEFAULT_HOST = '127.0.0.1'
   DEFAULT_PORT = 8125
+  DEFAULT_MAX_BUFFER_SIZE = 50
 
   # Create a dictionary to assign a key to every parameter's name, except for tags (treated differently)
   # Goal: Simple and fast to add some other parameters
@@ -33,21 +34,19 @@ class Statsd
   ]
 
   # A namespace to prepend to all statsd calls. Defaults to no namespace.
-  attr_reader :namespace
+  attr_accessor :namespace
 
   # StatsD host. Defaults to 127.0.0.1.
-  attr_reader :host
+  attr_writer :host
 
   # StatsD port. Defaults to 8125.
-  attr_reader :port
+  attr_writer :port
 
   # Global tags to be added to every statsd call. Defaults to no tags.
-  attr_reader :tags
-
-  # Buffer containing the statsd message before they are sent in batch
-  attr_reader :buffer
+  attr_accessor :tags
 
   # Maximum number of metrics in the buffer before it is flushed
+  # FIXME: this should be based on the message size not the amount of messages - i.e. MTU of the network connection...
   attr_accessor :max_buffer_size
 
   class << self
@@ -60,36 +59,39 @@ class Statsd
     "1.4.1"
   end
 
-  # @param [String] host your statsd host
-  # @param [Integer] port your statsd port
+  # @option opts [String] :host your statsd host
+  # @option opts [Integer] :port your statsd port
   # @option opts [String] :namespace set a namespace to be prepended to every metric name
   # @option opts [Array<String>] :tags tags to be added to every metric
-  def initialize(host = DEFAULT_HOST, port = DEFAULT_PORT, opts = {}, max_buffer_size=50)
-    self.host, self.port = host, port
-    @prefix = nil
+  def initialize(opts = {})
+
+    @host = opts[:host] || DEFAULT_HOST
+    @port = opts[:port] || DEFAULT_PORT
+    @max_buffer_size = opts[:max_buffer_size] || DEFAULT_MAX_BUFFER_SIZE
+
+    @namespace = opts[:namespace]
+    @tags = opts[:tags]
+
     @socket = UDPSocket.new
-    self.namespace = opts[:namespace]
-    self.tags = opts[:tags]
     @buffer = Array.new
-    self.max_buffer_size = max_buffer_size
-    alias :send :send_to_socket
-  end
 
-  def namespace=(namespace) #:nodoc:
-    @namespace = namespace
-    @prefix = namespace.nil? ? nil : "#{namespace}."
-  end
+    # Start by _not_ buffering
+    alias :send_stat :send_to_socket
 
-  def host=(host) #:nodoc:
-    @host = host || '127.0.0.1'
   end
-
-  def port=(port) #:nodoc:
-    @port = port || 8125
+  
+  # host or default...
+  def host
+    @host || DEFAULT_HOST
   end
-
-  def tags=(tags) #:nodoc:
-    @tags = tags || []
+  
+  # port or default
+  def port
+    @port || DEFAULT_PORT
+  end
+  
+  def tags
+    @tags || []
   end
 
   # Sends an increment (count = 1) for the given stat to the statsd server.
@@ -232,10 +234,10 @@ class Statsd
   #      s.increment('page.views')
   #    end
   def batch()
-    alias :send :send_to_buffer
+    alias :send_stat :send_to_buffer
     yield self
     flush_buffer
-    alias :send :send_to_socket
+    alias :send_stat :send_to_socket
   end
 
   def format_event(title, text, opts={})
@@ -265,12 +267,19 @@ class Statsd
     raise "Event #{title} payload is too big (more that 8KB), event discarded" if event_string_data.length > 8 * 1024
     return event_string_data
   end
-  private
-  def escape_event_content(msg)
-    msg = msg.sub! "\n", "\\n"
+
+  def prefix
+    @namespace.to_s.length > 0 ? "#{@namespace}." : ""
   end
+
+  private
+
+  def escape_event_content(msg)
+    msg.sub! "\n", "\\n"
+  end
+
   def rm_pipes(msg)
-    msg = msg.sub! "|", ""
+    msg.sub! "|", ""
   end
 
   def send_stats(stat, delta, type, opts={})
@@ -279,9 +288,9 @@ class Statsd
       # Replace Ruby module scoping with '.' and reserved chars (: | @) with underscores.
       stat = stat.to_s.gsub('::', '.').tr(':|@', '_')
       rate = "|@#{sample_rate}" unless sample_rate == 1
-      ts = (tags || []) + (opts[:tags] || [])
+      ts = (@tags || []) + (opts[:tags] || [])
       tags = "|##{ts.join(",")}" unless ts.empty?
-      send "#{@prefix}#{stat}:#{delta}|#{type}#{rate}#{tags}"
+      send_stat "#{self.prefix}#{stat}:#{delta}|#{type}#{rate}#{tags}"
     end
   end
 
@@ -299,7 +308,7 @@ class Statsd
 
   def send_to_socket(message)
     self.class.logger.debug { "Statsd: #{message}" } if self.class.logger
-    @socket.send(message, 0, @host, @port)
+    @socket.send(message, 0, host, port)
   rescue => boom
     self.class.logger.error { "Statsd: #{boom.class} #{boom}" } if self.class.logger
     nil
