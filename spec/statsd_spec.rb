@@ -177,14 +177,14 @@ describe Statsd do
 
       it "should format the message according to the statsd spec" do
         @statsd.time('foobar') do
-          Timecop.travel(Time.now + 1)
+          Timecop.freeze(Time.now + 1)
         end
         @statsd.socket.recv.must_equal ['foobar:1000|ms']
       end
 
       it "should still time if block is failing" do
         @statsd.time('foobar') do
-          Timecop.travel(Time.now + 1)
+          Timecop.freeze(Time.now + 1)
           raise StandardError, 'This is failing'
         end rescue
         @statsd.socket.recv.must_equal ['foobar:1000|ms']
