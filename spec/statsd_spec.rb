@@ -1,5 +1,5 @@
 require 'helper'
-
+require 'timecop'
 
 describe Statsd do
   class Statsd
@@ -165,13 +165,41 @@ describe Statsd do
   end
 
   describe "#time" do
-    it "should format the message according to the statsd spec" do
-      @statsd.time('foobar') { sleep(0.001); 'test' }
+    describe "With actual time testing" do
+      before do
+        # Freezing time to prevent random test failures
+        Timecop.freeze Time.now
+      end
+
+      after do
+        Timecop.return
+      end
+
+      it "should format the message according to the statsd spec" do
+        @statsd.time('foobar') do
+          Timecop.freeze(Time.now + 1)
+        end
+        @statsd.socket.recv.must_equal ['foobar:1000|ms']
+      end
+
+      it "should still time if block is failing" do
+        @statsd.time('foobar') do
+          Timecop.freeze(Time.now + 1)
+          raise StandardError, 'This is failing'
+        end rescue
+        @statsd.socket.recv.must_equal ['foobar:1000|ms']
+      end
     end
 
     it "should return the result of the block" do
-      result = @statsd.time('foobar') { sleep(0.001); 'test' }
+      result = @statsd.time('foobar') { 'test' }
       result.must_equal 'test'
+    end
+
+    it "should reraise the error if block is failing" do
+      expect do
+        @statsd.time('foobar') { raise StandardError, 'This is failing' }
+      end.must_raise StandardError
     end
 
     describe "with a sample rate" do

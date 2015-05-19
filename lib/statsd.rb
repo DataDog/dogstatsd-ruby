@@ -183,6 +183,9 @@ class Statsd
 
   # Reports execution time of the provided block using {#timing}.
   #
+  # If the block fails, the stat is still reported, then the error
+  # is reraised
+  #
   # @param [String] stat stat name
   # @param [Hash] opts the options to create the metric with
   # @option opts [Numeric] :sample_rate sample rate, 1 for always
@@ -194,8 +197,11 @@ class Statsd
   def time(stat, opts={})
     start = Time.now
     result = yield
-    timing(stat, ((Time.now - start) * 1000).round, opts)
+    time_since(stat, start, opts)
     result
+  rescue
+    time_since(stat, start, opts)
+    raise
   end
   # Sends a value to be tracked as a set to the statsd server.
   #
@@ -325,6 +331,7 @@ class Statsd
   def escape_event_content(msg)
     msg.gsub! "\n", "\\n"
   end
+
   def rm_pipes(msg)
     msg.gsub! "|", ""
   end
@@ -332,6 +339,10 @@ class Statsd
   def escape_service_check_message(msg)
     msg.gsub! 'm:', 'm\:'
     msg.gsub! "\n", "\\n"
+  end
+
+  def time_since(stat, start, opts)
+    timing(stat, ((Time.now - start) * 1000).round, opts)
   end
 
   def send_stats(stat, delta, type, opts={})

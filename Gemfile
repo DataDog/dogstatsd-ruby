@@ -13,3 +13,7 @@ group :localdev do
   gem "yard", "~> 0.8.7.3"
   gem "redcarpet", "~> 3.1.1"
 end
+
+group :test do
+  gem "timecop"
+end
