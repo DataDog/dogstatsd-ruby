@@ -75,22 +75,8 @@ To suggest a feature, report a bug, or general discussion, head over
 [here](http://github.com/DataDog/dogstatsd-ruby/issues/).
 
 
-Change Log
-----------
-
-- 1.4.1
-    - Fixed bug in message separator when batching metrics
-- 1.4.0
-    - Added support for metrics batching
-- 1.3.0
-    - Added support for submitting events.
-- 1.2.0
-    - Added global tags.
-    - Added ability to set `namespace` and `tags` from `Statsd#initialize`.
-- 1.1.0
-    - Added `sets` metrics.
-- 1.0.0
-    - Initial release.
+[Change Log](CHANGELOG.md)
+----------------------------
 
 
 Credits
