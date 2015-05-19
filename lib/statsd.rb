@@ -32,6 +32,18 @@ class Statsd
         ['alert_type', 't']
   ]
 
+  # Service check options
+  SC_OPT_KEYS = [
+        ['timestamp', 'd:'],
+        ['hostname', 'h:'],
+        ['tags', '#'],
+        ['message', 'm:']
+  ]
+  OK        = 0
+  WARNING   = 1
+  CRITICAL  = 2
+  UNKNOWN   = 3
+
   # A namespace to prepend to all statsd calls. Defaults to no namespace.
   attr_reader :namespace
 
@@ -198,6 +210,49 @@ class Statsd
     send_stats stat, value, :s, opts
   end
 
+
+  # This method allows you to send custom service check statuses.
+  #
+  # @param [String] name Service check name
+  # @param [String] status Service check status.
+  # @param [Hash] opts the additional data about the service check
+    # @option opts [Integer, nil] :timestamp (nil) Assign a timestamp to the event. Default is now when none
+    # @option opts [String, nil] :hostname (nil) Assign a hostname to the event.
+    # @option opts [Array<String>, nil] :tags (nil) An array of tags
+    # @option opts [String, nil] :message (nil) A message to associate with this service check status
+  # @example Report a critical service check status
+  #   $statsd.service_check('my.service.check', Statsd::CRITICAL, :tags=>['urgent'])
+  def service_check(name, status, opts={})
+    service_check_string = format_service_check(name, status, opts)
+    send_to_socket service_check_string
+  end
+  def format_service_check(name, status, opts={})
+    sc_string = "_sc|#{name}|#{status}"
+
+    SC_OPT_KEYS.each do |name_key|
+      if opts[name_key[0].to_sym]
+        if name_key[0] == 'tags'
+          tags = opts[:tags]
+          tags.each do |tag|
+            rm_pipes tag
+          end
+          tags = "#{tags.join(",")}" unless tags.empty?
+          sc_string << "|##{tags}"
+        elsif name_key[0] == 'message'
+          message = opts[:message]
+          rm_pipes message
+          escape_service_check_message message
+          sc_string << "|m:#{message}"
+        else
+          value = opts[name_key[0].to_sym]
+          rm_pipes value
+          sc_string << "|#{name_key[1]}#{value}"
+        end
+      end
+    end
+    return sc_string
+  end
+
   # This end point allows you to post events to the stream. You can tag them, set priority and even aggregate them with other events.
   #
   # Aggregation in the stream is made on hostname/event_type/source_type/aggregation_key.
@@ -207,7 +262,7 @@ class Statsd
   # @param [String] title Event title
   # @param [String] text Event text. Supports \n
   # @param [Hash] opts the additional data about the event
-  # @option opts [Time, nil] :date_happened (nil) Assign a timestamp to the event. Default is now when none
+  # @option opts [Integer, nil] :date_happened (nil) Assign a timestamp to the event. Default is now when none
   # @option opts [String, nil] :hostname (nil) Assign a hostname to the event.
   # @option opts [String, nil] :aggregation_key (nil) Assign an aggregation key to the event, to group it with some others
   # @option opts [String, nil] :priority ('normal') Can be "normal" or "low"
@@ -244,7 +299,7 @@ class Statsd
     event_string_data = "_e{#{title.length},#{text.length}}:#{title}|#{text}"
 
     # We construct the string to be sent by adding '|key:value' parts to it when needed
-    # All pipes ('|') in the metada are removed. Title and Text can keep theirs
+    # All pipes ('|') in the metadata are removed. Title and Text can keep theirs
     OPTS_KEYS.each do |name_key|
       if name_key[0] != 'tags' && opts[name_key[0].to_sym]
         value = opts[name_key[0].to_sym]
@@ -268,10 +323,15 @@ class Statsd
   private
 
   def escape_event_content(msg)
-    msg.sub! "\n", "\\n"
+    msg.gsub! "\n", "\\n"
   end
   def rm_pipes(msg)
-    msg.sub! "|", ""
+    msg.gsub! "|", ""
+  end
+
+  def escape_service_check_message(msg)
+    msg.gsub! 'm:', 'm\:'
+    msg.gsub! "\n", "\\n"
   end
 
   def send_stats(stat, delta, type, opts={})
