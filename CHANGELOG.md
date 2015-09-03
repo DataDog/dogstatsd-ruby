@@ -1,5 +1,11 @@
 # CHANGELOG
 
+2.0.0/ 2015.09.01
+=================
+
+### Changes
+* [OTHER] Namespace the statsd Class under the Datadog module.
+
 1.5.0/ 2015.05.20
 ==================
 
