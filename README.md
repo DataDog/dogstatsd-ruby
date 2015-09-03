@@ -20,7 +20,11 @@ Then start instrumenting your code:
 require 'statsd'
 
 # Create a stats instance.
-statsd = Statsd.new('localhost', 8125)
+statsd = Datadog::Statsd.new('localhost', 8125)
+
+# you could also create a statsd class if you need a drop in replacement
+# class Statsd < Datadog::Statsd
+# end
 
 # Increment a counter.
 statsd.increment('page.views')

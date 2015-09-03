@@ -1,14 +1,14 @@
 require 'helper'
 require 'timecop'
 
-describe Statsd do
-  class Statsd
+describe Datadog::Statsd do
+  class Datadog::Statsd
     # we need to stub this
     attr_accessor :socket
   end
 
   before do
-    @statsd = Statsd.new('localhost', 1234)
+    @statsd = Datadog::Statsd.new('localhost', 1234)
     @statsd.socket = FakeUDPSocket.new
   end
 
@@ -21,7 +21,7 @@ describe Statsd do
     end
 
     it "should default the host to 127.0.0.1, port to 8125, namespace to nil, and tags to []" do
-      statsd = Statsd.new
+      statsd = Datadog::Statsd.new
       statsd.host.must_equal '127.0.0.1'
       statsd.port.must_equal 8125
       statsd.namespace.must_equal nil
@@ -29,7 +29,7 @@ describe Statsd do
     end
 
     it 'should be able to set host, port, namespace, and global tags' do
-      statsd = Statsd.new '1.3.3.7', 8126, :tags => %w(global), :namespace => 'space'
+      statsd = Datadog::Statsd.new '1.3.3.7', 8126, :tags => %w(global), :namespace => 'space'
       statsd.host.must_equal '1.3.3.7'
       statsd.port.must_equal 8126
       statsd.namespace.must_equal 'space'
@@ -270,10 +270,10 @@ describe Statsd do
 
   describe "with logging" do
     require 'stringio'
-    before { Statsd.logger = Logger.new(@log = StringIO.new)}
+    before { Datadog::Statsd.logger = Logger.new(@log = StringIO.new)}
 
     it "should write to the log in debug" do
-      Statsd.logger.level = Logger::DEBUG
+      Datadog::Statsd.logger.level = Logger::DEBUG
 
       @statsd.increment('foobar')
 
@@ -281,7 +281,7 @@ describe Statsd do
     end
 
     it "should not write to the log unless debug" do
-      Statsd.logger.level = Logger::INFO
+      Datadog::Statsd.logger.level = Logger::INFO
 
       @statsd.increment('foobar')
 
@@ -295,10 +295,10 @@ describe Statsd do
     end
 
     it "should replace ruby constant delimeter with graphite package name" do
-      class Statsd::SomeClass; end
-      @statsd.increment(Statsd::SomeClass, :sample_rate=>1)
+      class Datadog::Statsd::SomeClass; end
+      @statsd.increment(Datadog::Statsd::SomeClass, :sample_rate=>1)
 
-      @statsd.socket.recv.must_equal ['Statsd.SomeClass:1|c']
+      @statsd.socket.recv.must_equal ['Datadog.Statsd.SomeClass:1|c']
     end
 
     it "should replace statsd reserved chars in the stat name" do
@@ -310,7 +310,7 @@ describe Statsd do
   describe "handling socket errors" do
     before do
       require 'stringio'
-      Statsd.logger = Logger.new(@log = StringIO.new)
+      Datadog::Statsd.logger = Logger.new(@log = StringIO.new)
       @statsd.socket.instance_eval { def send(*) raise SocketError end }
     end
 
@@ -556,7 +556,7 @@ describe Statsd do
       host, port = 'localhost', 12345
       socket.bind(host, port)
 
-      statsd = Statsd.new(host, port)
+      statsd = Datadog::Statsd.new(host, port)
       statsd.increment('foobar')
       message = socket.recvfrom(16).first
       message.must_equal 'foobar:1|c'
