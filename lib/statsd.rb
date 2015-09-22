@@ -238,20 +238,15 @@ class Statsd
     SC_OPT_KEYS.each do |name_key|
       if opts[name_key[0].to_sym]
         if name_key[0] == 'tags'
-          tags = opts[:tags]
-          tags.each do |tag|
-            rm_pipes tag
-          end
+          tags = opts[:tags].map {|tag| without_pipes(tag) }
           tags = "#{tags.join(",")}" unless tags.empty?
           sc_string << "|##{tags}"
         elsif name_key[0] == 'message'
-          message = opts[:message]
-          rm_pipes message
-          escape_service_check_message message
-          sc_string << "|m:#{message}"
+          message = without_pipes(opts[:message])
+          escaped_message = service_check_message_escaped(message)
+          sc_string << "|m:#{escaped_message}"
         else
-          value = opts[name_key[0].to_sym]
-          rm_pipes value
+          value = without_pipes(opts[name_key[0].to_sym])
           sc_string << "|#{name_key[1]}#{value}"
         end
       end
@@ -300,25 +295,21 @@ class Statsd
   end
 
   def format_event(title, text, opts={})
-    escape_event_content title
-    escape_event_content text
-    event_string_data = "_e{#{title.length},#{text.length}}:#{title}|#{text}"
+    escaped_title = event_content_escaped(title)
+    escaped_text = event_content_escaped(text)
+    event_string_data = "_e{#{escaped_title.length},#{escaped_text.length}}:#{escaped_title}|#{escaped_text}"
 
     # We construct the string to be sent by adding '|key:value' parts to it when needed
     # All pipes ('|') in the metadata are removed. Title and Text can keep theirs
     OPTS_KEYS.each do |name_key|
       if name_key[0] != 'tags' && opts[name_key[0].to_sym]
-        value = opts[name_key[0].to_sym]
-        rm_pipes value
+        value = without_pipes(opts[name_key[0].to_sym])
         event_string_data << "|#{name_key[1]}:#{value}"
       end
     end
-    full_tags = tags + (opts[:tags] || [])
     # Tags are joined and added as last part to the string to be sent
+    full_tags = (tags + (opts[:tags] || [])).map {|tag| without_pipes(tag) }
     unless full_tags.empty?
-      full_tags.each do |tag|
-        rm_pipes tag
-      end
       event_string_data << "|##{full_tags.join(',')}"
     end
 
@@ -328,17 +319,16 @@ class Statsd
 
   private
 
-  def escape_event_content(msg)
-    msg.gsub! "\n", "\\n"
+  def event_content_escaped(msg)
+    msg.gsub "\n", "\\n"
   end
 
-  def rm_pipes(msg)
-    msg.gsub! "|", ""
+  def without_pipes(msg)
+    msg.gsub "|", ""
   end
 
-  def escape_service_check_message(msg)
-    msg.gsub! 'm:', 'm\:'
-    msg.gsub! "\n", "\\n"
+  def service_check_message_escaped(msg)
+    msg.gsub('m:', 'm\:').gsub "\n", "\\n"
   end
 
   def time_since(stat, start, opts)
