@@ -376,4 +376,9 @@ class Statsd
     self.class.logger.error { "Statsd: #{boom.class} #{boom}" } if self.class.logger
     nil
   end
+
+  # Close the underlying socket
+  def close()
+    @socket.close
+  end
 end
