@@ -238,15 +238,15 @@ class Statsd
     SC_OPT_KEYS.each do |name_key|
       if opts[name_key[0].to_sym]
         if name_key[0] == 'tags'
-          tags = opts[:tags].map {|tag| without_pipes(tag) }
+          tags = opts[:tags].map {|tag| remove_pipes(tag) }
           tags = "#{tags.join(",")}" unless tags.empty?
           sc_string << "|##{tags}"
         elsif name_key[0] == 'message'
-          message = without_pipes(opts[:message])
+          message = remove_pipes(opts[:message])
           escaped_message = escape_service_check_message(message)
           sc_string << "|m:#{escaped_message}"
         else
-          value = without_pipes(opts[name_key[0].to_sym])
+          value = remove_pipes(opts[name_key[0].to_sym])
           sc_string << "|#{name_key[1]}#{value}"
         end
       end
@@ -303,12 +303,12 @@ class Statsd
     # All pipes ('|') in the metadata are removed. Title and Text can keep theirs
     OPTS_KEYS.each do |name_key|
       if name_key[0] != 'tags' && opts[name_key[0].to_sym]
-        value = without_pipes(opts[name_key[0].to_sym])
+        value = remove_pipes(opts[name_key[0].to_sym])
         event_string_data << "|#{name_key[1]}:#{value}"
       end
     end
     # Tags are joined and added as last part to the string to be sent
-    full_tags = (tags + (opts[:tags] || [])).map {|tag| without_pipes(tag) }
+    full_tags = (tags + (opts[:tags] || [])).map {|tag| remove_pipes(tag) }
     unless full_tags.empty?
       event_string_data << "|##{full_tags.join(',')}"
     end
@@ -323,7 +323,7 @@ class Statsd
     msg.gsub "\n", "\\n"
   end
 
-  def without_pipes(msg)
+  def remove_pipes(msg)
     msg.gsub "|", ""
   end
 
