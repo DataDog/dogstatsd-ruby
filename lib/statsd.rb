@@ -243,7 +243,7 @@ class Statsd
           sc_string << "|##{tags}"
         elsif name_key[0] == 'message'
           message = without_pipes(opts[:message])
-          escaped_message = service_check_message_escaped(message)
+          escaped_message = escape_service_check_message(message)
           sc_string << "|m:#{escaped_message}"
         else
           value = without_pipes(opts[name_key[0].to_sym])
@@ -295,8 +295,8 @@ class Statsd
   end
 
   def format_event(title, text, opts={})
-    escaped_title = event_content_escaped(title)
-    escaped_text = event_content_escaped(text)
+    escaped_title = escape_event_content(title)
+    escaped_text = escape_event_content(text)
     event_string_data = "_e{#{escaped_title.length},#{escaped_text.length}}:#{escaped_title}|#{escaped_text}"
 
     # We construct the string to be sent by adding '|key:value' parts to it when needed
@@ -319,7 +319,7 @@ class Statsd
 
   private
 
-  def event_content_escaped(msg)
+  def escape_event_content(msg)
     msg.gsub "\n", "\\n"
   end
 
@@ -327,7 +327,7 @@ class Statsd
     msg.gsub "|", ""
   end
 
-  def service_check_message_escaped(msg)
+  def escape_service_check_message(msg)
     msg.gsub('m:', 'm\:').gsub "\n", "\\n"
   end
 
