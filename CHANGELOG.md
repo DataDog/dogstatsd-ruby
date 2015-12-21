@@ -1,5 +1,12 @@
 # CHANGELOG
 
+1.6.0/ Unreleased
+==================
+
+### Changes
+
+* [IMPROVEMENT] Stop mutating input parameters, [#22][] [@olefriis][]
+
 1.5.0/ 2015.05.20
 ==================
 
@@ -65,5 +72,7 @@ Future versions are likely to introduce backward incompatibilities with < Ruby 1
 [#14]: https://github.com/DataDog/dogstatsd-ruby/issues/14
 [#16]: https://github.com/DataDog/dogstatsd-ruby/issues/16
 [#17]: https://github.com/DataDog/dogstatsd-ruby/issues/17
+[#22]: https://github.com/DataDog/dogstatsd-ruby/issues/22
 [@gleseur]: https://github.com/gleseur
+[@olefriis]: https://github.com/olefriis
 [@sensadrome]: https://github.com/sensadrome
