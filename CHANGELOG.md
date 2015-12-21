@@ -1,6 +1,6 @@
 # CHANGELOG
 
-1.6.0/ Unreleased
+1.6.0/ 2015.12.21
 ==================
 
 ### Changes
