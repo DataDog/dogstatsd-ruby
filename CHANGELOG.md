@@ -12,6 +12,12 @@ To update:
 - `require 'statsd'` -> `require 'datadog/statsd`
 - `Statsd` -> `Datadog::Statsd`
 
+#### Tags
+
+`,` is now stripped from tags to avoid unexpected behavior.
+
+`Datadog::Statsd` also validates that it receives an array of tags, and strips `,` and `|` from them.
+
 1.6.0/ 2015.12.21
 ==================
 
