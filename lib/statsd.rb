@@ -238,7 +238,7 @@ class Statsd
     SC_OPT_KEYS.each do |name_key|
       if opts[name_key[0].to_sym]
         if name_key[0] == 'tags'
-          tags = opts[:tags].map {|tag| remove_pipes(tag) }
+          tags = opts[:tags].map {|tag| escape_tag_content(tag) }
           tags = "#{tags.join(",")}" unless tags.empty?
           sc_string << "|##{tags}"
         elsif name_key[0] == 'message'
@@ -308,7 +308,7 @@ class Statsd
       end
     end
     # Tags are joined and added as last part to the string to be sent
-    full_tags = (tags + (opts[:tags] || [])).map {|tag| remove_pipes(tag) }
+    full_tags = (tags + (opts[:tags] || [])).map {|tag| escape_tag_content(tag) }
     unless full_tags.empty?
       event_string_data << "|##{full_tags.join(',')}"
     end
@@ -321,6 +321,10 @@ class Statsd
 
   def escape_event_content(msg)
     msg.gsub "\n", "\\n"
+  end
+
+  def escape_tag_content(tag)
+    remove_pipes(tag).gsub ',', ''
   end
 
   def remove_pipes(msg)
@@ -341,7 +345,7 @@ class Statsd
       # Replace Ruby module scoping with '.' and reserved chars (: | @) with underscores.
       stat = stat.to_s.gsub('::', '.').tr(':|@', '_')
       rate = "|@#{sample_rate}" unless sample_rate == 1
-      ts = (tags || []) + (opts[:tags] || [])
+      ts = (tags || []) + (opts[:tags] || []).map {|tag| escape_tag_content(tag)}
       tags = "|##{ts.join(",")}" unless ts.empty?
       send_stat "#{@prefix}#{stat}:#{delta}|#{type}#{rate}#{tags}"
     end

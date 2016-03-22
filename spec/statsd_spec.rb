@@ -307,6 +307,13 @@ describe Statsd do
     end
   end
 
+  describe "tag names" do
+    it "replaces reserved chars for tags" do
+      @statsd.increment('stat', tags: ["name:foo,bar|foo"])
+      @statsd.socket.recv.must_equal ['stat:1|c|#name:foobarfoo']
+    end
+  end
+
   describe "handling socket errors" do
     before do
       require 'stringio'
@@ -425,12 +432,7 @@ describe Statsd do
       text = Faker::Lorem.sentence(word_count = rand(3))
       title_len = title.length
       text_len = text.length
-      nb_tags = 10 * rand(2)
-      tags = Array.new
-      for j in 0..nb_tags
-        tag = String(Faker::Lorem.words(num = 10 * rand(10)))
-        tags.push(tag)
-      end
+      tags = Faker::Lorem.words(rand(1..10))
       tags_joined = tags.join(",")
 
       it "Only title and text" do
@@ -512,12 +514,7 @@ describe Statsd do
       name = Faker::Lorem.sentence(word_count =  rand(3))
       status = rand(4)
       hostname = "hostname_test"
-      nb_tags = 10 * rand(2)
-      tags = Array.new
-      for j in 0..nb_tags
-        tag = String(Faker::Lorem.words(num = 10 * rand(10)))
-        tags.push(tag)
-      end
+      tags = Faker::Lorem.words(rand(1..10))
       tags_joined = tags.join(",")
 
       it "Only name and status" do
