@@ -91,6 +91,13 @@ describe Datadog::Statsd do
         @statsd.socket.recv.must_equal ['foobar:1|c|@0.5']
       end
     end
+
+    describe "with a increment by" do
+      it "should increment by the number given" do
+        @statsd.increment('foobar', :by=>5)
+        @statsd.socket.recv.must_equal ['foobar:5|c']
+      end
+    end
   end
 
   describe "#decrement" do
@@ -104,6 +111,13 @@ describe Datadog::Statsd do
       it "should format the message according to the statsd spec" do
         @statsd.decrement('foobar', :sample_rate => 0.5)
         @statsd.socket.recv.must_equal ['foobar:-1|c|@0.5']
+      end
+    end
+
+    describe "with a decrement by" do
+      it "should decrement by the number given" do
+        @statsd.decrement('foobar', :by=>5)
+        @statsd.socket.recv.must_equal ['foobar:-5|c']
       end
     end
   end
