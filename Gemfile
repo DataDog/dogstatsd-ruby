@@ -2,6 +2,7 @@ source 'https://rubygems.org'
 gemspec
 
 gem 'rake', '10.1.0'
+gem 'rack', '~> 1.6'
 
 group :development do
   gem "faker", "~> 1.2.0"
@@ -14,4 +15,5 @@ end
 
 group :test do
   gem "timecop"
+  gem 'json', '~> 1.8'
 end

@@ -9,7 +9,7 @@ $LOAD_PATH.unshift(File.join(File.dirname(__FILE__), '..', 'lib'))
 require 'simplecov'
 SimpleCov.start
 
-require 'statsd'
+require 'datadog/statsd'
 require 'logger'
 
 class FakeUDPSocket

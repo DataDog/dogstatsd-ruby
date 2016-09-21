@@ -1,5 +1,17 @@
 # CHANGELOG
 
+2.0.0/ UNRELEASED
+=================
+
+### Breaking changes
+#### Namespace
+
+The `Statsd` is now namespaced under the Datadog module.
+
+To update:
+- `require 'statsd'` -> `require 'datadog/statsd`
+- `Statsd` -> `Datadog::Statsd`
+
 1.6.0/ 2015.12.21
 ==================
 

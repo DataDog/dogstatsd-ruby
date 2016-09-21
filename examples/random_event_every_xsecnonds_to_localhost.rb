@@ -3,10 +3,10 @@
 
 
 # Load the dogstats module.
-require '../lib/statsd'
+require '../lib/datadog/statsd'
 
 # Create a stats instance.
-statsd = Statsd.new('localhost', 8125)
+statsd = Datadog::Statsd.new('localhost', 8125)
 
 # Data to run random tests
 titles = Array.new
