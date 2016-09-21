@@ -43,12 +43,12 @@ describe Datadog::Statsd do
       @statsd.host = '1.2.3.4'
       @statsd.port = 5678
       @statsd.namespace = 'n4m35p4c3'
-      @statsd.tags = 't4g5'
+      @statsd.tags = ['t4g5']
 
       @statsd.host.must_equal '1.2.3.4'
       @statsd.port.must_equal 5678
       @statsd.namespace.must_equal 'n4m35p4c3'
-      @statsd.tags.must_equal 't4g5'
+      @statsd.tags.must_equal ['t4g5']
     end
 
     it "should not resolve hostnames to IPs" do
@@ -75,6 +75,10 @@ describe Datadog::Statsd do
     it 'should set nil tags to default' do
       @statsd.tags = nil
       @statsd.tags.must_equal []
+    end
+
+    it 'should reject non-array tags' do
+      lambda { @statsd.tags = 'tsdfs' }.must_raise ArgumentError
     end
   end
 
@@ -307,6 +311,13 @@ describe Datadog::Statsd do
     end
   end
 
+  describe "tag names" do
+    it "replaces reserved chars for tags" do
+      @statsd.increment('stat', tags: ["name:foo,bar|foo"])
+      @statsd.socket.recv.must_equal ['stat:1|c|#name:foobarfoo']
+    end
+  end
+
   describe "handling socket errors" do
     before do
       require 'stringio'
@@ -425,12 +436,7 @@ describe Datadog::Statsd do
       text = Faker::Lorem.sentence(word_count = rand(3))
       title_len = title.length
       text_len = text.length
-      nb_tags = 10 * rand(2)
-      tags = Array.new
-      for j in 0..nb_tags
-        tag = String(Faker::Lorem.words(num = 10 * rand(10)))
-        tags.push(tag)
-      end
+      tags = Faker::Lorem.words(rand(1..10))
       tags_joined = tags.join(",")
 
       it "Only title and text" do
@@ -512,12 +518,7 @@ describe Datadog::Statsd do
       name = Faker::Lorem.sentence(word_count =  rand(3))
       status = rand(4)
       hostname = "hostname_test"
-      nb_tags = 10 * rand(2)
-      tags = Array.new
-      for j in 0..nb_tags
-        tag = String(Faker::Lorem.words(num = 10 * rand(10)))
-        tags.push(tag)
-      end
+      tags = Faker::Lorem.words(rand(1..10))
       tags_joined = tags.join(",")
 
       it "Only name and status" do
