@@ -1,6 +1,6 @@
 # CHANGELOG
 
-2.0.0/ UNRELEASED
+2.0.0/ 2016.09.22
 =================
 
 ### Breaking changes

@@ -17,7 +17,7 @@ Then start instrumenting your code:
 
 ``` ruby
 # Load the dogstats module.
-require 'statsd'
+require 'datadog/statsd'
 
 # Create a stats instance.
 statsd = Datadog::Statsd.new('localhost', 8125)

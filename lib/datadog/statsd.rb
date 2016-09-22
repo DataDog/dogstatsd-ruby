@@ -3,7 +3,7 @@ require 'socket'
 # = Datadog::Statsd: A DogStatsd client (https://www.datadoghq.com)
 #
 # @example Set up a global Statsd client for a server on localhost:8125
-#   require 'statsd'
+#   require 'datadog/statsd'
 #   $statsd = Datadog::Statsd.new 'localhost', 8125
 # @example Send some stats
 #   $statsd.increment 'page.views'
