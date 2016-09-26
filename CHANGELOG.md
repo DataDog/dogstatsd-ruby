@@ -9,7 +9,7 @@
 The `Statsd` is now namespaced under the Datadog module.
 
 To update:
-- `require 'statsd'` -> `require 'datadog/statsd`
+- `require 'statsd'` -> `require 'datadog/statsd'`
 - `Statsd` -> `Datadog::Statsd`
 
 #### Tags
