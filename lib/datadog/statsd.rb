@@ -169,10 +169,13 @@ module Datadog
       send_stats stat, value, :h, opts
     end
 
-    # Sends a timing (in ms) for the given stat to the statsd server. The
+    # Sends a histogram (in ms) for the given stat to the statsd server. The
     # sample_rate determines what percentage of the time this report is sent. The
     # statsd server then uses the sample_rate to correctly track the average
     # timing for the stat.
+    #
+    # Note: This is identical to the histogram method above.  We do not send
+    # :ms since Datadog does not support that type.
     #
     # @param [String] stat stat name
     # @param [Integer] ms timing in milliseconds
@@ -180,7 +183,7 @@ module Datadog
     # @option opts [Numeric] :sample_rate sample rate, 1 for always
     # @option opts [Array<String>] :tags An array of tags
     def timing(stat, ms, opts={})
-      send_stats stat, ms, :ms, opts
+      send_stats stat, ms, :h, opts
     end
 
     # Reports execution time of the provided block using {#timing}.
