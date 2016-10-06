@@ -19,7 +19,7 @@ require 'socket'
 module Datadog
   class Statsd
 
-    DEFAULT_HOST = '127.0.0.1'.freeze
+    DEFAULT_HOST = '127.0.0.1'
     DEFAULT_PORT = 8125
 
     # Create a dictionary to assign a key to every parameter's name, except for tags (treated differently)
