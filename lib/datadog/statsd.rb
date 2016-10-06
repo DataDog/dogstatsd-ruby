@@ -244,7 +244,7 @@ module Datadog
 
         if key == :tags
           tags = opts[:tags].map {|tag| escape_tag_content(tag) }
-          tags = "#{tags.join(",")}" unless tags.empty?
+          tags = "#{tags.join(COMMA)}" unless tags.empty?
           sc_string << "|##{tags}"
         elsif key == :message
           message = remove_pipes(opts[:message])
@@ -315,7 +315,7 @@ module Datadog
       # Tags are joined and added as last part to the string to be sent
       full_tags = (tags + (opts[:tags] || [])).map {|tag| escape_tag_content(tag) }
       unless full_tags.empty?
-        event_string_data << "|##{full_tags.join(',')}"
+        event_string_data << "|##{full_tags.join(COMMA)}"
       end
 
       raise "Event #{title} payload is too big (more that 8KB), event discarded" if event_string_data.length > 8192 # 8 * 1024 = 8192
@@ -363,7 +363,7 @@ module Datadog
         stat = stat.to_s.gsub(DOUBLE_COLON, DOT).tr(':|@'.freeze, UNDERSCORE)
         rate = "|@#{sample_rate}" unless sample_rate == 1
         ts = (tags || []) + (opts[:tags] || []).map {|tag| escape_tag_content(tag)}
-        tags = "|##{ts.join(",")}" unless ts.empty?
+        tags = "|##{ts.join(COMMA)}" unless ts.empty?
         send_stat "#{@prefix}#{stat}:#{delta}|#{type}#{rate}#{tags}"
       end
     end
@@ -376,7 +376,7 @@ module Datadog
     end
 
     def flush_buffer()
-      send_to_socket(@buffer.join("\n"))
+      send_to_socket(@buffer.join(NEW_LINE))
       @buffer = Array.new
     end
 
