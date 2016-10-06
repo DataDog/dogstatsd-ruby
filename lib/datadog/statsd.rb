@@ -24,22 +24,23 @@ module Datadog
 
     # Create a dictionary to assign a key to every parameter's name, except for tags (treated differently)
     # Goal: Simple and fast to add some other parameters
-    OPTS_KEYS = [
-          [:date_happened, :d],
-          [:hostname, :h],
-          [:aggregation_key, :k],
-          [:priority, :p],
-          [:source_type_name, :s],
-          [:alert_type, :t]
-    ]
+    OPTS_KEYS = {
+      :date_happened     => :d,
+      :hostname          => :h,
+      :aggregation_key   => :k,
+      :priority          => :p,
+      :source_type_name  => :s,
+      :alert_type        => :t,
+    }
 
     # Service check options
-    SC_OPT_KEYS = [
-          [:timestamp, 'd:'.freeze],
-          [:hostname, 'h:'.freeze],
-          [:tags, '#'.freeze],
-          [:message, 'm:'.freeze]
-    ]
+    SC_OPT_KEYS = {
+      :timestamp  => 'd:'.freeze,
+      :hostname   => 'h:'.freeze,
+      :tags       => '#'.freeze,
+      :message    => 'm:'.freeze,
+    }
+
     OK        = 0
     WARNING   = 1
     CRITICAL  = 2
@@ -238,20 +239,20 @@ module Datadog
     def format_service_check(name, status, opts={})
       sc_string = "_sc|#{name}|#{status}"
 
-      SC_OPT_KEYS.each do |name_key|
-        if opts[name_key[0]]
-          if name_key[0] == :tags
-            tags = opts[:tags].map {|tag| escape_tag_content(tag) }
-            tags = "#{tags.join(",")}" unless tags.empty?
-            sc_string << "|##{tags}"
-          elsif name_key[0] == :message
-            message = remove_pipes(opts[:message])
-            escaped_message = escape_service_check_message(message)
-            sc_string << "|m:#{escaped_message}"
-          else
-            value = remove_pipes(opts[name_key[0].to_sym])
-            sc_string << "|#{name_key[1]}#{value}"
-          end
+      SC_OPT_KEYS.each do |key, shorthand_key|
+        next unless opts[key]
+
+        if key == :tags
+          tags = opts[:tags].map {|tag| escape_tag_content(tag) }
+          tags = "#{tags.join(",")}" unless tags.empty?
+          sc_string << "|##{tags}"
+        elsif key == :message
+          message = remove_pipes(opts[:message])
+          escaped_message = escape_service_check_message(message)
+          sc_string << "|m:#{escaped_message}"
+        else
+          value = remove_pipes(opts[key])
+          sc_string << "|#{shorthand_key}#{value}"
         end
       end
       return sc_string
@@ -304,12 +305,13 @@ module Datadog
 
       # We construct the string to be sent by adding '|key:value' parts to it when needed
       # All pipes ('|') in the metadata are removed. Title and Text can keep theirs
-      OPTS_KEYS.each do |name_key|
-        if name_key[0] != :tags && opts[name_key[0]]
-          value = remove_pipes(opts[name_key[0]])
-          event_string_data << "|#{name_key[1]}:#{value}"
+      OPTS_KEYS.each do |key, shorthand_key|
+        if key != :tags && opts[key]
+          value = remove_pipes(opts[key])
+          event_string_data << "|#{shorthand_key}:#{value}"
         end
       end
+
       # Tags are joined and added as last part to the string to be sent
       full_tags = (tags + (opts[:tags] || [])).map {|tag| escape_tag_content(tag) }
       unless full_tags.empty?
