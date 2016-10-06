@@ -333,6 +333,9 @@ module Datadog
     DOUBLE_COLON = "::".freeze
     UNDERSCORE = "_".freeze
 
+    private_constant :NEW_LINE, :ESC_NEW_LINE, :COMMA, :BLANK, :PIPE, :DOT,
+      :DOUBLE_COLON, :UNDERSCORE
+
     def escape_event_content(msg)
       msg.gsub NEW_LINE, ESC_NEW_LINE
     end
