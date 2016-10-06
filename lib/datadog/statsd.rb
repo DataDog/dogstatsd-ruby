@@ -318,7 +318,7 @@ module Datadog
         event_string_data << "|##{full_tags.join(',')}"
       end
 
-      raise "Event #{title} payload is too big (more that 8KB), event discarded" if event_string_data.length > 8 * 1024
+      raise "Event #{title} payload is too big (more that 8KB), event discarded" if event_string_data.length > 8192 # 8 * 1024 = 8192
       return event_string_data
     end
 
