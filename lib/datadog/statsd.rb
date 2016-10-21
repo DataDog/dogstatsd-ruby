@@ -199,12 +199,9 @@ module Datadog
     #   $statsd.time('account.activate') { @account.activate! }
     def time(stat, opts={})
       start = Time.now
-      result = yield
+      return yield
+    ensure
       time_since(stat, start, opts)
-      result
-    rescue
-      time_since(stat, start, opts)
-      raise
     end
     # Sends a value to be tracked as a set to the statsd server.
     #

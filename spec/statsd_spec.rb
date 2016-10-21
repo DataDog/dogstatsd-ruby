@@ -193,6 +193,18 @@ describe Datadog::Statsd do
         end rescue
         @statsd.socket.recv.must_equal ['foobar:1000|ms']
       end
+
+      def helper_time_return
+        @statsd.time('foobar') do
+          Timecop.freeze(Time.now + 1)
+          return
+        end
+      end
+
+      it "should still time if block `return`s" do
+        helper_time_return
+        @statsd.socket.recv.must_equal ['foobar:1000|ms']
+      end
     end
 
     it "should return the result of the block" do
