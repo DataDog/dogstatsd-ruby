@@ -113,9 +113,11 @@ module Datadog
     # @param [Hash] opts the options to create the metric with
     # @option opts [Numeric] :sample_rate sample rate, 1 for always
     # @option opts [Array<String>] :tags An array of tags
+    # @option opts [Numeric] :by increment value, default 1
     # @see #count
     def increment(stat, opts={})
-      count stat, 1, opts
+      incr_value = opts.fetch(:by, 1)
+      count stat, incr_value, opts
     end
 
     # Sends a decrement (count = -1) for the given stat to the statsd server.
@@ -124,9 +126,11 @@ module Datadog
     # @param [Hash] opts the options to create the metric with
     # @option opts [Numeric] :sample_rate sample rate, 1 for always
     # @option opts [Array<String>] :tags An array of tags
+    # @option opts [Numeric] :by decrement value, default 1
     # @see #count
     def decrement(stat, opts={})
-      count stat, -1, opts
+      decr_value = - opts.fetch(:by, 1)
+      count stat, decr_value, opts
     end
 
     # Sends an arbitrary count for the given stat to the statsd server.
