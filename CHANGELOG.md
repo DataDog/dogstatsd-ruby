@@ -1,12 +1,21 @@
 # CHANGELOG
 
+2.1.0/ UNRELEASED
+=================
+
+### Changes
+
+* [FEATURE] Add an optional `by` parameter for `#increment` and `decrement`, [#33][]
+* [BUGFIX] `#time`: record on all block exits, [#38][] [@nelhage][]
+* [IMPROVEMENT] Replace string literals with symbols or frozen strings, [#37][] [@janester][]
+
 2.0.0/ 2016.09.22
 =================
 
 ### Breaking changes
 #### Namespace
 
-The `Statsd` is now namespaced under the Datadog module.
+The `Statsd` is now namespaced under the Datadog module. [#32][] [@djpate][]
 
 To update:
 - `require 'statsd'` -> `require 'datadog/statsd'`
@@ -14,7 +23,7 @@ To update:
 
 #### Tags
 
-`,` is now stripped from tags to avoid unexpected behavior.
+`,` is now stripped from tags to avoid unexpected behavior. [#34][] [@adimitrov][]
 
 `Datadog::Statsd` also validates that it receives an array of tags, and strips `,` and `|` from them.
 
@@ -91,6 +100,15 @@ Future versions are likely to introduce backward incompatibilities with < Ruby 1
 [#16]: https://github.com/DataDog/dogstatsd-ruby/issues/16
 [#17]: https://github.com/DataDog/dogstatsd-ruby/issues/17
 [#22]: https://github.com/DataDog/dogstatsd-ruby/issues/22
+[#32]: https://github.com/DataDog/dogstatsd-ruby/issues/32
+[#33]: https://github.com/DataDog/dogstatsd-ruby/issues/33
+[#34]: https://github.com/DataDog/dogstatsd-ruby/issues/34
+[#37]: https://github.com/DataDog/dogstatsd-ruby/issues/37
+[#38]: https://github.com/DataDog/dogstatsd-ruby/issues/38
+[@adimitrov]: https://github.com/adimitrov
+[@djpate]: https://github.com/djpate
 [@gleseur]: https://github.com/gleseur
+[@janester]: https://github.com/janester
+[@nelhage]: https://github.com/nelhage
 [@olefriis]: https://github.com/olefriis
 [@sensadrome]: https://github.com/sensadrome
