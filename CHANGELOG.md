@@ -1,11 +1,11 @@
 # CHANGELOG
 
-2.1.0/ UNRELEASED
+2.1.0/ 2016.10.27
 =================
 
 ### Changes
 
-* [FEATURE] Add an optional `by` parameter for `#increment` and `decrement`, [#33][]
+* [FEATURE] Add an optional `by` parameter for `#increment` and `#decrement`, [#33][]
 * [BUGFIX] `#time`: record on all block exits, [#38][] [@nelhage][]
 * [IMPROVEMENT] Replace string literals with symbols or frozen strings, [#37][] [@janester][]
 
