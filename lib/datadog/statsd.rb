@@ -110,7 +110,7 @@ module Datadog
 
     def tags=(tags) #:nodoc:
       raise ArgumentError, 'tags must be a Array<String>' unless tags.nil? or tags.is_a? Array
-      @tags = (tags || []).map {|tag| escape_tag_content!(tag)}
+      @tags = (tags || []).map {|tag| escape_tag_content(tag)}
     end
 
     # Sends an increment (count = 1) for the given stat to the statsd server.
@@ -250,15 +250,15 @@ module Datadog
         next unless opts[key]
 
         if key == :tags
-          tags = opts[:tags].map {|tag| escape_tag_content!(tag) }
+          tags = opts[:tags].map {|tag| escape_tag_content(tag) }
           tags = "#{tags.join(COMMA)}" unless tags.empty?
           sc_string << "|##{tags}"
         elsif key == :message
-          message = remove_pipes!(opts[:message])
+          message = remove_pipes(opts[:message])
           escaped_message = escape_service_check_message(message)
           sc_string << "|m:#{escaped_message}"
         else
-          value = remove_pipes!(opts[key])
+          value = remove_pipes(opts[key])
           sc_string << "|#{shorthand_key}#{value}"
         end
       end
@@ -306,21 +306,21 @@ module Datadog
     end
 
     def format_event(title, text, opts={})
-      escaped_title = escape_event_content!(title)
-      escaped_text = escape_event_content!(text)
+      escaped_title = escape_event_content(title)
+      escaped_text = escape_event_content(text)
       event_string_data = "_e{#{escaped_title.length},#{escaped_text.length}}:#{escaped_title}|#{escaped_text}"
 
       # We construct the string to be sent by adding '|key:value' parts to it when needed
       # All pipes ('|') in the metadata are removed. Title and Text can keep theirs
       OPTS_KEYS.each do |key, shorthand_key|
         if key != :tags && opts[key]
-          value = remove_pipes!(opts[key])
+          value = remove_pipes(opts[key])
           event_string_data << "|#{shorthand_key}:#{value}"
         end
       end
 
       # Tags are joined and added as last part to the string to be sent
-      full_tags = (tags + (opts[:tags] || [])).map {|tag| escape_tag_content!(tag) }
+      full_tags = (tags + (opts[:tags] || [])).map {|tag| escape_tag_content(tag) }
       unless full_tags.empty?
         event_string_data << "|##{full_tags.join(COMMA)}"
       end
@@ -343,22 +343,26 @@ module Datadog
     private_constant :NEW_LINE, :ESC_NEW_LINE, :COMMA, :BLANK, :PIPE, :DOT,
       :DOUBLE_COLON, :UNDERSCORE
 
-    def escape_event_content!(msg)
-      msg.gsub!(NEW_LINE, ESC_NEW_LINE) || msg
+    def escape_event_content(msg)
+      msg.gsub NEW_LINE, ESC_NEW_LINE
+    end
+
+    def escape_tag_content(tag)
+      remove_pipes(tag).gsub COMMA, BLANK
     end
 
     def escape_tag_content!(tag)
-      remove_pipes!(tag)
-      tag.gsub!(COMMA, BLANK) || tag
+      tag.gsub!(PIPE, BLANK)
+      tag.gsub!(COMMA, BLANK)
+      tag
     end
 
-    def remove_pipes!(msg)
-      msg.gsub!(PIPE, BLANK) || msg
+    def remove_pipes(msg)
+      msg.gsub PIPE, BLANK
     end
 
     def escape_service_check_message(msg)
-      escape_event_content!(msg)
-      msg.gsub!('m:'.freeze, 'm\:'.freeze) || msg
+      escape_event_content(msg).gsub('m:'.freeze, 'm\:'.freeze)
     end
 
     def time_since(stat, start, opts)
@@ -378,8 +382,8 @@ module Datadog
         full_stat = ''
         full_stat << @prefix if @prefix
 
+        stat = stat.is_a?(String) ? stat.dup : stat.to_s
         # Replace Ruby module scoping with '.' and reserved chars (: | @) with underscores.
-        stat = stat.to_s
         stat.gsub!(DOUBLE_COLON, DOT)
         stat.tr!(':|@'.freeze, UNDERSCORE)
         full_stat << stat
@@ -397,7 +401,7 @@ module Datadog
 
 
         tag_arr = opts[:tags].to_a
-        tag_arr.each {|tag| escape_tag_content!(tag)}
+        tag_arr.map! { |tag| t = tag.dup; escape_tag_content!(t); t }
         ts = tags.to_a + tag_arr
         unless ts.empty?
           full_stat << PIPE

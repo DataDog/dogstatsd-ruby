@@ -86,18 +86,6 @@ describe Datadog::Statsd do
     it "should format the message according to the statsd spec" do
       @statsd.increment('foobar')
       @statsd.socket.recv.must_equal ['foobar:1|c']
-
-      @statsd.increment('SomeClass::SomeSubClass')
-      @statsd.socket.recv.must_equal ['SomeClass.SomeSubClass:1|c']
-
-      @statsd.increment('@foo')
-      @statsd.socket.recv.must_equal ['_foo:1|c']
-
-      @statsd.increment('foo|bar')
-      @statsd.socket.recv.must_equal ['foo_bar:1|c']
-
-      @statsd.increment('foo:bar')
-      @statsd.socket.recv.must_equal ['foo_bar:1|c']
     end
 
     describe "with a sample rate" do
@@ -120,18 +108,6 @@ describe Datadog::Statsd do
     it "should format the message according to the statsd spec" do
       @statsd.decrement('foobar')
       @statsd.socket.recv.must_equal ['foobar:-1|c']
-
-      @statsd.decrement('SomeClass::SomeSubClass')
-      @statsd.socket.recv.must_equal ['SomeClass.SomeSubClass:-1|c']
-
-      @statsd.decrement('@foo')
-      @statsd.socket.recv.must_equal ['_foo:-1|c']
-
-      @statsd.decrement('foo|bar')
-      @statsd.socket.recv.must_equal ['foo_bar:-1|c']
-
-      @statsd.decrement('foo:bar')
-      @statsd.socket.recv.must_equal ['foo_bar:-1|c']
     end
 
     describe "with a sample rate" do
@@ -359,12 +335,20 @@ describe Datadog::Statsd do
       @statsd.increment('ray@hostname.blah|blah.blah:blah')
       @statsd.socket.recv.must_equal ['ray_hostname.blah_blah.blah_blah:1|c']
     end
+
+    it "should handle frozen strings" do
+      @statsd.increment("some-stat".freeze)
+    end
   end
 
   describe "tag names" do
     it "replaces reserved chars for tags" do
       @statsd.increment('stat', tags: ["name:foo,bar|foo"])
       @statsd.socket.recv.must_equal ['stat:1|c|#name:foobarfoo']
+    end
+
+    it "handles the cases when some tags are frozen strings" do
+      @statsd.increment('stat', tags: ["first_tag".freeze, "second_tag"])
     end
   end
 
