@@ -335,12 +335,20 @@ describe Datadog::Statsd do
       @statsd.increment('ray@hostname.blah|blah.blah:blah')
       @statsd.socket.recv.must_equal ['ray_hostname.blah_blah.blah_blah:1|c']
     end
+
+    it "should handle frozen strings" do
+      @statsd.increment("some-stat".freeze)
+    end
   end
 
   describe "tag names" do
     it "replaces reserved chars for tags" do
       @statsd.increment('stat', tags: ["name:foo,bar|foo"])
       @statsd.socket.recv.must_equal ['stat:1|c|#name:foobarfoo']
+    end
+
+    it "handles the cases when some tags are frozen strings" do
+      @statsd.increment('stat', tags: ["first_tag".freeze, "second_tag"])
     end
   end
 
