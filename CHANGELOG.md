@@ -1,5 +1,12 @@
 # CHANGELOG
 
+2.2.0 / UNRELEASED
+==================
+
+### Changes
+
+* [IMPROVEMENT] Fewer string allocations, improves memory usage, [#40][], [@janester][]
+
 2.1.0/ 2016.10.27
 =================
 
@@ -105,6 +112,7 @@ Future versions are likely to introduce backward incompatibilities with < Ruby 1
 [#34]: https://github.com/DataDog/dogstatsd-ruby/issues/34
 [#37]: https://github.com/DataDog/dogstatsd-ruby/issues/37
 [#38]: https://github.com/DataDog/dogstatsd-ruby/issues/38
+[#40]: https://github.com/DataDog/dogstatsd-ruby/issues/40
 [@adimitrov]: https://github.com/adimitrov
 [@djpate]: https://github.com/djpate
 [@gleseur]: https://github.com/gleseur
