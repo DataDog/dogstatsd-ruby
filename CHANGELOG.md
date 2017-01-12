@@ -1,6 +1,6 @@
 # CHANGELOG
 
-2.2.0 / UNRELEASED
+2.2.0/ 2017.01.12
 ==================
 
 ### Changes
