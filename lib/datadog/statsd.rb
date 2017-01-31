@@ -329,6 +329,11 @@ module Datadog
       return event_string_data
     end
 
+    def flush_buffer()
+      send_to_socket(@buffer.join(NEW_LINE))
+      @buffer = Array.new
+    end
+    
     private
 
     NEW_LINE = "\n".freeze
@@ -418,11 +423,6 @@ module Datadog
       if @buffer.length >= @max_buffer_size
         flush_buffer
       end
-    end
-
-    def flush_buffer()
-      send_to_socket(@buffer.join(NEW_LINE))
-      @buffer = Array.new
     end
 
     def send_to_socket(message)
