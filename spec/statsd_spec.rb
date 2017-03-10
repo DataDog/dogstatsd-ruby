@@ -24,7 +24,7 @@ describe Datadog::Statsd do
       statsd = Datadog::Statsd.new
       statsd.host.must_equal '127.0.0.1'
       statsd.port.must_equal 8125
-      statsd.namespace.must_equal nil
+      assert_nil statsd.namespace
       statsd.tags.must_equal []
     end
 
@@ -68,8 +68,8 @@ describe Datadog::Statsd do
 
     it 'should set prefix to nil when namespace is set to nil' do
       @statsd.namespace = nil
-      @statsd.namespace.must_equal nil
-      @statsd.instance_variable_get('@prefix').must_equal nil
+      assert_nil @statsd.namespace
+      assert_nil @statsd.instance_variable_get('@prefix')
     end
 
     it 'should set nil tags to default' do
@@ -261,7 +261,7 @@ describe Datadog::Statsd do
     describe "when the sample rate is less than a random value [0,1]" do
       before { class << @statsd; def rand; 1; end; end } # ensure no delivery
       it "should not send" do
-        @statsd.timing('foobar', 500, :sample_rate=>0.5).must_equal nil
+        assert_nil @statsd.timing('foobar', 500, :sample_rate=>0.5)
       end
     end
 
@@ -360,7 +360,7 @@ describe Datadog::Statsd do
     end
 
     it "should ignore socket errors" do
-      @statsd.increment('foobar').must_equal nil
+      assert_nil @statsd.increment('foobar')
     end
 
     it "should log socket errors" do
