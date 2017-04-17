@@ -87,7 +87,7 @@ module Datadog
     def initialize(host = DEFAULT_HOST, port = DEFAULT_PORT, opts = {}, max_buffer_size=50)
       self.host, self.port = host, port
       @prefix = nil
-      @socket = UDPSocket.new
+      @socket = connect_to_socket(host, port)
       self.namespace = opts[:namespace]
       self.tags = opts[:tags]
       @buffer = Array.new
@@ -425,9 +425,15 @@ module Datadog
       @buffer = Array.new
     end
 
+    def connect_to_socket(host, port)
+      socket = UDPSocket.new
+      socket.connect(host, port)
+      socket
+    end
+
     def send_to_socket(message)
       self.class.logger.debug { "Statsd: #{message}" } if self.class.logger
-      @socket.send(message, 0, @host, @port)
+      @socket.send(message, 0)
     rescue => boom
       self.class.logger.error { "Statsd: #{boom.class} #{boom}" } if self.class.logger
       nil
