@@ -582,6 +582,17 @@ describe Datadog::Statsd do
 
     end
   end
+
+  describe "#close" do
+    it "closes the socket" do
+      socket = MiniTest::Mock.new
+      socket.expect :close, nil
+      @statsd.socket = socket
+      @statsd.close
+    end
+
+    after { @statsd.socket = FakeUDPSocket.new }
+  end
 end
 
 describe Datadog::Statsd do
