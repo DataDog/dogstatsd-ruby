@@ -127,7 +127,7 @@ describe Datadog::Statsd do
   end
 
   describe "#gauge" do
-    it "should send a message with a 'g' type, per the nearbuy fork" do
+    it "should send a message with a 'g' type, per the nearby fork" do
       @statsd.gauge('begrutten-suffusion', 536)
       @statsd.socket.recv.must_equal ['begrutten-suffusion:536|g']
       @statsd.gauge('begrutten-suffusion', -107.3)
@@ -144,7 +144,7 @@ describe Datadog::Statsd do
   end
 
   describe "#histogram" do
-    it "should send a message with a 'h' type, per the nearbuy fork" do
+    it "should send a message with a 'h' type, per the nearby fork" do
       @statsd.histogram('ohmy', 536)
       @statsd.socket.recv.must_equal ['ohmy:536|h']
       @statsd.histogram('ohmy', -107.3)
@@ -161,7 +161,7 @@ describe Datadog::Statsd do
   end
 
   describe "#set" do
-    it "should send a message with a 's' type, per the nearbuy fork" do
+    it "should send a message with a 's' type, per the nearby fork" do
       @statsd.set('my.set', 536)
       @statsd.socket.recv.must_equal ['my.set:536|s']
     end
