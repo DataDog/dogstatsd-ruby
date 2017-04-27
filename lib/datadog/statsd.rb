@@ -440,13 +440,20 @@ module Datadog
       self.class.logger.debug { "Statsd: #{message}" } if self.class.logger
       @socket.send(message, 0)
     rescue => boom
-      if boom.is_a?(IOError) && boom.message =~ /closed stream/i
-        @socket = connect_to_socket(host, port)
-        retry
-      else
-        self.class.logger.error { "Statsd: #{boom.class} #{boom}" } if self.class.logger
-        nil
+      # Try once to reconnect if the socket has been closed
+      retries ||= 1
+      if retries <= 1 && boom.is_a?(IOError) && boom.message =~ /closed stream/i
+        retries += 1
+        begin
+          @socket = connect_to_socket(host, port)
+          retry
+        rescue => e
+          boom = e
+        end
       end
+
+      self.class.logger.error { "Statsd: #{boom.class} #{boom}" } if self.class.logger
+      nil
     end
   end
 end

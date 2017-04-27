@@ -1,5 +1,6 @@
 require 'helper'
 require 'timecop'
+require 'stringio'
 
 describe Datadog::Statsd do
   class Datadog::Statsd
@@ -354,7 +355,6 @@ describe Datadog::Statsd do
 
   describe "handling socket errors" do
     before do
-      require 'stringio'
       Datadog::Statsd.logger = Logger.new(@log = StringIO.new)
       @statsd.socket.instance_eval { def send(*) raise SocketError end }
     end
@@ -365,6 +365,56 @@ describe Datadog::Statsd do
 
     it "should log socket errors" do
       @statsd.increment('foobar')
+      @log.string.must_match 'Statsd: SocketError'
+    end
+  end
+
+  describe "handling closed socket" do
+    before do
+      Datadog::Statsd.logger = Logger.new(@log = StringIO.new)
+    end
+
+    it "should try once to reconnect" do
+      @statsd.socket.instance_eval do
+        def send_calls() @send_calls ; end
+
+        def send(*args)
+          @send_calls ||= 0
+          @send_calls += 1
+          raise IOError.new("closed stream") unless @send_calls > 1
+          super(*args)
+        end
+      end
+      @statsd.instance_eval { def connect_to_socket(*) @socket ; end }
+
+      @statsd.increment('foobar')
+
+      @statsd.socket.send_calls.must_equal 2
+      @statsd.socket.recv.must_equal ["foobar:1|c"]
+    end
+
+    it "should ignore and log if it fails to reconnect" do
+      @statsd.socket.instance_eval do
+        def send_calls() @send_calls ; end
+
+        def send(*)
+          @send_calls ||= 0
+          @send_calls += 1
+          raise IOError.new("closed stream")
+        end
+      end
+      @statsd.instance_eval { def connect_to_socket(*) @socket ; end }
+
+      assert_nil @statsd.increment('foobar')
+      @statsd.socket.send_calls.must_equal 2
+      @log.string.must_match 'Statsd: IOError closed stream'
+    end
+
+    it "should ignore and log errors while trying to reconnect" do
+      @statsd.socket.instance_eval { def send(*) raise IOError.new("closed stream") end }
+      @statsd.instance_eval { def connect_to_socket(*) raise SocketError end }
+
+      assert_nil @statsd.increment('foobar')
       @log.string.must_match 'Statsd: SocketError'
     end
   end
