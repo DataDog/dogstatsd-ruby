@@ -13,8 +13,6 @@ describe Datadog::Statsd do
     @statsd.socket = FakeUDPSocket.new
   end
 
-  after { @statsd.socket.clear }
-
   describe "#initialize" do
     it "should set the host and port" do
       @statsd.host.must_equal 'localhost'
@@ -640,8 +638,6 @@ describe Datadog::Statsd do
       @statsd.socket = socket
       @statsd.close
     end
-
-    after { @statsd.socket = FakeUDPSocket.new }
   end
 end
 
