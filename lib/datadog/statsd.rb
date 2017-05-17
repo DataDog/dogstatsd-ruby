@@ -64,6 +64,10 @@ module Datadog
     # Global tags to be added to every statsd call. Defaults to no tags.
     attr_reader :tags
 
+    # True if we should batch up data before sending it, or false if we
+    # want to send data immediately.
+    attr_reader :should_batch
+
     # Buffer containing the statsd message before they are sent in batch
     attr_reader :buffer
 
@@ -92,7 +96,7 @@ module Datadog
       self.tags = opts[:tags]
       @buffer = Array.new
       self.max_buffer_size = max_buffer_size
-      alias :send_stat :send_to_socket
+      @should_batch = false
     end
 
     def namespace=(namespace) #:nodoc:
@@ -299,10 +303,11 @@ module Datadog
     #      s.increment('page.views')
     #    end
     def batch()
-      alias :send_stat :send_to_buffer
+      @should_batch = true
       yield self
       flush_buffer
-      alias :send_stat :send_to_socket
+    ensure
+      @should_batch = false
     end
 
     def format_event(title, text, opts={})
@@ -418,10 +423,12 @@ module Datadog
       end
     end
 
-    def send_to_buffer(message)
-      @buffer << message
-      if @buffer.length >= @max_buffer_size
-        flush_buffer
+    def send_stat(message)
+      if @should_batch
+        @buffer << message
+        flush_buffer if @buffer.length >= @max_buffer_size
+      else
+        send_to_socket(message)
       end
     end
 
