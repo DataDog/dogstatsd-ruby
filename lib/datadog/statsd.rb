@@ -329,6 +329,11 @@ module Datadog
       return event_string_data
     end
 
+    # Close the underlying socket
+    def close()
+      @socket.close
+    end
+
     private
 
     NEW_LINE = "\n".freeze
@@ -435,13 +440,20 @@ module Datadog
       self.class.logger.debug { "Statsd: #{message}" } if self.class.logger
       @socket.send(message, 0)
     rescue => boom
+      # Try once to reconnect if the socket has been closed
+      retries ||= 1
+      if retries <= 1 && boom.is_a?(IOError) && boom.message =~ /closed stream/i
+        retries += 1
+        begin
+          @socket = connect_to_socket(host, port)
+          retry
+        rescue => e
+          boom = e
+        end
+      end
+
       self.class.logger.error { "Statsd: #{boom.class} #{boom}" } if self.class.logger
       nil
-    end
-
-    # Close the underlying socket
-    def close()
-      @socket.close
     end
   end
 end
