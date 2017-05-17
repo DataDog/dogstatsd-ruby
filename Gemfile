@@ -24,6 +24,6 @@ group :test do
     gem 'webmock', '< 2.3'
     gem 'nokogiri', '< 1.7'
   else
-    gem 'json', '< 2'
+    gem 'json'
   end
 end
