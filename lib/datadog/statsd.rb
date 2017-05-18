@@ -81,7 +81,7 @@ module Datadog
 
     # Return the current version of the library.
     def self.VERSION
-      "2.2.0"
+      "3.0.0"
     end
 
     # @param [String] host your statsd host

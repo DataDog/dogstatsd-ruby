@@ -1,5 +1,24 @@
 # CHANGELOG
 
+3.0.0/ UNRELEASED
+==================
+
+### Breaking changes
+#### Host resolution
+
+Host resolution was previously done every time a message was sent, it is now
+done once when `Datadog::Statsd` is initiliazed (resulting in a non-negligible
+performance improvement). [#44][], [@AMekss][]
+
+`Datadog::Statsd.new(host, port)` will now raise a `SocketError` if unable to
+resolve the `host`.
+
+### Changes
+
+* [FEATURE] Expose (socket) close method. [#46][], [@ramfjord][]
+* [IMPROVEMENT] Retry once when send fails on a closed socket. [#46][], [@ramfjord][]
+* [IMPROVEMENT] Use a instance variable to decide whether to batch or not. [#47][] [@fimmtiu][]
+
 2.2.0/ 2017.01.12
 ==================
 
@@ -113,10 +132,16 @@ Future versions are likely to introduce backward incompatibilities with < Ruby 1
 [#37]: https://github.com/DataDog/dogstatsd-ruby/issues/37
 [#38]: https://github.com/DataDog/dogstatsd-ruby/issues/38
 [#40]: https://github.com/DataDog/dogstatsd-ruby/issues/40
+[#44]: https://github.com/DataDog/dogstatsd-ruby/issues/44
+[#46]: https://github.com/DataDog/dogstatsd-ruby/issues/46
+[#47]: https://github.com/DataDog/dogstatsd-ruby/issues/47
+[@AMekss]: https://github.com/AMekss
 [@adimitrov]: https://github.com/adimitrov
 [@djpate]: https://github.com/djpate
+[@fimmtiu]: https://github.com/fimmtiu
 [@gleseur]: https://github.com/gleseur
 [@janester]: https://github.com/janester
 [@nelhage]: https://github.com/nelhage
 [@olefriis]: https://github.com/olefriis
+[@ramfjord]: https://github.com/ramfjord
 [@sensadrome]: https://github.com/sensadrome
