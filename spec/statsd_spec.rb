@@ -349,6 +349,11 @@ describe Datadog::Statsd do
     it "handles the cases when some tags are frozen strings" do
       @statsd.increment('stat', tags: ["first_tag".freeze, "second_tag"])
     end
+
+    it "converts all values to strings" do
+      @statsd.increment('stat', tags: [:sample_tag])
+      @statsd.socket.recv.must_equal ['stat:1|c|#sample_tag']
+    end
   end
 
   describe "handling socket errors" do
