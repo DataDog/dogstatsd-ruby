@@ -79,6 +79,22 @@ describe Datadog::Statsd do
     it 'should reject non-array tags' do
       lambda { @statsd.tags = 'tsdfs' }.must_raise ArgumentError
     end
+
+    it 'ignore nil tags' do
+      @statsd.tags = ['tag1', nil, 'tag2']
+      @statsd.tags.must_equal %w[tag1 tag2]
+    end
+
+    it 'converts symbols to strings' do
+      @statsd.tags = [:tag1, :tag2]
+      @statsd.tags.must_equal %w[tag1 tag2]
+    end
+
+    it 'assigns regular tags' do
+      tags = %w[tag1 tag2]
+      @statsd.tags = tags
+      @statsd.tags.must_equal tags
+    end
   end
 
   describe "#increment" do
