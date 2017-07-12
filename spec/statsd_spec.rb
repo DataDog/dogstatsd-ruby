@@ -1,6 +1,7 @@
 require 'helper'
-require 'timecop'
+require 'socket'
 require 'stringio'
+require 'timecop'
 
 describe Datadog::Statsd do
   class Datadog::Statsd
@@ -8,7 +9,7 @@ describe Datadog::Statsd do
     attr_accessor :socket
   end
 
-  before do
+  before do |test|
     @statsd = Datadog::Statsd.new('localhost', 1234)
     @statsd.socket = FakeUDPSocket.new
   end
@@ -17,6 +18,23 @@ describe Datadog::Statsd do
     it "should set the host and port" do
       @statsd.host.must_equal 'localhost'
       @statsd.port.must_equal 1234
+    end
+
+    it "should create a UDPSocket when nothing is given" do
+      statsd = Datadog::Statsd.new
+      statsd.socket.must_be_instance_of(UDPSocket)
+    end
+
+    it "should create a UDPSocket when host and port are given" do
+      statsd = Datadog::Statsd.new('localhost', 1234)
+      statsd.socket.must_be_instance_of(UDPSocket)
+    end
+
+    it "should create a UDPSocket when socket_path is given" do
+      # fails because no unix socket is there
+      assert_raises Errno::ENOENT do
+        Datadog::Statsd.new('localhost', 1234, {socket_path: '/tmp/socket'})
+      end
     end
 
     it "should default the host to 127.0.0.1, port to 8125, namespace to nil, and tags to []" do

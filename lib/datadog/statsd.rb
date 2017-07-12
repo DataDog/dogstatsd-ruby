@@ -61,6 +61,9 @@ module Datadog
     # StatsD port. Defaults to 8125.
     attr_reader :port
 
+    # DogStatsd unix socket path. Not used by default.
+    attr_reader :socket_path
+
     # Global tags to be added to every statsd call. Defaults to no tags.
     attr_reader :tags
 
@@ -90,8 +93,9 @@ module Datadog
     # @option opts [Array<String>] :tags tags to be added to every metric
     def initialize(host = DEFAULT_HOST, port = DEFAULT_PORT, opts = {}, max_buffer_size=50)
       self.host, self.port = host, port
+      @socket_path = opts[:socket_path]
       @prefix = nil
-      @socket = connect_to_socket(host, port)
+      @socket = connect_to_socket(host, port, socket_path)
       self.namespace = opts[:namespace]
       self.tags = opts[:tags]
       @buffer = Array.new
@@ -432,14 +436,18 @@ module Datadog
       end
     end
 
-    def flush_buffer()
+    def flush_buffer
       send_to_socket(@buffer.join(NEW_LINE))
       @buffer = Array.new
     end
 
-    def connect_to_socket(host, port)
-      socket = UDPSocket.new
-      socket.connect(host, port)
+    def connect_to_socket(host, port, socket_path)
+      if !socket_path.nil?
+        socket = UNIXSocket.new(socket_path)
+      else
+        socket = UDPSocket.new
+        socket.connect(host, port)
+      end
       socket
     end
 
@@ -452,7 +460,7 @@ module Datadog
       if retries <= 1 && boom.is_a?(IOError) && boom.message =~ /closed stream/i
         retries += 1
         begin
-          @socket = connect_to_socket(host, port)
+          @socket = connect_to_socket(host, port, socket_path)
           retry
         rescue => e
           boom = e
