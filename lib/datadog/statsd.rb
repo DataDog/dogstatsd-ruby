@@ -453,7 +453,11 @@ module Datadog
 
     def send_to_socket(message)
       self.class.logger.debug { "Statsd: #{message}" } if self.class.logger
-      @socket.send(message, 0)
+      if @socket_path.nil?
+        @socket.send(message, 0)
+      else
+        @socket.sendmsg_nonblock(message)
+      end
     rescue => boom
       # Try once to reconnect if the socket has been closed
       retries ||= 1
