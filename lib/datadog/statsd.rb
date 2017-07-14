@@ -91,7 +91,7 @@ module Datadog
     def initialize(host = DEFAULT_HOST, port = DEFAULT_PORT, opts = {}, max_buffer_size=50)
       self.host, self.port = host, port
       @prefix = nil
-      @socket = connect_to_socket(host, port)
+      @socket = connect_to_socket
       self.namespace = opts[:namespace]
       self.tags = opts[:tags]
       @buffer = Array.new
@@ -437,9 +437,9 @@ module Datadog
       @buffer = Array.new
     end
 
-    def connect_to_socket(host, port)
+    def connect_to_socket
       socket = UDPSocket.new
-      socket.connect(host, port)
+      socket.connect(@host, @port)
       socket
     end
 
@@ -452,7 +452,7 @@ module Datadog
       if retries <= 1 && boom.is_a?(IOError) && boom.message =~ /closed stream/i
         retries += 1
         begin
-          @socket = connect_to_socket(host, port)
+          @socket = connect_to_socket
           retry
         rescue => e
           boom = e
