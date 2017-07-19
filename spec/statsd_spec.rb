@@ -658,6 +658,21 @@ describe Datadog::Statsd do
       # When the block finishes, the remaining buffer is flushed
       @statsd.socket.recv.must_equal ['mycounter:1|c']
     end
+
+    it "should batch nested batch blocks" do
+      @statsd.batch do
+        @statsd.increment("level-1")
+        @statsd.batch do
+          @statsd.increment("level-2")
+        end
+        @statsd.increment("level-1-again")
+      end
+      # all three should be sent in a single batch when the outer block finishes
+      @statsd.socket.recv.must_equal ["level-1:1|c\nlevel-2:1|c\nlevel-1-again:1|c"]
+      # we should revert back to sending single metric packets
+      @statsd.increment("outside")
+      @statsd.socket.recv.must_equal ["outside:1|c"]
+    end
   end
 
   describe "#event" do
