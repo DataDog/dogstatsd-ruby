@@ -463,6 +463,11 @@ describe Datadog::Statsd do
 
   describe "batched" do
 
+    it "should not send anything when the buffer is empty" do
+      @statsd.batch { }
+      @statsd.socket.recv.must_equal nil
+    end
+
       it "should allow to send single sample in one packet" do
         @statsd.batch do |s|
             s.increment("mycounter")
