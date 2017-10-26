@@ -412,7 +412,7 @@ module Datadog
 
 
         tag_arr = opts[:tags].to_a
-        tag_arr.map! { |tag| t = tag.dup; escape_tag_content!(t); t }
+        tag_arr.map! { |tag| t = tag.to_s.dup; escape_tag_content!(t); t }
         ts = tags.to_a + tag_arr
         unless ts.empty?
           full_stat << PIPE
