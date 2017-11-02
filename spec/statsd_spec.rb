@@ -30,11 +30,10 @@ describe Datadog::Statsd do
       statsd.socket.must_be_instance_of(UDPSocket)
     end
 
-    it "should create a UDPSocket when socket_path is given" do
-      # fails because no unix socket is there
-      assert_raises Errno::ENOENT do
-        Datadog::Statsd.new('localhost', 1234, {socket_path: '/tmp/socket'})
-      end
+    it "should not create a socket when socket_path is given" do
+      # the socket may not exist when creating the Statsd object
+      statsd = Datadog::Statsd.new('localhost', 1234, {socket_path: '/tmp/socket'})
+      assert_nil statsd.socket
     end
 
     it "should default the host to 127.0.0.1, port to 8125, namespace to nil, and tags to []" do
@@ -432,6 +431,112 @@ describe Datadog::Statsd do
 
       assert_nil @statsd.increment('foobar')
       @log.string.must_match 'Statsd: SocketError'
+    end
+  end
+
+  describe "UDS error handling" do
+    before do
+      @statsd = Datadog::Statsd.new('localhost', 1234, {:socket_path => '/tmp/socket'})
+      Datadog::Statsd.logger = Logger.new(@log = StringIO.new)
+    end
+
+    describe "when socket throws connection reset error" do
+      before do
+        @fake_socket = Minitest::Mock.new
+        @fake_socket.expect(:connect, true) { true }
+        @fake_socket.expect :sendmsg_nonblock, true, ['foo:1|c']
+        @fake_socket.expect(:sendmsg_nonblock, true) { raise Errno::ECONNRESET }
+
+        @fake_socket2 = Minitest::Mock.new
+        @fake_socket2.expect(:connect, true) { true }
+        @fake_socket2.expect :sendmsg_nonblock, true, ['bar:1|c']
+      end
+
+      it "should ignore message and try reconnect on next call" do
+        Socket.stub(:new, @fake_socket) do
+          @statsd.increment('foo')
+        end
+        @statsd.increment('baz')
+        Socket.stub(:new, @fake_socket2) do
+          @statsd.increment('bar')
+        end
+        @fake_socket.verify
+        @fake_socket2.verify
+      end
+    end
+
+    describe "when socket throws connection refused error" do
+      before do
+        @fake_socket = Minitest::Mock.new
+        @fake_socket.expect(:connect, true) { true }
+        @fake_socket.expect :sendmsg_nonblock, true, ['foo:1|c']
+        @fake_socket.expect(:sendmsg_nonblock, true) { raise Errno::ECONNREFUSED }
+
+        @fake_socket2 = Minitest::Mock.new
+        @fake_socket2.expect(:connect, true) { true }
+        @fake_socket2.expect :sendmsg_nonblock, true, ['bar:1|c']
+      end
+
+      it "should ignore message and try reconnect on next call" do
+        Socket.stub(:new, @fake_socket) do
+          @statsd.increment('foo')
+        end
+        @statsd.increment('baz')
+        Socket.stub(:new, @fake_socket2) do
+          @statsd.increment('bar')
+        end
+        @fake_socket.verify
+        @fake_socket2.verify
+      end
+    end
+
+    describe "when socket throws file not found error" do
+      before do
+        @fake_socket = Minitest::Mock.new
+        @fake_socket.expect(:connect, true) { true }
+        @fake_socket.expect :sendmsg_nonblock, true, ['foo:1|c']
+        @fake_socket.expect(:sendmsg_nonblock, true) { raise Errno::ENOENT }
+
+        @fake_socket2 = Minitest::Mock.new
+        @fake_socket2.expect(:connect, true) { true }
+        @fake_socket2.expect :sendmsg_nonblock, true, ['bar:1|c']
+      end
+
+      it "should ignore message and try reconnect on next call" do
+        Socket.stub(:new, @fake_socket) do
+          @statsd.increment('foo')
+        end
+        @statsd.increment('baz')
+        Socket.stub(:new, @fake_socket2) do
+          @statsd.increment('bar')
+        end
+        @fake_socket.verify
+        @fake_socket2.verify
+      end
+    end
+
+    describe "when socket is full" do
+      before do
+        @fake_socket = Minitest::Mock.new
+        @fake_socket.expect(:connect, true) { true }
+        @fake_socket.expect :sendmsg_nonblock, true, ['foo:1|c']
+        @fake_socket.expect(:sendmsg_nonblock, true) { raise IO::EAGAINWaitWritable }
+        @fake_socket.expect :sendmsg_nonblock, true, ['bar:1|c']
+
+        @fake_socket2 = Minitest::Mock.new
+      end
+
+      it "should ignore message but does not reconnect on next call" do
+        Socket.stub(:new, @fake_socket) do
+          @statsd.increment('foo')
+        end
+        @statsd.increment('baz')
+        Socket.stub(:new, @fake_socket2) do
+          @statsd.increment('bar')
+        end
+        @fake_socket.verify
+        @fake_socket2.verify
+      end
     end
   end
 

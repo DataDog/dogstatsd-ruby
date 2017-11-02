@@ -95,7 +95,7 @@ module Datadog
       self.host, self.port = host, port
       @socket_path = opts[:socket_path]
       @prefix = nil
-      @socket = connect_to_socket(host, port, socket_path)
+      @socket = connect_to_socket(host, port, socket_path) if @socket_path.nil?
       self.namespace = opts[:namespace]
       self.tags = opts[:tags]
       @buffer = Array.new
@@ -443,7 +443,8 @@ module Datadog
 
     def connect_to_socket(host, port, socket_path)
       if !socket_path.nil?
-        socket = UNIXSocket.new(socket_path)
+        socket = Socket.new(Socket::AF_UNIX, Socket::SOCK_DGRAM)
+        socket.connect(Socket.pack_sockaddr_un(socket_path))
       else
         socket = UDPSocket.new
         socket.connect(host, port)
@@ -451,14 +452,23 @@ module Datadog
       socket
     end
 
+    def sock
+      @socket ||= connect_to_socket(host, port, socket_path)
+    end
+
     def send_to_socket(message)
       self.class.logger.debug { "Statsd: #{message}" } if self.class.logger
       if @socket_path.nil?
-        @socket.send(message, 0)
+        sock.send(message, 0)
       else
-        @socket.sendmsg_nonblock(message)
+        sock.sendmsg_nonblock(message)
       end
     rescue => boom
+      if @socket_path && (boom.is_a?(Errno::ECONNREFUSED) ||
+                          boom.is_a?(Errno::ECONNRESET) ||
+                          boom.is_a?(Errno::ENOENT))
+        return @socket = nil
+      end
       # Try once to reconnect if the socket has been closed
       retries ||= 1
       if retries <= 1 && boom.is_a?(IOError) && boom.message =~ /closed stream/i
