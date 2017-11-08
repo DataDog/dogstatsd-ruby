@@ -242,9 +242,9 @@ describe Datadog::Statsd do
     end
 
     it "should reraise the error if block is failing" do
-      expect do
+      assert_raises StandardError do
         @statsd.time('foobar') { raise StandardError, 'This is failing' }
-      end.must_raise StandardError
+      end
     end
 
     describe "with a sample rate" do
