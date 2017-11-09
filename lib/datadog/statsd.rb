@@ -118,7 +118,7 @@ module Datadog
 
     def tags=(tags) #:nodoc:
       raise ArgumentError, 'tags must be a Array<String>' unless tags.nil? or tags.is_a? Array
-      @tags = (tags || []).map {|tag| escape_tag_content(tag)}
+      @tags = (tags || []).compact.map! {|tag| escape_tag_content(tag)}
     end
 
     # Sends an increment (count = 1) for the given stat to the statsd server.
@@ -362,10 +362,11 @@ module Datadog
     end
 
     def escape_tag_content(tag)
-      remove_pipes(tag).gsub COMMA, BLANK
+      remove_pipes(tag.to_s).gsub COMMA, BLANK
     end
 
     def escape_tag_content!(tag)
+      tag = tag.to_s
       tag.gsub!(PIPE, BLANK)
       tag.gsub!(COMMA, BLANK)
       tag
@@ -415,7 +416,7 @@ module Datadog
 
 
         tag_arr = opts[:tags].to_a
-        tag_arr.map! { |tag| t = tag.dup; escape_tag_content!(t); t }
+        tag_arr.map! { |tag| t = tag.to_s.dup; escape_tag_content!(t); t }
         ts = tags.to_a + tag_arr
         unless ts.empty?
           full_stat << PIPE

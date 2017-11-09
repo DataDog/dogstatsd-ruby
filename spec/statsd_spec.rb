@@ -96,6 +96,22 @@ describe Datadog::Statsd do
     it 'should reject non-array tags' do
       lambda { @statsd.tags = 'tsdfs' }.must_raise ArgumentError
     end
+
+    it 'ignore nil tags' do
+      @statsd.tags = ['tag1', nil, 'tag2']
+      @statsd.tags.must_equal %w[tag1 tag2]
+    end
+
+    it 'converts symbols to strings' do
+      @statsd.tags = [:tag1, :tag2]
+      @statsd.tags.must_equal %w[tag1 tag2]
+    end
+
+    it 'assigns regular tags' do
+      tags = %w[tag1 tag2]
+      @statsd.tags = tags
+      @statsd.tags.must_equal tags
+    end
   end
 
   describe "#increment" do
@@ -243,9 +259,9 @@ describe Datadog::Statsd do
     end
 
     it "should reraise the error if block is failing" do
-      expect do
+      assert_raises StandardError do
         @statsd.time('foobar') { raise StandardError, 'This is failing' }
-      end.must_raise StandardError
+      end
     end
 
     describe "with a sample rate" do
@@ -365,6 +381,11 @@ describe Datadog::Statsd do
 
     it "handles the cases when some tags are frozen strings" do
       @statsd.increment('stat', tags: ["first_tag".freeze, "second_tag"])
+    end
+
+    it "converts all values to strings" do
+      @statsd.increment('stat', tags: [:sample_tag])
+      @statsd.socket.recv.must_equal ['stat:1|c|#sample_tag']
     end
   end
 
