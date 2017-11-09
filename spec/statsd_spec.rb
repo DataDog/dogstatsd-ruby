@@ -465,8 +465,11 @@ describe Datadog::Statsd do
       before do
         @fake_socket = Minitest::Mock.new
         @fake_socket.expect(:connect, true) { true }
-        @fake_socket.expect :sendmsg_nonblock, true, ['foo:1|c']
-        @fake_socket.expect(:sendmsg_nonblock, true) { raise Errno::ECONNRESET }
+        #@fake_socket.expect :sendmsg_nonblock, true, ['foo:1|c']
+        @fake_socket.expect(:sendmsg_nonblock, true) {
+          raise Errno::ECONNRESET
+          true == true
+        }
 
         @fake_socket2 = Minitest::Mock.new
         @fake_socket2.expect(:connect, true) { true }
@@ -477,7 +480,7 @@ describe Datadog::Statsd do
         Socket.stub(:new, @fake_socket) do
           @statsd.increment('foo')
         end
-        @statsd.increment('baz')
+        #@statsd.increment('baz')
         Socket.stub(:new, @fake_socket2) do
           @statsd.increment('bar')
         end
