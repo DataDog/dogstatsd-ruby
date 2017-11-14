@@ -10,5 +10,4 @@ rvm:
   - 2.4
   - jruby-19mode
 
-script: bundle exec rake
 bundler_args: --without=localdev
