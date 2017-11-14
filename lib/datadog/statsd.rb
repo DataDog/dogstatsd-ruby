@@ -438,6 +438,7 @@ module Datadog
     end
 
     def flush_buffer
+      return @buffer if @buffer.empty?
       send_to_socket(@buffer.join(NEW_LINE))
       @buffer = Array.new
     end
