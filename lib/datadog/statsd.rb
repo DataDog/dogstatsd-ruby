@@ -61,6 +61,9 @@ module Datadog
     # StatsD port. Defaults to 8125.
     attr_reader :port
 
+    # DogStatsd unix socket path. Not used by default.
+    attr_reader :socket_path
+
     # Global tags to be added to every statsd call. Defaults to no tags.
     attr_reader :tags
 
@@ -90,8 +93,9 @@ module Datadog
     # @option opts [Array<String>] :tags tags to be added to every metric
     def initialize(host = DEFAULT_HOST, port = DEFAULT_PORT, opts = {}, max_buffer_size=50)
       self.host, self.port = host, port
+      @socket_path = opts[:socket_path]
       @prefix = nil
-      @socket = connect_to_socket(host, port)
+      @socket = connect_to_socket(host, port, socket_path) if @socket_path.nil?
       self.namespace = opts[:namespace]
       self.tags = opts[:tags]
       @buffer = Array.new
@@ -114,7 +118,7 @@ module Datadog
 
     def tags=(tags) #:nodoc:
       raise ArgumentError, 'tags must be a Array<String>' unless tags.nil? or tags.is_a? Array
-      @tags = (tags || []).map {|tag| escape_tag_content(tag)}
+      @tags = (tags || []).compact.map! {|tag| escape_tag_content(tag)}
     end
 
     # Sends an increment (count = 1) for the given stat to the statsd server.
@@ -358,10 +362,11 @@ module Datadog
     end
 
     def escape_tag_content(tag)
-      remove_pipes(tag).gsub COMMA, BLANK
+      remove_pipes(tag.to_s).gsub COMMA, BLANK
     end
 
     def escape_tag_content!(tag)
+      tag = tag.to_s
       tag.gsub!(PIPE, BLANK)
       tag.gsub!(COMMA, BLANK)
       tag
@@ -411,7 +416,7 @@ module Datadog
 
 
         tag_arr = opts[:tags].to_a
-        tag_arr.map! { |tag| t = tag.dup; escape_tag_content!(t); t }
+        tag_arr.map! { |tag| t = tag.to_s.dup; escape_tag_content!(t); t }
         ts = tags.to_a + tag_arr
         unless ts.empty?
           full_stat << PIPE
@@ -432,28 +437,46 @@ module Datadog
       end
     end
 
-    def flush_buffer()
+    def flush_buffer
       return @buffer if @buffer.empty?
       send_to_socket(@buffer.join(NEW_LINE))
       @buffer = Array.new
     end
 
-    def connect_to_socket(host, port)
-      socket = UDPSocket.new
-      socket.connect(host, port)
+    def connect_to_socket(host, port, socket_path)
+      if !socket_path.nil?
+        socket = Socket.new(Socket::AF_UNIX, Socket::SOCK_DGRAM)
+        socket.connect(Socket.pack_sockaddr_un(socket_path))
+      else
+        socket = UDPSocket.new
+        socket.connect(host, port)
+      end
       socket
+    end
+
+    def sock
+      @socket ||= connect_to_socket(host, port, socket_path)
     end
 
     def send_to_socket(message)
       self.class.logger.debug { "Statsd: #{message}" } if self.class.logger
-      @socket.send(message, 0)
+      if @socket_path.nil?
+        sock.send(message, 0)
+      else
+        sock.sendmsg_nonblock(message)
+      end
     rescue => boom
+      if @socket_path && (boom.is_a?(Errno::ECONNREFUSED) ||
+                          boom.is_a?(Errno::ECONNRESET) ||
+                          boom.is_a?(Errno::ENOENT))
+        return @socket = nil
+      end
       # Try once to reconnect if the socket has been closed
       retries ||= 1
       if retries <= 1 && boom.is_a?(IOError) && boom.message =~ /closed stream/i
         retries += 1
         begin
-          @socket = connect_to_socket(host, port)
+          @socket = connect_to_socket(host, port, socket_path)
           retry
         rescue => e
           boom = e
