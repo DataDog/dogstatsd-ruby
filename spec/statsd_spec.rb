@@ -1,6 +1,7 @@
 require 'helper'
-require 'timecop'
+require 'socket'
 require 'stringio'
+require 'timecop'
 
 describe Datadog::Statsd do
   class Datadog::Statsd
@@ -8,7 +9,7 @@ describe Datadog::Statsd do
     attr_accessor :socket
   end
 
-  before do
+  before do |test|
     @statsd = Datadog::Statsd.new('localhost', 1234)
     @statsd.socket = FakeUDPSocket.new
   end
@@ -17,6 +18,22 @@ describe Datadog::Statsd do
     it "should set the host and port" do
       @statsd.host.must_equal 'localhost'
       @statsd.port.must_equal 1234
+    end
+
+    it "should create a UDPSocket when nothing is given" do
+      statsd = Datadog::Statsd.new
+      statsd.socket.must_be_instance_of(UDPSocket)
+    end
+
+    it "should create a UDPSocket when host and port are given" do
+      statsd = Datadog::Statsd.new('localhost', 1234)
+      statsd.socket.must_be_instance_of(UDPSocket)
+    end
+
+    it "should not create a socket when socket_path is given" do
+      # the socket may not exist when creating the Statsd object
+      statsd = Datadog::Statsd.new('localhost', 1234, {socket_path: '/tmp/socket'})
+      assert_nil statsd.socket
     end
 
     it "should default the host to 127.0.0.1, port to 8125, namespace to nil, and tags to []" do
@@ -78,6 +95,22 @@ describe Datadog::Statsd do
 
     it 'should reject non-array tags' do
       lambda { @statsd.tags = 'tsdfs' }.must_raise ArgumentError
+    end
+
+    it 'ignore nil tags' do
+      @statsd.tags = ['tag1', nil, 'tag2']
+      @statsd.tags.must_equal %w[tag1 tag2]
+    end
+
+    it 'converts symbols to strings' do
+      @statsd.tags = [:tag1, :tag2]
+      @statsd.tags.must_equal %w[tag1 tag2]
+    end
+
+    it 'assigns regular tags' do
+      tags = %w[tag1 tag2]
+      @statsd.tags = tags
+      @statsd.tags.must_equal tags
     end
   end
 
@@ -226,9 +259,9 @@ describe Datadog::Statsd do
     end
 
     it "should reraise the error if block is failing" do
-      expect do
+      assert_raises StandardError do
         @statsd.time('foobar') { raise StandardError, 'This is failing' }
-      end.must_raise StandardError
+      end
     end
 
     describe "with a sample rate" do
@@ -349,6 +382,11 @@ describe Datadog::Statsd do
     it "handles the cases when some tags are frozen strings" do
       @statsd.increment('stat', tags: ["first_tag".freeze, "second_tag"])
     end
+
+    it "converts all values to strings" do
+      @statsd.increment('stat', tags: [:sample_tag])
+      @statsd.socket.recv.must_equal ['stat:1|c|#sample_tag']
+    end
   end
 
   describe "handling socket errors" do
@@ -417,6 +455,112 @@ describe Datadog::Statsd do
     end
   end
 
+  describe "UDS error handling" do
+    before do
+      @statsd = Datadog::Statsd.new('localhost', 1234, {:socket_path => '/tmp/socket'})
+      Datadog::Statsd.logger = Logger.new(@log = StringIO.new)
+    end
+
+    describe "when socket throws connection reset error" do
+      before do
+        @fake_socket = Minitest::Mock.new
+        @fake_socket.expect(:connect, true) { true }
+        @fake_socket.expect :sendmsg_nonblock, true, ['foo:1|c']
+        @fake_socket.expect(:sendmsg_nonblock, true) { raise Errno::ECONNRESET }
+
+        @fake_socket2 = Minitest::Mock.new
+        @fake_socket2.expect(:connect, true) { true }
+        @fake_socket2.expect :sendmsg_nonblock, true, ['bar:1|c']
+      end
+
+      it "should ignore message and try reconnect on next call" do
+        Socket.stub(:new, @fake_socket) do
+          @statsd.increment('foo')
+        end
+        @statsd.increment('baz')
+        Socket.stub(:new, @fake_socket2) do
+          @statsd.increment('bar')
+        end
+        @fake_socket.verify
+        @fake_socket2.verify
+      end
+    end
+
+    describe "when socket throws connection refused error" do
+      before do
+        @fake_socket = Minitest::Mock.new
+        @fake_socket.expect(:connect, true) { true }
+        @fake_socket.expect :sendmsg_nonblock, true, ['foo:1|c']
+        @fake_socket.expect(:sendmsg_nonblock, true) { raise Errno::ECONNREFUSED }
+
+        @fake_socket2 = Minitest::Mock.new
+        @fake_socket2.expect(:connect, true) { true }
+        @fake_socket2.expect :sendmsg_nonblock, true, ['bar:1|c']
+      end
+
+      it "should ignore message and try reconnect on next call" do
+        Socket.stub(:new, @fake_socket) do
+          @statsd.increment('foo')
+        end
+        @statsd.increment('baz')
+        Socket.stub(:new, @fake_socket2) do
+          @statsd.increment('bar')
+        end
+        @fake_socket.verify
+        @fake_socket2.verify
+      end
+    end
+
+    describe "when socket throws file not found error" do
+      before do
+        @fake_socket = Minitest::Mock.new
+        @fake_socket.expect(:connect, true) { true }
+        @fake_socket.expect :sendmsg_nonblock, true, ['foo:1|c']
+        @fake_socket.expect(:sendmsg_nonblock, true) { raise Errno::ENOENT }
+
+        @fake_socket2 = Minitest::Mock.new
+        @fake_socket2.expect(:connect, true) { true }
+        @fake_socket2.expect :sendmsg_nonblock, true, ['bar:1|c']
+      end
+
+      it "should ignore message and try reconnect on next call" do
+        Socket.stub(:new, @fake_socket) do
+          @statsd.increment('foo')
+        end
+        @statsd.increment('baz')
+        Socket.stub(:new, @fake_socket2) do
+          @statsd.increment('bar')
+        end
+        @fake_socket.verify
+        @fake_socket2.verify
+      end
+    end
+
+    describe "when socket is full" do
+      before do
+        @fake_socket = Minitest::Mock.new
+        @fake_socket.expect(:connect, true) { true }
+        @fake_socket.expect :sendmsg_nonblock, true, ['foo:1|c']
+        @fake_socket.expect(:sendmsg_nonblock, true) { raise IO::EAGAINWaitWritable }
+        @fake_socket.expect :sendmsg_nonblock, true, ['bar:1|c']
+
+        @fake_socket2 = Minitest::Mock.new
+      end
+
+      it "should ignore message but does not reconnect on next call" do
+        Socket.stub(:new, @fake_socket) do
+          @statsd.increment('foo')
+        end
+        @statsd.increment('baz')
+        Socket.stub(:new, @fake_socket2) do
+          @statsd.increment('bar')
+        end
+        @fake_socket.verify
+        @fake_socket2.verify
+      end
+    end
+  end
+
   describe "tagged" do
 
     it "gauges support tags" do
@@ -462,6 +606,11 @@ describe Datadog::Statsd do
   end
 
   describe "batched" do
+
+    it "should not send anything when the buffer is empty" do
+      @statsd.batch { }
+      @statsd.socket.recv.must_equal nil
+    end
 
       it "should allow to send single sample in one packet" do
         @statsd.batch do |s|

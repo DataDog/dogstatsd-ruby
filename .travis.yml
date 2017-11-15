@@ -8,6 +8,5 @@ rvm:
   - 2.2
   - 2.3
   - 2.4
-  - jruby-19mode
 
 bundler_args: --without=localdev

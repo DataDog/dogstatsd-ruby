@@ -6,7 +6,8 @@ task :default => :spec
 
 Rake::TestTask.new(:spec) do |spec|
   spec.libs << 'lib' << 'spec'
-  spec.pattern = 'spec/**/*_spec.rb'
+  spec.loader = :direct
+  spec.pattern = './spec/statsd_spec.rb'
   spec.verbose = true
 end
 
