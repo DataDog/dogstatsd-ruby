@@ -95,7 +95,7 @@ module Datadog
       self.host, self.port = host, port
       @socket_path = opts[:socket_path]
       @prefix = nil
-      @socket = connect_to_socket(socket_path) if @socket_path.nil?
+      @socket = connect_to_socket if @socket_path.nil?
       self.namespace = opts[:namespace]
       self.tags = opts[:tags]
       @buffer = Array.new
@@ -443,10 +443,10 @@ module Datadog
       @buffer = Array.new
     end
 
-    def connect_to_socket(socket_path)
-      if !socket_path.nil?
+    def connect_to_socket
+      if !@socket_path.nil?
         socket = Socket.new(Socket::AF_UNIX, Socket::SOCK_DGRAM)
-        socket.connect(Socket.pack_sockaddr_un(socket_path))
+        socket.connect(Socket.pack_sockaddr_un(@socket_path))
       else
         socket = UDPSocket.new
         socket.connect(@host, @port)
@@ -455,7 +455,7 @@ module Datadog
     end
 
     def sock
-      @socket ||= connect_to_socket(host, port, socket_path)
+      @socket ||= connect_to_socket
     end
 
     def send_to_socket(message)
@@ -476,7 +476,7 @@ module Datadog
       if retries <= 1 && boom.is_a?(IOError) && boom.message =~ /closed stream/i
         retries += 1
         begin
-          @socket = connect_to_socket(socket_path)
+          @socket = connect_to_socket
           retry
         rescue => e
           boom = e

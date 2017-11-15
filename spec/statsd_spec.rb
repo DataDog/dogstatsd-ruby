@@ -609,7 +609,7 @@ describe Datadog::Statsd do
 
     it "should not send anything when the buffer is empty" do
       @statsd.batch { }
-      @statsd.socket.recv.must_equal nil
+      assert_nil @statsd.socket.recv
     end
 
       it "should allow to send single sample in one packet" do
