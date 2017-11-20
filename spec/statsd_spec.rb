@@ -612,52 +612,67 @@ describe Datadog::Statsd do
       assert_nil @statsd.socket.recv
     end
 
-      it "should allow to send single sample in one packet" do
-        @statsd.batch do |s|
-            s.increment("mycounter")
-        end
-        @statsd.socket.recv.must_equal ['mycounter:1|c']
+    it "should allow to send single sample in one packet" do
+      @statsd.batch do |s|
+        s.increment("mycounter")
       end
+      @statsd.socket.recv.must_equal ['mycounter:1|c']
+    end
 
-      it "should allow to send multiple sample in one packet" do
-        @statsd.batch do |s|
-            s.increment("mycounter")
-            s.decrement("myothercounter")
-        end
-        @statsd.socket.recv.must_equal ["mycounter:1|c\nmyothercounter:-1|c"]
+    it "should allow to send multiple sample in one packet" do
+      @statsd.batch do |s|
+        s.increment("mycounter")
+        s.decrement("myothercounter")
       end
+      @statsd.socket.recv.must_equal ["mycounter:1|c\nmyothercounter:-1|c"]
+    end
 
-      it "should default back to single metric packet after the block" do
-        @statsd.batch do |s|
-            s.gauge("mygauge", 10)
-            s.gauge("myothergauge", 20)
-        end
-        @statsd.increment("mycounter")
-        @statsd.increment("myothercounter")
-        @statsd.socket.recv.must_equal ["mygauge:10|g\nmyothergauge:20|g"]
-        @statsd.socket.recv.must_equal ['mycounter:1|c']
-        @statsd.socket.recv.must_equal ['myothercounter:1|c']
+    it "should default back to single metric packet after the block" do
+      @statsd.batch do |s|
+        s.gauge("mygauge", 10)
+        s.gauge("myothergauge", 20)
       end
+      @statsd.increment("mycounter")
+      @statsd.increment("myothercounter")
+      @statsd.socket.recv.must_equal ["mygauge:10|g\nmyothergauge:20|g"]
+      @statsd.socket.recv.must_equal ['mycounter:1|c']
+      @statsd.socket.recv.must_equal ['myothercounter:1|c']
+    end
 
-      it "should flush when the buffer gets too big" do
-        @statsd.batch do |s|
-          # increment a counter 50 times in batch
-          51.times do
-            s.increment("mycounter")
-          end
-
-          # We should receive a packet of 50 messages that was automatically
-          # flushed when the buffer got too big
-          theoretical_reply = Array.new
-          50.times do
-            theoretical_reply.push('mycounter:1|c')
-          end
-          @statsd.socket.recv.must_equal [theoretical_reply.join("\n")]
+    it "should flush when the buffer gets too big" do
+      @statsd.batch do |s|
+        # increment a counter 50 times in batch
+        51.times do
+          s.increment("mycounter")
         end
 
-        # When the block finishes, the remaining buffer is flushed
-        @statsd.socket.recv.must_equal ['mycounter:1|c']
+        # We should receive a packet of 50 messages that was automatically
+        # flushed when the buffer got too big
+        theoretical_reply = Array.new
+        50.times do
+          theoretical_reply.push('mycounter:1|c')
+        end
+        @statsd.socket.recv.must_equal [theoretical_reply.join("\n")]
       end
+
+      # When the block finishes, the remaining buffer is flushed
+      @statsd.socket.recv.must_equal ['mycounter:1|c']
+    end
+
+    it "should batch nested batch blocks" do
+      @statsd.batch do
+        @statsd.increment("level-1")
+        @statsd.batch do
+          @statsd.increment("level-2")
+        end
+        @statsd.increment("level-1-again")
+      end
+      # all three should be sent in a single batch when the outer block finishes
+      @statsd.socket.recv.must_equal ["level-1:1|c\nlevel-2:1|c\nlevel-1-again:1|c"]
+      # we should revert back to sending single metric packets
+      @statsd.increment("outside")
+      @statsd.socket.recv.must_equal ["outside:1|c"]
+    end
   end
 
   describe "#event" do
