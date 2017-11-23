@@ -1,7 +1,19 @@
 # CHANGELOG
 
-3.0.0/ 2017.05.18
-==================
+## 3.1.0 / 2017.11.23
+
+* [FEATURE] Add Unix Domain Socket support. [#61][], [@sullerandras][]
+* [IMPROVEMENT] Don't flush an empty buffer. [#58][], [@misterbyrne][]
+* [BUGFIX] Use defaults when host/port are nil. [#56][], [@degemer][]
+* [BUGFIX] Ignore nil tags and convert symbol. [#53][], [@pschambacher][]
+* [FEATURE] Nest batch calls. [#52][], [@misterbyrne][]
+* [BUGFIX] Convert tags to string type. [#51][], [@jacobbednarz][]
+
+## 3.0.0 / 2017.05.18
+
+* [FEATURE] Expose (socket) close method. [#46][], [@ramfjord][]
+* [IMPROVEMENT] Retry once when send fails on a closed socket. [#46][], [@ramfjord][]
+* [IMPROVEMENT] Use a instance variable to decide whether to batch or not. [#47][] [@fimmtiu][]
 
 ### Breaking changes
 #### Host resolution
@@ -13,30 +25,17 @@ performance improvement). [#44][], [@AMekss][]
 `Datadog::Statsd.new(host, port)` will now raise a `SocketError` if unable to
 resolve the `host`.
 
-### Changes
-
-* [FEATURE] Expose (socket) close method. [#46][], [@ramfjord][]
-* [IMPROVEMENT] Retry once when send fails on a closed socket. [#46][], [@ramfjord][]
-* [IMPROVEMENT] Use a instance variable to decide whether to batch or not. [#47][] [@fimmtiu][]
-
-2.2.0/ 2017.01.12
-==================
-
-### Changes
+## 2.2.0 / 2017.01.12
 
 * [IMPROVEMENT] Fewer string allocations, improves memory usage, [#40][], [@janester][]
 
-2.1.0/ 2016.10.27
-=================
-
-### Changes
+## 2.1.0 / 2016.10.27
 
 * [FEATURE] Add an optional `by` parameter for `#increment` and `#decrement`, [#33][]
 * [BUGFIX] `#time`: record on all block exits, [#38][] [@nelhage][]
 * [IMPROVEMENT] Replace string literals with symbols or frozen strings, [#37][] [@janester][]
 
-2.0.0/ 2016.09.22
-=================
+## 2.0.0 / 2016.09.22
 
 ### Breaking changes
 #### Namespace
@@ -53,22 +52,16 @@ To update:
 
 `Datadog::Statsd` also validates that it receives an array of tags, and strips `,` and `|` from them.
 
-1.6.0/ 2015.12.21
-==================
-
-### Changes
+## 1.6.0 / 2015.12.21
 
 * [IMPROVEMENT] Stop mutating input parameters, [#22][] [@olefriis][]
 
-1.5.0/ 2015.05.20
-==================
+## 1.5.0 / 2015.05.20
 
 ### Notice
 
 This release drops testing for Ruby 1.8.7.
 Future versions are likely to introduce backward incompatibilities with < Ruby 1.9.3.
-
-### Changes
 
 * [FEATURE] Add service checks support, [#11][]
 * [FEATURE] Send time stat on failing block, [#16][] [@gleseur][]
@@ -76,46 +69,28 @@ Future versions are likely to introduce backward incompatibilities with < Ruby 1
 * [OTHER] Use `send_stat` instead of overriding Ruby `send` method, [#17][] [@sensadrome][]
 * [OTHER] Changelog update
 
-1.4.1/ 2014.09.29
-==================
-
-### Changes
+## 1.4.1 / 2014.09.29
 
 * [BUGFIX] Fixed bug in message separator when batching metrics
 
-1.4.0/ 2014.06.13
-==================
-
-### Changes
+## 1.4.0 / 2014.06.13
 
 * [FEATURE] Added support for metrics batching
 
-1.3.0/ 2014.03.27
-==================
-
-### Changes
+## 1.3.0 / 2014.03.27
 
 * [FEATURE] Added support for submitting events
 
-1.2.0/ 2013.07.10
-==================
-
-### Changes
+## 1.2.0 / 2013.07.10
 
 * [FEATURE] Added global tags
 * [FEATURE] Added ability to set namespace and tags from `Statsd#initialize`
 
-1.1.0/ 2012.09.21
-==================
-
-### Changes
+## 1.1.0 / 2012.09.21
 
 * [FEATURE] Added sets metrics
 
-1.0.0/ 2012.06.14
-==================
-
-### Changes
+## 1.0.0 / 2012.06.14
 
 * Initial release
 
@@ -135,13 +110,24 @@ Future versions are likely to introduce backward incompatibilities with < Ruby 1
 [#44]: https://github.com/DataDog/dogstatsd-ruby/issues/44
 [#46]: https://github.com/DataDog/dogstatsd-ruby/issues/46
 [#47]: https://github.com/DataDog/dogstatsd-ruby/issues/47
+[#51]: https://github.com/DataDog/dogstatsd-ruby/issues/51
+[#52]: https://github.com/DataDog/dogstatsd-ruby/issues/52
+[#53]: https://github.com/DataDog/dogstatsd-ruby/issues/53
+[#56]: https://github.com/DataDog/dogstatsd-ruby/issues/56
+[#58]: https://github.com/DataDog/dogstatsd-ruby/issues/58
+[#61]: https://github.com/DataDog/dogstatsd-ruby/issues/61
 [@AMekss]: https://github.com/AMekss
 [@adimitrov]: https://github.com/adimitrov
+[@degemer]: https://github.com/degemer
 [@djpate]: https://github.com/djpate
 [@fimmtiu]: https://github.com/fimmtiu
 [@gleseur]: https://github.com/gleseur
+[@jacobbednarz]: https://github.com/jacobbednarz
 [@janester]: https://github.com/janester
+[@misterbyrne]: https://github.com/misterbyrne
 [@nelhage]: https://github.com/nelhage
 [@olefriis]: https://github.com/olefriis
+[@pschambacher]: https://github.com/pschambacher
 [@ramfjord]: https://github.com/ramfjord
 [@sensadrome]: https://github.com/sensadrome
+[@sullerandras]: https://github.com/sullerandras
