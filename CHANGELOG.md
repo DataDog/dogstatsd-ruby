@@ -7,6 +7,11 @@
  * port / host / tags / namespace can no longer be set on the instance to allow thread-safety [#87][] by [@grosser][] 
  * replace global logger with instance option [#90][] by [@grosser][] 
  * make format_service_check private [#89][] [@grosser][] 
+ * [IMPROVEMENT] Frozen strings and less allocations everywhere. [#78][], [@grosser][]
+ * [BUGFIX] Make sure the UDP message fits into the 8k buffer of dd-agent. [#86][], [@Antti][]
+ * max_buffer_size initializer argument removed and replaced with max_buffer_bytes (defaults to 8192)
+ * max_buffer_size/max_buffer_size= methods removed
+ * format_event is now private
 
 ## 3.3.0 / 2018.02.04
 

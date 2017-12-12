@@ -75,8 +75,8 @@ module Datadog
     # Buffer containing the statsd message before they are sent in batch
     attr_reader :buffer
 
-    # Maximum number of metrics in the buffer before it is flushed
-    attr_reader :max_buffer_size
+    # Maximum buffer size in bytes before it is flushed
+    attr_reader :max_buffer_bytes
 
     # Logger
     attr_reader :logger
@@ -86,14 +86,14 @@ module Datadog
     # @option [String] namespace set a namespace to be prepended to every metric name
     # @option [Array<String>] tags tags to be added to every metric
     # @option [Loger] logger for debugging
-    # @option [Integer] max_buffer_size max messages to buffer
+    # @option [Integer] max_buffer_bytes max bytes to buffer when using #batch
     # @option [String] socket_path unix socket path
     def initialize(
       host = DEFAULT_HOST,
       port = DEFAULT_PORT,
       namespace: nil,
       tags: nil,
-      max_buffer_size: nil,
+      max_buffer_bytes: 8192,
       socket_path: nil,
       logger: nil
     )
@@ -108,8 +108,10 @@ module Datadog
       raise ArgumentError, 'tags must be a Array<String>' unless tags.nil? or tags.is_a? Array
       @tags = (tags || []).compact.map! {|tag| escape_tag_content(tag)}
 
-      @buffer = Array.new
-      @max_buffer_size = max_buffer_size || 50
+      # batching
+      @max_buffer_bytes = max_buffer_bytes
+      @buffer = String.new
+      @buffer_bytes = 0
       @batch_nesting_depth = 0
     end
 
@@ -432,17 +434,28 @@ module Datadog
 
     def send_stat(message)
       if @batch_nesting_depth > 0
+        message_bytes = message.bytesize
+        unless @buffer_bytes == 0
+          if @buffer_bytes + 1 + message_bytes >= @max_buffer_bytes
+            flush_buffer
+          else
+            @buffer << NEW_LINE
+            @buffer_bytes += 1
+          end
+        end
+
         @buffer << message
-        flush_buffer if @buffer.length >= @max_buffer_size
+        @buffer_bytes += message_bytes
       else
         send_to_socket(message)
       end
     end
 
     def flush_buffer
-      return @buffer if @buffer.empty?
-      send_to_socket(@buffer.join(NEW_LINE))
-      @buffer = Array.new
+      return if @buffer_bytes == 0
+      send_to_socket(@buffer)
+      @buffer = String.new
+      @buffer_bytes = 0
     end
 
     def connect_to_socket
