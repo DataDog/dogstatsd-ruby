@@ -72,7 +72,7 @@ module Datadog
     # Buffer containing the statsd message before they are sent in batch
     attr_reader :buffer
 
-    # Maximum number of metrics in the buffer before it is flushed
+    # Maximum buffer size in bytes before it is flushed
     attr_accessor :max_buffer_size
 
     class << self
@@ -90,7 +90,7 @@ module Datadog
     # @param [Integer] port your statsd port
     # @option opts [String] :namespace set a namespace to be prepended to every metric name
     # @option opts [Array<String>] :tags tags to be added to every metric
-    def initialize(host = DEFAULT_HOST, port = DEFAULT_PORT, opts = {}, max_buffer_size=50)
+    def initialize(host = DEFAULT_HOST, port = DEFAULT_PORT, opts = {}, max_buffer_size=8192)
       self.host, self.port = host, port
       @socket_path = opts[:socket_path]
       @prefix = nil
@@ -98,6 +98,7 @@ module Datadog
       self.namespace = opts[:namespace]
       self.tags = opts[:tags]
       @buffer = Array.new
+      @buffer_byte_size = 0
       self.max_buffer_size = max_buffer_size
       @batch_nesting_depth = 0
     end
@@ -438,8 +439,12 @@ module Datadog
 
     def send_stat(message)
       if @batch_nesting_depth > 0
-        @buffer << message
-        flush_buffer if @buffer.length >= @max_buffer_size
+        message_size = message.bytesize
+        if message_size + @buffer_byte_size + @buffer.size - 1 > max_buffer_size
+          flush_buffer
+        end
+        @buffer.push(message)
+        @buffer_byte_size += message_size
       else
         send_to_socket(message)
       end
@@ -448,6 +453,7 @@ module Datadog
     def flush_buffer
       return @buffer if @buffer.empty?
       send_to_socket(@buffer.join(NEW_LINE))
+      @buffer_byte_size = 0
       @buffer = Array.new
     end
 
