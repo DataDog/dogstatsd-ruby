@@ -128,6 +128,14 @@ describe Datadog::Statsd do
       end
     end
 
+    describe "with a sample rate like statsd-ruby" do
+      before { class << @statsd; def rand; 0; end; end } # ensure delivery
+      it "should format the message according to the statsd spec" do
+        @statsd.increment('foobar', 0.5)
+        @statsd.socket.recv.must_equal ['foobar:1|c|@0.5']
+      end
+    end
+
     describe "with a increment by" do
       it "should increment by the number given" do
         @statsd.increment('foobar', :by=>5)
@@ -146,6 +154,14 @@ describe Datadog::Statsd do
       before { class << @statsd; def rand; 0; end; end } # ensure delivery
       it "should format the message according to the statsd spec" do
         @statsd.decrement('foobar', :sample_rate => 0.5)
+        @statsd.socket.recv.must_equal ['foobar:-1|c|@0.5']
+      end
+    end
+
+    describe "with a sample rate like statsd-ruby" do
+      before { class << @statsd; def rand; 0; end; end } # ensure delivery
+      it "should format the message according to the statsd spec" do
+        @statsd.decrement('foobar', 0.5)
         @statsd.socket.recv.must_equal ['foobar:-1|c|@0.5']
       end
     end
@@ -173,6 +189,14 @@ describe Datadog::Statsd do
         @statsd.socket.recv.must_equal ['begrutten-suffusion:536|g|@0.1']
       end
     end
+
+    describe "with a sample rate like statsd-ruby" do
+      before { class << @statsd; def rand; 0; end; end } # ensure delivery
+      it "should format the message according to the statsd spec" do
+        @statsd.gauge('begrutten-suffusion', 536, 0.1)
+        @statsd.socket.recv.must_equal ['begrutten-suffusion:536|g|@0.1']
+      end
+    end
   end
 
   describe "#histogram" do
@@ -197,6 +221,22 @@ describe Datadog::Statsd do
       @statsd.set('my.set', 536)
       @statsd.socket.recv.must_equal ['my.set:536|s']
     end
+
+    describe "with a sample rate" do
+      before { class << @statsd; def rand; 0; end; end } # ensure delivery
+      it "should send a message with a 's' type, per the nearby fork" do
+        @statsd.set('my.set', 536, :sample_rate=>0.5)
+        @statsd.socket.recv.must_equal ['my.set:536|s|@0.5']
+      end
+    end
+
+    describe "with a sample rate like statsd-ruby" do
+      before { class << @statsd; def rand; 0; end; end } # ensure delivery
+      it "should send a message with a 's' type, per the nearby fork" do
+        @statsd.set('my.set', 536, 0.5)
+        @statsd.socket.recv.must_equal ['my.set:536|s|@0.5']
+      end
+    end
   end
 
   describe "#timing" do
@@ -209,6 +249,14 @@ describe Datadog::Statsd do
       before { class << @statsd; def rand; 0; end; end } # ensure delivery
       it "should format the message according to the statsd spec" do
         @statsd.timing('foobar', 500, :sample_rate=>0.5)
+        @statsd.socket.recv.must_equal ['foobar:500|ms|@0.5']
+      end
+    end
+
+    describe "with a sample rate like statsd-ruby" do
+      before { class << @statsd; def rand; 0; end; end } # ensure delivery
+      it "should format the message according to the statsd spec" do
+        @statsd.timing('foobar', 500, 0.5)
         @statsd.socket.recv.must_equal ['foobar:500|ms|@0.5']
       end
     end
@@ -266,9 +314,21 @@ describe Datadog::Statsd do
 
     describe "with a sample rate" do
       before { class << @statsd; def rand; 0; end; end } # ensure delivery
-
       it "should format the message according to the statsd spec" do
-        result = @statsd.time('foobar', :sample_rate=>0.5) { sleep(0.001); 'test' }
+        @statsd.time('foobar', :sample_rate=>0.5) do
+          Timecop.freeze(Time.now + 1)
+        end
+        @statsd.socket.recv.must_equal ['foobar:1000|ms|@0.5']
+      end
+    end
+
+    describe "with a sample rate like statsd-ruby" do
+      before { class << @statsd; def rand; 0; end; end } # ensure delivery
+      it "should format the message according to the statsd spec" do
+        @statsd.time('foobar', 0.5) do
+          Timecop.freeze(Time.now + 1)
+        end
+        @statsd.socket.recv.must_equal ['foobar:1000|ms|@0.5']
       end
     end
   end
