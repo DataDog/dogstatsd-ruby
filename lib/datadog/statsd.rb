@@ -126,6 +126,7 @@ module Datadog
     # @option opts [Numeric] :by increment value, default 1
     # @see #count
     def increment(stat, opts={})
+      opts = {:sample_rate => opts} if opts.is_a? Numeric
       incr_value = opts.fetch(:by, 1)
       count stat, incr_value, opts
     end
@@ -139,6 +140,7 @@ module Datadog
     # @option opts [Numeric] :by decrement value, default 1
     # @see #count
     def decrement(stat, opts={})
+      opts = {:sample_rate => opts} if opts.is_a? Numeric
       decr_value = - opts.fetch(:by, 1)
       count stat, decr_value, opts
     end
@@ -151,6 +153,7 @@ module Datadog
     # @option opts [Numeric] :sample_rate sample rate, 1 for always
     # @option opts [Array<String>] :tags An array of tags
     def count(stat, count, opts={})
+      opts = {:sample_rate => opts} if opts.is_a? Numeric
       send_stats stat, count, COUNTER_TYPE, opts
     end
 
@@ -168,6 +171,7 @@ module Datadog
     # @example Report the current user count:
     #   $statsd.gauge('user.count', User.count)
     def gauge(stat, value, opts={})
+      opts = {:sample_rate => opts} if opts.is_a? Numeric
       send_stats stat, value, GAUGE_TYPE, opts
     end
 
@@ -195,6 +199,7 @@ module Datadog
     # @option opts [Numeric] :sample_rate sample rate, 1 for always
     # @option opts [Array<String>] :tags An array of tags
     def timing(stat, ms, opts={})
+      opts = {:sample_rate => opts} if opts.is_a? Numeric
       send_stats stat, ms, TIMING_TYPE, opts
     end
 
@@ -212,6 +217,7 @@ module Datadog
     # @example Report the time (in ms) taken to activate an account
     #   $statsd.time('account.activate') { @account.activate! }
     def time(stat, opts={})
+      opts = {:sample_rate => opts} if opts.is_a? Numeric
       start = Time.now
       return yield
     ensure
@@ -227,6 +233,7 @@ module Datadog
     # @example Record a unique visitory by id:
     #   $statsd.set('visitors.uniques', User.id)
     def set(stat, value, opts={})
+      opts = {:sample_rate => opts} if opts.is_a? Numeric
       send_stats stat, value, SET_TYPE, opts
     end
 
