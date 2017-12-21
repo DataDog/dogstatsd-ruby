@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 3.2.0 / 2017.12.21
+
+* [IMPROVEMENT] Add statsd sample rate compat. [#67][], [@sj26][]
+
 ## 3.1.0 / 2017.11.23
 
 * [FEATURE] Add Unix Domain Socket support. [#61][], [@sullerandras][]
@@ -116,6 +120,7 @@ Future versions are likely to introduce backward incompatibilities with < Ruby 1
 [#56]: https://github.com/DataDog/dogstatsd-ruby/issues/56
 [#58]: https://github.com/DataDog/dogstatsd-ruby/issues/58
 [#61]: https://github.com/DataDog/dogstatsd-ruby/issues/61
+[#67]: https://github.com/DataDog/dogstatsd-ruby/issues/67
 [@AMekss]: https://github.com/AMekss
 [@adimitrov]: https://github.com/adimitrov
 [@degemer]: https://github.com/degemer
@@ -130,4 +135,5 @@ Future versions are likely to introduce backward incompatibilities with < Ruby 1
 [@pschambacher]: https://github.com/pschambacher
 [@ramfjord]: https://github.com/ramfjord
 [@sensadrome]: https://github.com/sensadrome
+[@sj26]: https://github.com/sj26
 [@sullerandras]: https://github.com/sullerandras
