@@ -351,13 +351,12 @@ module Datadog
     NEW_LINE = "\n".freeze
     ESC_NEW_LINE = "\\n".freeze
     COMMA = ",".freeze
-    BLANK = "".freeze
     PIPE = "|".freeze
     DOT = ".".freeze
     DOUBLE_COLON = "::".freeze
     UNDERSCORE = "_".freeze
 
-    private_constant :NEW_LINE, :ESC_NEW_LINE, :COMMA, :BLANK, :PIPE, :DOT,
+    private_constant :NEW_LINE, :ESC_NEW_LINE, :COMMA, :PIPE, :DOT,
       :DOUBLE_COLON, :UNDERSCORE
 
     def escape_event_content(msg)
@@ -365,18 +364,11 @@ module Datadog
     end
 
     def escape_tag_content(tag)
-      remove_pipes(tag.to_s).gsub COMMA, BLANK
-    end
-
-    def escape_tag_content!(tag)
-      tag = tag.to_s
-      tag.gsub!(PIPE, BLANK)
-      tag.gsub!(COMMA, BLANK)
-      tag
+      remove_pipes(tag.to_s).delete COMMA
     end
 
     def remove_pipes(msg)
-      msg.gsub PIPE, BLANK
+      msg.delete PIPE
     end
 
     def escape_service_check_message(msg)
@@ -417,9 +409,8 @@ module Datadog
           full_stat << sample_rate.to_s
         end
 
-
         tag_arr = opts[:tags].to_a
-        tag_arr.map! { |tag| t = tag.to_s.dup; escape_tag_content!(t); t }
+        tag_arr.map! { |tag| escape_tag_content(tag) }
         ts = tags.to_a + tag_arr
         unless ts.empty?
           full_stat << PIPE
