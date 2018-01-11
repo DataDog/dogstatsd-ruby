@@ -218,10 +218,11 @@ module Datadog
     #   $statsd.time('account.activate') { @account.activate! }
     def time(stat, opts={})
       opts = {:sample_rate => opts} if opts.is_a? Numeric
-      start = Time.now
+      start = (PROCESS_TIME_SUPPORTED ? Process.clock_gettime(Process::CLOCK_MONOTONIC) : Time.now.to_f)
       return yield
     ensure
-      time_since(stat, start, opts)
+      finished = (PROCESS_TIME_SUPPORTED ? Process.clock_gettime(Process::CLOCK_MONOTONIC) : Time.now.to_f)
+      timing(stat, ((finished - start) * 1000).round, opts)
     end
     # Sends a value to be tracked as a set to the statsd server.
     #
@@ -236,7 +237,6 @@ module Datadog
       opts = {:sample_rate => opts} if opts.is_a? Numeric
       send_stats stat, value, SET_TYPE, opts
     end
-
 
     # This method allows you to send custom service check statuses.
     #
@@ -356,9 +356,10 @@ module Datadog
     DOT = ".".freeze
     DOUBLE_COLON = "::".freeze
     UNDERSCORE = "_".freeze
+    PROCESS_TIME_SUPPORTED = (RUBY_VERSION >= "2.1.0")
 
     private_constant :NEW_LINE, :ESC_NEW_LINE, :COMMA, :BLANK, :PIPE, :DOT,
-      :DOUBLE_COLON, :UNDERSCORE
+      :DOUBLE_COLON, :UNDERSCORE, :PROCESS_TIME_SUPPORTED
 
     def escape_event_content(msg)
       msg.gsub NEW_LINE, ESC_NEW_LINE
@@ -381,10 +382,6 @@ module Datadog
 
     def escape_service_check_message(msg)
       escape_event_content(msg).gsub('m:'.freeze, 'm\:'.freeze)
-    end
-
-    def time_since(stat, start, opts)
-      timing(stat, ((Time.now - start) * 1000).round, opts)
     end
 
     def join_array_to_str(str, array, joiner)

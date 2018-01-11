@@ -1,7 +1,7 @@
-require 'helper'
+require_relative 'helper'
 require 'socket'
 require 'stringio'
-require 'timecop'
+require 'mocha/mini_test'
 
 describe Datadog::Statsd do
   class Datadog::Statsd
@@ -265,24 +265,19 @@ describe Datadog::Statsd do
   describe "#time" do
     describe "With actual time testing" do
       before do
-        # Freezing time to prevent random test failures
-        Timecop.freeze Time.now
-      end
-
-      after do
-        Timecop.return
+        stub_time 0 # Freezing time to prevent random test failures
       end
 
       it "should format the message according to the statsd spec" do
         @statsd.time('foobar') do
-          Timecop.freeze(Time.now + 1)
+          stub_time 1
         end
         @statsd.socket.recv.must_equal ['foobar:1000|ms']
       end
 
       it "should still time if block is failing" do
         @statsd.time('foobar') do
-          Timecop.freeze(Time.now + 1)
+          stub_time 1
           raise StandardError, 'This is failing'
         end rescue
         @statsd.socket.recv.must_equal ['foobar:1000|ms']
@@ -290,7 +285,7 @@ describe Datadog::Statsd do
 
       def helper_time_return
         @statsd.time('foobar') do
-          Timecop.freeze(Time.now + 1)
+          stub_time 1
           return
         end
       end
@@ -315,8 +310,9 @@ describe Datadog::Statsd do
     describe "with a sample rate" do
       before { class << @statsd; def rand; 0; end; end } # ensure delivery
       it "should format the message according to the statsd spec" do
+        stub_time 0
         @statsd.time('foobar', :sample_rate=>0.5) do
-          Timecop.freeze(Time.now + 1)
+          stub_time 1
         end
         @statsd.socket.recv.must_equal ['foobar:1000|ms|@0.5']
       end
@@ -325,8 +321,9 @@ describe Datadog::Statsd do
     describe "with a sample rate like statsd-ruby" do
       before { class << @statsd; def rand; 0; end; end } # ensure delivery
       it "should format the message according to the statsd spec" do
+        stub_time 0
         @statsd.time('foobar', 0.5) do
-          Timecop.freeze(Time.now + 1)
+          stub_time 1
         end
         @statsd.socket.recv.must_equal ['foobar:1000|ms|@0.5']
       end
@@ -861,6 +858,15 @@ describe Datadog::Statsd do
       socket.expect :close, nil
       @statsd.socket = socket
       @statsd.close
+    end
+  end
+
+  def stub_time(shift)
+    t = 12345.0 + shift
+    if RUBY_VERSION >= "2.1.0"
+      Process.stubs(:clock_gettime).returns(t)
+    else
+      Time.stubs(:now).returns(Time.at(t))
     end
   end
 end
