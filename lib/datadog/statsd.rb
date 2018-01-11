@@ -262,7 +262,7 @@ module Datadog
 
         if key == :tags
           tags = opts[:tags].map {|tag| escape_tag_content(tag) }
-          tags = "#{tags.join(COMMA)}" unless tags.empty?
+          tags = tags.join(COMMA)
           sc_string << "|##{tags}"
         elsif key == :message
           message = remove_pipes(opts[:message])
