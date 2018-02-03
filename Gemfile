@@ -5,7 +5,6 @@ gem 'rake', '10.1.0'
 gem 'rack', '~> 1.6'
 gem 'minitest'
 gem "yard", "~> 0.8.7.3"
-gem 'jeweler', '~> 1.8'
 gem 'simplecov'
 
 group :development do
