@@ -1,23 +1,16 @@
-require 'rubygems'
+require 'bundler/setup'
+require 'bundler/gem_tasks'
 require 'rake/testtask'
-require 'bundler'
+require 'yard'
 
 task :default => :spec
 
 Rake::TestTask.new(:spec) do |spec|
-  spec.libs << 'lib' << 'spec'
   spec.loader = :direct
   spec.pattern = './spec/statsd_spec.rb'
   spec.verbose = true
 end
 
-begin
-  require 'yard'
-rescue LoadError
-else
-  namespace :build do
-    YARD::Rake::YardocTask.new :doc
-  end
+namespace :build do
+  YARD::Rake::YardocTask.new :doc
 end
-
-Bundler::GemHelper.install_tasks

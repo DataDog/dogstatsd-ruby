@@ -52,6 +52,7 @@ module Datadog
     DISTRIBUTION_TYPE = 'd'.freeze
     TIMING_TYPE = 'ms'.freeze
     SET_TYPE = 's'.freeze
+    VERSION = "3.2.0".freeze
 
     # A namespace to prepend to all statsd calls. Defaults to no namespace.
     attr_reader :namespace
@@ -78,10 +79,10 @@ module Datadog
       # Set to a standard logger instance to enable debug logging.
       attr_accessor :logger
 
-      # Return the current version of the library.
-      def VERSION
-        "3.2.0"
-      end
+    # Return the current version of the library.
+    # deprecated, but cannot be removed since uses might use it to check the version against older releases
+    def self.VERSION
+      VERSION
     end
 
     # @param [String] host your statsd host
