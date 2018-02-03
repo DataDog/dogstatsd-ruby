@@ -16,3 +16,6 @@ Layout:
 
 Bundler:
   Enabled: false
+
+Lint/AssignmentInCondition:
+  Enabled: false

@@ -44,7 +44,7 @@ test_text = "Test#{text_index} \n 2nd line"
 sleep_time = 10
 nb_events = 4
 j = 0
-while true
+loop do
 	for i in 0..nb_events
 		statsd.event("Title #{i} #{test_text}", "Ruby Text #{j} #{test_text}", :hostname => hostnames.sample, :aggregation_key => "|#NOT_TAG", :priority => prioritys.sample,:alert_type => alert_types.sample, :tags => ["before|pinguin"])
 	end
