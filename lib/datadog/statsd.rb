@@ -49,6 +49,7 @@ module Datadog
     COUNTER_TYPE = 'c'.freeze
     GAUGE_TYPE = 'g'.freeze
     HISTOGRAM_TYPE = 'h'.freeze
+    DISTRIBUTION_TYPE = 'd'.freeze
     TIMING_TYPE = 'ms'.freeze
     SET_TYPE = 's'.freeze
 
@@ -186,6 +187,22 @@ module Datadog
     #   $statsd.histogram('user.count', User.count)
     def histogram(stat, value, opts={})
       send_stats stat, value, HISTOGRAM_TYPE, opts
+    end
+
+    # Sends a value to be tracked as a distribution to the statsd server.
+    # Note: Distributions are a beta feature of Datadog and not generally
+    # available. Distributions must be specifically enabled for your
+    # organization.
+    #
+    # @param [String] stat stat name.
+    # @param [Numeric] value distribution value.
+    # @param [Hash] opts the options to create the metric with
+    # @option opts [Numeric] :sample_rate sample rate, 1 for always
+    # @option opts [Array<String>] :tags An array of tags
+    # @example Report the current user count:
+    #   $statsd.distribution('user.count', User.count)
+    def distribution(stat, value, opts={})
+      send_stats stat, value, DISTRIBUTION_TYPE, opts
     end
 
     # Sends a timing (in ms) for the given stat to the statsd server. The
