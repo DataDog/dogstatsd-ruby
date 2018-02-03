@@ -262,7 +262,7 @@ module Datadog
 
         if key == :tags
           tags = opts[:tags].map {|tag| escape_tag_content(tag) }
-          tags = "#{tags.join(COMMA)}" unless tags.empty?
+          tags = tags.join(COMMA)
           sc_string << "|##{tags}"
         elsif key == :message
           message = remove_pipes(opts[:message])
@@ -351,33 +351,25 @@ module Datadog
     NEW_LINE = "\n".freeze
     ESC_NEW_LINE = "\\n".freeze
     COMMA = ",".freeze
-    BLANK = "".freeze
     PIPE = "|".freeze
     DOT = ".".freeze
     DOUBLE_COLON = "::".freeze
     UNDERSCORE = "_".freeze
     PROCESS_TIME_SUPPORTED = (RUBY_VERSION >= "2.1.0")
 
-    private_constant :NEW_LINE, :ESC_NEW_LINE, :COMMA, :BLANK, :PIPE, :DOT,
-      :DOUBLE_COLON, :UNDERSCORE, :PROCESS_TIME_SUPPORTED
+    private_constant :NEW_LINE, :ESC_NEW_LINE, :COMMA, :PIPE, :DOT,
+      :DOUBLE_COLON, :UNDERSCORE
 
     def escape_event_content(msg)
       msg.gsub NEW_LINE, ESC_NEW_LINE
     end
 
     def escape_tag_content(tag)
-      remove_pipes(tag.to_s).gsub COMMA, BLANK
-    end
-
-    def escape_tag_content!(tag)
-      tag = tag.to_s
-      tag.gsub!(PIPE, BLANK)
-      tag.gsub!(COMMA, BLANK)
-      tag
+      remove_pipes(tag.to_s).delete COMMA
     end
 
     def remove_pipes(msg)
-      msg.gsub PIPE, BLANK
+      msg.delete PIPE
     end
 
     def escape_service_check_message(msg)
@@ -414,9 +406,8 @@ module Datadog
           full_stat << sample_rate.to_s
         end
 
-
         tag_arr = opts[:tags].to_a
-        tag_arr.map! { |tag| t = tag.to_s.dup; escape_tag_content!(t); t }
+        tag_arr.map! { |tag| escape_tag_content(tag) }
         ts = tags.to_a + tag_arr
         unless ts.empty?
           full_stat << PIPE
