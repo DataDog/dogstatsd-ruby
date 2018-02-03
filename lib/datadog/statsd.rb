@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 require 'socket'
 
 # = Datadog::Statsd: A DogStatsd client (https://www.datadoghq.com)
@@ -92,7 +93,7 @@ module Datadog
     # @param [Integer] port your statsd port
     # @option opts [String] :namespace set a namespace to be prepended to every metric name
     # @option opts [Array<String>] :tags tags to be added to every metric
-    def initialize(host = DEFAULT_HOST, port = DEFAULT_PORT, opts = {}, max_buffer_size=50)
+    def initialize(host = DEFAULT_HOST, port = DEFAULT_PORT, opts = EMPTY_OPTIONS, max_buffer_size=50)
       self.host, self.port = host, port
       @socket_path = opts[:socket_path]
       @prefix = nil
@@ -130,7 +131,7 @@ module Datadog
     # @option opts [Array<String>] :tags An array of tags
     # @option opts [Numeric] :by increment value, default 1
     # @see #count
-    def increment(stat, opts={})
+    def increment(stat, opts=EMPTY_OPTIONS)
       opts = {:sample_rate => opts} if opts.is_a? Numeric
       incr_value = opts.fetch(:by, 1)
       count stat, incr_value, opts
@@ -144,7 +145,7 @@ module Datadog
     # @option opts [Array<String>] :tags An array of tags
     # @option opts [Numeric] :by decrement value, default 1
     # @see #count
-    def decrement(stat, opts={})
+    def decrement(stat, opts=EMPTY_OPTIONS)
       opts = {:sample_rate => opts} if opts.is_a? Numeric
       decr_value = - opts.fetch(:by, 1)
       count stat, decr_value, opts
@@ -157,7 +158,7 @@ module Datadog
     # @param [Hash] opts the options to create the metric with
     # @option opts [Numeric] :sample_rate sample rate, 1 for always
     # @option opts [Array<String>] :tags An array of tags
-    def count(stat, count, opts={})
+    def count(stat, count, opts=EMPTY_OPTIONS)
       opts = {:sample_rate => opts} if opts.is_a? Numeric
       send_stats stat, count, COUNTER_TYPE, opts
     end
@@ -175,7 +176,7 @@ module Datadog
     # @option opts [Array<String>] :tags An array of tags
     # @example Report the current user count:
     #   $statsd.gauge('user.count', User.count)
-    def gauge(stat, value, opts={})
+    def gauge(stat, value, opts=EMPTY_OPTIONS)
       opts = {:sample_rate => opts} if opts.is_a? Numeric
       send_stats stat, value, GAUGE_TYPE, opts
     end
@@ -189,7 +190,7 @@ module Datadog
     # @option opts [Array<String>] :tags An array of tags
     # @example Report the current user count:
     #   $statsd.histogram('user.count', User.count)
-    def histogram(stat, value, opts={})
+    def histogram(stat, value, opts=EMPTY_OPTIONS)
       send_stats stat, value, HISTOGRAM_TYPE, opts
     end
 
@@ -205,7 +206,7 @@ module Datadog
     # @option opts [Array<String>] :tags An array of tags
     # @example Report the current user count:
     #   $statsd.distribution('user.count', User.count)
-    def distribution(stat, value, opts={})
+    def distribution(stat, value, opts=EMPTY_OPTIONS)
       send_stats stat, value, DISTRIBUTION_TYPE, opts
     end
 
@@ -219,7 +220,7 @@ module Datadog
     # @param [Hash] opts the options to create the metric with
     # @option opts [Numeric] :sample_rate sample rate, 1 for always
     # @option opts [Array<String>] :tags An array of tags
-    def timing(stat, ms, opts={})
+    def timing(stat, ms, opts=EMPTY_OPTIONS)
       opts = {:sample_rate => opts} if opts.is_a? Numeric
       send_stats stat, ms, TIMING_TYPE, opts
     end
@@ -237,7 +238,7 @@ module Datadog
     # @see #timing
     # @example Report the time (in ms) taken to activate an account
     #   $statsd.time('account.activate') { @account.activate! }
-    def time(stat, opts={})
+    def time(stat, opts=EMPTY_OPTIONS)
       opts = {:sample_rate => opts} if opts.is_a? Numeric
       start = (PROCESS_TIME_SUPPORTED ? Process.clock_gettime(Process::CLOCK_MONOTONIC) : Time.now.to_f)
       return yield
@@ -254,7 +255,7 @@ module Datadog
     # @option opts [Array<String>] :tags An array of tags
     # @example Record a unique visitory by id:
     #   $statsd.set('visitors.uniques', User.id)
-    def set(stat, value, opts={})
+    def set(stat, value, opts=EMPTY_OPTIONS)
       opts = {:sample_rate => opts} if opts.is_a? Numeric
       send_stats stat, value, SET_TYPE, opts
     end
@@ -270,13 +271,13 @@ module Datadog
       # @option opts [String, nil] :message (nil) A message to associate with this service check status
     # @example Report a critical service check status
     #   $statsd.service_check('my.service.check', Statsd::CRITICAL, :tags=>['urgent'])
-    def service_check(name, status, opts={})
+    def service_check(name, status, opts=EMPTY_OPTIONS)
       service_check_string = format_service_check(name, status, opts)
       send_to_socket service_check_string
     end
 
-    def format_service_check(name, status, opts={})
-      sc_string = "_sc|#{name}|#{status}"
+    def format_service_check(name, status, opts=EMPTY_OPTIONS)
+      sc_string = "_sc|#{name}|#{status}".dup
 
       SC_OPT_KEYS.each do |key, shorthand_key|
         next unless opts[key]
@@ -315,7 +316,7 @@ module Datadog
     # @option opts [Array<String>] :tags tags to be added to every metric
     # @example Report an awful event:
     #   $statsd.event('Something terrible happened', 'The end is near if we do nothing', :alert_type=>'warning', :tags=>['end_of_times','urgent'])
-    def event(title, text, opts={})
+    def event(title, text, opts=EMPTY_OPTIONS)
       send_to_socket format_event(title, text, opts)
     end
 
@@ -350,14 +351,15 @@ module Datadog
     DOUBLE_COLON = "::".freeze
     UNDERSCORE = "_".freeze
     PROCESS_TIME_SUPPORTED = (RUBY_VERSION >= "2.1.0")
+    EMPTY_OPTIONS = {}.freeze
 
     private_constant :NEW_LINE, :ESC_NEW_LINE, :COMMA, :PIPE, :DOT,
-      :DOUBLE_COLON, :UNDERSCORE
+      :DOUBLE_COLON, :UNDERSCORE, :EMPTY_OPTIONS
 
-    def format_event(title, text, opts={})
+    def format_event(title, text, opts=EMPTY_OPTIONS)
       escaped_title = escape_event_content(title)
       escaped_text = escape_event_content(text)
-      event_string_data = "_e{#{escaped_title.length},#{escaped_text.length}}:#{escaped_title}|#{escaped_text}"
+      event_string_data = "_e{#{escaped_title.length},#{escaped_text.length}}:#{escaped_title}|#{escaped_text}".dup
 
       # We construct the string to be sent by adding '|key:value' parts to it when needed
       # All pipes ('|') in the metadata are removed. Title and Text can keep theirs
@@ -378,9 +380,12 @@ module Datadog
     end
 
     def tags_as_string(opts)
-      tag_arr = opts[:tags] || []
-      tag_arr = tag_arr.map { |tag| escape_tag_content(tag) }
-      tag_arr = tags + tag_arr # @tags are normalized when set, so not need to normalize them again
+      if tag_arr = opts[:tags]
+        tag_arr = tag_arr.map { |tag| escape_tag_content(tag) }
+        tag_arr = tags + tag_arr # @tags are normalized when set, so not need to normalize them again
+      else
+        tag_arr = tags
+      end
       tag_arr.join(COMMA) unless tag_arr.empty?
     end
 
@@ -402,10 +407,10 @@ module Datadog
       escape_event_content(msg).gsub('m:'.freeze, 'm\:'.freeze)
     end
 
-    def send_stats(stat, delta, type, opts={})
+    def send_stats(stat, delta, type, opts=EMPTY_OPTIONS)
       sample_rate = opts[:sample_rate] || 1
       if sample_rate == 1 or rand < sample_rate
-        full_stat = ''
+        full_stat = ''.dup
         full_stat << @prefix if @prefix
 
         stat = stat.is_a?(String) ? stat.dup : stat.to_s

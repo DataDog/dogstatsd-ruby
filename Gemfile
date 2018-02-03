@@ -6,8 +6,12 @@ gem 'minitest'
 gem "yard", "~> 0.8.7.3"
 gem 'single_cov'
 
-unless RUBY_VERSION.start_with?("1.9")
-  gem 'rubocop', "~> 0.49.0", platform: :ruby_25 # bump this and TargetRubyVersion once we drop ruby 1.9
+if RUBY_VERSION >= "2.0.0"
+  gem 'rubocop', "~> 0.49.0" # bump this and TargetRubyVersion once we drop ruby 1.9
+end
+
+if RUBY_VERSION >= "2.3.0"
+  gem 'allocation_stats'
 end
 
 group :development do

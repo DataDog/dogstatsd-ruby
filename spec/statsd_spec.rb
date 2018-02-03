@@ -1,7 +1,8 @@
+# frozen_string_literal: true
 require_relative 'helper'
+require 'allocation_stats' if RUBY_VERSION >= "2.3.0"
 require 'socket'
 require 'stringio'
-require 'mocha/mini_test'
 
 SingleCov.covered! file: 'lib/datadog/statsd.rb' if RUBY_VERSION > "2.0"
 
@@ -14,6 +15,7 @@ describe Datadog::Statsd do
   before do
     @statsd = Datadog::Statsd.new('localhost', 1234)
     @statsd.socket = FakeUDPSocket.new
+    Datadog::Statsd.logger = nil
   end
 
   describe ".VERSION" do
@@ -418,7 +420,7 @@ describe Datadog::Statsd do
 
   describe "with logging" do
     require 'stringio'
-    before { Datadog::Statsd.logger = Logger.new(@log = StringIO.new)}
+    before { Datadog::Statsd.logger = Logger.new(@log = StringIO.new) }
 
     it "should write to the log in debug" do
       Datadog::Statsd.logger.level = Logger::DEBUG
@@ -887,6 +889,27 @@ describe Datadog::Statsd do
       socket.expect :close, nil
       @statsd.socket = socket
       @statsd.close
+    end
+  end
+
+  describe "GC" do
+    before { skip('AllocationStats is not available: skipping.') unless defined?(AllocationStats) }
+
+    it "produces low amounts of garbage for simple methods" do
+      assert_allocations(6) { @statsd.increment('foobar') }
+    end
+
+    it "produces low amounts of garbage for timeing" do
+      assert_allocations(6) { @statsd.time('foobar') { 1111 } }
+    end
+
+    def assert_allocations(count, &block)
+      trace = AllocationStats.trace(&block)
+      details = trace.allocations
+        .group_by(:sourcefile, :sourceline, :class)
+        .sort_by_count
+        .to_text
+      trace.new_allocations.size.must_equal count, details
     end
   end
 
