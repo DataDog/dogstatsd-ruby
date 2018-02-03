@@ -14,8 +14,8 @@ group :localdev do
 end
 
 group :test do
-  gem "timecop"
   gem 'tins', '~> 1.6.0'
+  gem 'mocha'
   if RbConfig::CONFIG['ruby_version'].start_with?("1.9")
     gem 'json', '< 2'
     gem 'public_suffix', '< 1.5'
