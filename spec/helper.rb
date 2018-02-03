@@ -1,11 +1,14 @@
 require 'bundler/setup'
+
+if RUBY_VERSION > "2.0"
+  require 'single_cov'
+  SingleCov.setup :minitest
+end
+
 require 'minitest/autorun'
 require 'faker'
 
 $LOAD_PATH.unshift File.expand_path("../../lib", __FILE__)
-
-require 'simplecov'
-SimpleCov.start
 
 require 'datadog/statsd'
 require 'logger'
