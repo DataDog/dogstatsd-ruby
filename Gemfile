@@ -6,6 +6,7 @@ gem 'rack', '~> 1.6'
 gem 'minitest'
 gem "yard", "~> 0.8.7.3"
 gem 'simplecov'
+gem 'rubocop', "~> 0.49.0", platform: :ruby_24 # bump this and TargetRubyVersion once we drop ruby 1.9
 
 group :development do
   gem "faker", "~> 1.2.0"

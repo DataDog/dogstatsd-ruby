@@ -1,0 +1,18 @@
+AllCops:
+  DisplayCopNames: true
+  TargetRubyVersion: 1.9
+
+LineLength:
+  Max: 120
+
+Metrics:
+  Enabled: false
+
+Style:
+  Enabled: false
+
+Layout:
+  Enabled: false
+
+Bundler:
+  Enabled: false

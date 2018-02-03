@@ -8,5 +8,11 @@ rvm:
   - 2.2
   - 2.3
   - 2.4
-
+script: bundle exec rake $TASK
+env:
+  - TASK=spec
+matrix:
+  include:
+    env: TASK=rubocop
+    rvm: 2.4
 bundler_args: --without=localdev
