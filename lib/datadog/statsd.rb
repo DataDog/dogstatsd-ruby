@@ -278,9 +278,9 @@ module Datadog
         next unless opts[key]
 
         if key == :tags
-          tags = opts[:tags].map {|tag| escape_tag_content(tag) }
-          tags = tags.join(COMMA)
-          sc_string << "|##{tags}"
+          if tags_string = tags_as_string(opts)
+            sc_string << "|##{tags_string}"
+          end
         elsif key == :message
           message = remove_pipes(opts[:message])
           escaped_message = escape_service_check_message(message)
@@ -349,9 +349,8 @@ module Datadog
       end
 
       # Tags are joined and added as last part to the string to be sent
-      full_tags = (tags + (opts[:tags] || [])).map {|tag| escape_tag_content(tag) }
-      unless full_tags.empty?
-        event_string_data << "|##{full_tags.join(COMMA)}"
+      if tags_string = tags_as_string(opts)
+        event_string_data << "|##{tags_string}"
       end
 
       raise "Event #{title} payload is too big (more that 8KB), event discarded" if event_string_data.length > 8192 # 8 * 1024 = 8192
@@ -377,12 +376,21 @@ module Datadog
     private_constant :NEW_LINE, :ESC_NEW_LINE, :COMMA, :PIPE, :DOT,
       :DOUBLE_COLON, :UNDERSCORE
 
+    def tags_as_string(opts)
+      tag_arr = opts[:tags] || []
+      tag_arr = tag_arr.map { |tag| escape_tag_content(tag) }
+      tag_arr = tags + tag_arr # @tags are normalized when set, so not need to normalize them again
+      tag_arr.join(COMMA) unless tag_arr.empty?
+    end
+
     def escape_event_content(msg)
       msg.gsub NEW_LINE, ESC_NEW_LINE
     end
 
     def escape_tag_content(tag)
-      remove_pipes(tag.to_s).delete COMMA
+      tag = remove_pipes(tag.to_s)
+      tag.delete! COMMA
+      tag
     end
 
     def remove_pipes(msg)
@@ -391,13 +399,6 @@ module Datadog
 
     def escape_service_check_message(msg)
       escape_event_content(msg).gsub('m:'.freeze, 'm\:'.freeze)
-    end
-
-    def join_array_to_str(str, array, joiner)
-      array.each_with_index do |item, i|
-        str << joiner unless i == 0
-        str << item
-      end
     end
 
     def send_stats(stat, delta, type, opts={})
@@ -423,13 +424,10 @@ module Datadog
           full_stat << sample_rate.to_s
         end
 
-        tag_arr = opts[:tags].to_a
-        tag_arr.map! { |tag| escape_tag_content(tag) }
-        ts = tags.to_a + tag_arr
-        unless ts.empty?
+        if tags_string = tags_as_string(opts)
           full_stat << PIPE
           full_stat << '#'.freeze
-          join_array_to_str(full_stat, ts, COMMA)
+          full_stat << tags_string
         end
 
         send_stat(full_stat)
