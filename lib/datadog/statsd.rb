@@ -77,11 +77,11 @@ module Datadog
     class << self
       # Set to a standard logger instance to enable debug logging.
       attr_accessor :logger
-    end
 
-    # Return the current version of the library.
-    def self.VERSION
-      "3.2.0"
+      # Return the current version of the library.
+      def VERSION
+        "3.2.0"
+      end
     end
 
     # @param [String] host your statsd host

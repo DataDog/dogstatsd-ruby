@@ -3,6 +3,8 @@ require 'socket'
 require 'stringio'
 require 'mocha/mini_test'
 
+SingleCov.covered! file: 'lib/datadog/statsd.rb' if RUBY_VERSION > "2.0"
+
 describe Datadog::Statsd do
   class Datadog::Statsd
     # we need to stub this
@@ -12,6 +14,12 @@ describe Datadog::Statsd do
   before do |test|
     @statsd = Datadog::Statsd.new('localhost', 1234)
     @statsd.socket = FakeUDPSocket.new
+  end
+
+  describe ".VERSION" do
+    it "has a version" do
+      Datadog::Statsd.VERSION.must_match /^\d+\.\d+\.\d+/
+    end
   end
 
   describe "#initialize" do
@@ -360,6 +368,13 @@ describe Datadog::Statsd do
         @statsd.timing('foobar', 500, :sample_rate=>0.5)
         @statsd.socket.recv.must_equal ['foobar:500|ms|@0.5']
       end
+    end
+  end
+
+  describe "#distribution" do
+    it "send a message with d type" do
+      @statsd.distribution('begrutten-suffusion', 536)
+      @statsd.socket.recv.must_equal ['begrutten-suffusion:536|d']
     end
   end
 
