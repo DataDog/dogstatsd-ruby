@@ -9,7 +9,7 @@ describe Datadog::Statsd do
     attr_accessor :socket
   end
 
-  before do |test|
+  before do
     @statsd = Datadog::Statsd.new('localhost', 1234)
     @statsd.socket = FakeUDPSocket.new
   end
@@ -733,12 +733,9 @@ describe Datadog::Statsd do
   end
 
   describe "#event" do
-    nb_tests = 10
-    for i in 00..nb_tests
-      title = Faker::Lorem.sentence(word_count =  rand(3))
-      text = Faker::Lorem.sentence(word_count = rand(3))
-      title_len = title.length
-      text_len = text.length
+    10.times do
+      title = Faker::Lorem.sentence(_word_count =  rand(3))
+      text = Faker::Lorem.sentence(_word_count = rand(3))
       tags = Faker::Lorem.words(rand(1..10))
       tags_joined = tags.join(",")
 
@@ -816,9 +813,8 @@ describe Datadog::Statsd do
   end
 
   describe "#service_check" do
-    nb_tests = 10
-    for i in 00..nb_tests
-      name = Faker::Lorem.sentence(word_count =  rand(3))
+    10.times do
+      name = Faker::Lorem.sentence(_word_count = rand(3))
       status = rand(4)
       hostname = "hostname_test"
       tags = Faker::Lorem.words(rand(1..10))
@@ -828,6 +824,7 @@ describe Datadog::Statsd do
         @statsd.service_check(name, status)
         @statsd.socket.recv.must_equal [@statsd.format_service_check(name, status)]
       end
+
       it "With hostname" do
         @statsd.service_check(name, status, :hostname => hostname)
         @statsd.socket.recv.must_equal ["_sc|#{name}|#{status}|h:#{hostname}"]
@@ -848,7 +845,6 @@ describe Datadog::Statsd do
                               :tags => tags)
         @statsd.socket.recv.must_equal ["_sc|#{name}|#{status}|h:#{hostname}|##{tags_joined}|m:testing  m\\: \\n"]
       end
-
     end
   end
 

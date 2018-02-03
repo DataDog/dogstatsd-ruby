@@ -14,3 +14,7 @@ end
 namespace :build do
   YARD::Rake::YardocTask.new :doc
 end
+
+task :rubocop do
+  sh "rubocop"
+end
