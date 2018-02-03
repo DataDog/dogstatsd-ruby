@@ -78,6 +78,7 @@ module Datadog
     class << self
       # Set to a standard logger instance to enable debug logging.
       attr_accessor :logger
+    end
 
     # Return the current version of the library.
     # deprecated, but cannot be removed since uses might use it to check the version against older releases
