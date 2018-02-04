@@ -52,7 +52,7 @@ module Datadog
     DISTRIBUTION_TYPE = 'd'.freeze
     TIMING_TYPE = 'ms'.freeze
     SET_TYPE = 's'.freeze
-    VERSION = "3.2.0".freeze
+    VERSION = "3.3.0".freeze
 
     # A namespace to prepend to all statsd calls. Defaults to no namespace.
     attr_reader :namespace

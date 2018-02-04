@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## 3.3.0 / 2018.02.04
+
+ * [FEATURE] Add distribution support (beta). See [#72][].
+ * [IMPROVEMENT] A ton of cleanups and refinements courtesy of [@grosser][]. See [#68][], [#69][], [#73][], [#74][], [#75][], [#76][], [#77][].
+ * [IMPROVEMENT] Unify tag handling in `format_service_check`. See [#71][] by [@grosser][].
+ * [IMPROVEMENT] Use faster time method on ruby >= 2.1. See [#70][] by [@grosser][].
+
 ## 3.2.0 / 2017.12.21
 
 * [IMPROVEMENT] Add statsd sample rate compat. [#67][], [@sj26][]
@@ -121,12 +128,23 @@ Future versions are likely to introduce backward incompatibilities with < Ruby 1
 [#58]: https://github.com/DataDog/dogstatsd-ruby/issues/58
 [#61]: https://github.com/DataDog/dogstatsd-ruby/issues/61
 [#67]: https://github.com/DataDog/dogstatsd-ruby/issues/67
+[#68]: https://github.com/DataDog/dogstatsd-ruby/issues/68
+[#69]: https://github.com/DataDog/dogstatsd-ruby/issues/69
+[#70]: https://github.com/DataDog/dogstatsd-ruby/issues/70
+[#71]: https://github.com/DataDog/dogstatsd-ruby/issues/71
+[#72]: https://github.com/DataDog/dogstatsd-ruby/issues/72
+[#73]: https://github.com/DataDog/dogstatsd-ruby/issues/73
+[#74]: https://github.com/DataDog/dogstatsd-ruby/issues/74
+[#75]: https://github.com/DataDog/dogstatsd-ruby/issues/75
+[#76]: https://github.com/DataDog/dogstatsd-ruby/issues/76
+[#77]: https://github.com/DataDog/dogstatsd-ruby/issues/77
 [@AMekss]: https://github.com/AMekss
 [@adimitrov]: https://github.com/adimitrov
 [@degemer]: https://github.com/degemer
 [@djpate]: https://github.com/djpate
 [@fimmtiu]: https://github.com/fimmtiu
 [@gleseur]: https://github.com/gleseur
+[@grosser]: https://github.com/grosser
 [@jacobbednarz]: https://github.com/jacobbednarz
 [@janester]: https://github.com/janester
 [@misterbyrne]: https://github.com/misterbyrne
