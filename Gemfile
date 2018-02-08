@@ -7,7 +7,7 @@ gem "yard", "~> 0.8.7.3"
 gem 'single_cov'
 
 unless RUBY_VERSION.start_with?("1.9")
-  gem 'rubocop', "~> 0.49.0", platform: :ruby_24 # bump this and TargetRubyVersion once we drop ruby 1.9
+  gem 'rubocop', "~> 0.49.0", platform: :ruby_25 # bump this and TargetRubyVersion once we drop ruby 1.9
 end
 
 group :development do
