@@ -1,3 +1,4 @@
+require 'concurrent'
 require 'socket'
 
 # = Datadog::Statsd: A DogStatsd client (https://www.datadoghq.com)
@@ -18,6 +19,7 @@ require 'socket'
 #   statsd = Datadog::Statsd.new 'localhost', 8125, :tags => 'tag1:true'
 module Datadog
   class Statsd
+    include MonitorMixin
 
     DEFAULT_HOST = '127.0.0.1'
     DEFAULT_PORT = 8125
@@ -91,33 +93,43 @@ module Datadog
     # @option opts [String] :namespace set a namespace to be prepended to every metric name
     # @option opts [Array<String>] :tags tags to be added to every metric
     def initialize(host = DEFAULT_HOST, port = DEFAULT_PORT, opts = {}, max_buffer_size=50)
+      super()
+
       self.host, self.port = host, port
       @socket_path = opts[:socket_path]
       @prefix = nil
       @socket = connect_to_socket if @socket_path.nil?
       self.namespace = opts[:namespace]
       self.tags = opts[:tags]
-      @buffer = Array.new
+      @buffer = Concurrent::Array.new
       self.max_buffer_size = max_buffer_size
       @batch_nesting_depth = 0
     end
 
     def namespace=(namespace) #:nodoc:
-      @namespace = namespace
-      @prefix = namespace.nil? ? nil : "#{namespace}.".freeze
+      synchronize do
+        @namespace = namespace
+        @prefix = namespace.nil? ? nil : "#{namespace}.".freeze
+      end
     end
 
     def host=(host) #:nodoc:
-      @host = host || DEFAULT_HOST
+      synchronize do
+        @host = host || DEFAULT_HOST
+      end
     end
 
     def port=(port) #:nodoc:
-      @port = port || DEFAULT_PORT
+      synchronize do
+        @port = port || DEFAULT_PORT
+      end
     end
 
     def tags=(tags) #:nodoc:
-      raise ArgumentError, 'tags must be a Array<String>' unless tags.nil? or tags.is_a? Array
-      @tags = (tags || []).compact.map! {|tag| escape_tag_content(tag)}
+      synchronize do
+        raise ArgumentError, 'tags must be an Array<String>' unless tags.nil? or tags.is_a? Array
+        @tags = (tags || []).compact.map! {|tag| escape_tag_content(tag)}
+      end
     end
 
     # Sends an increment (count = 1) for the given stat to the statsd server.
@@ -270,7 +282,7 @@ module Datadog
     #   $statsd.service_check('my.service.check', Statsd::CRITICAL, :tags=>['urgent'])
     def service_check(name, status, opts={})
       service_check_string = format_service_check(name, status, opts)
-      send_to_socket service_check_string
+      send_to_socket_synchronized service_check_string
     end
 
     def format_service_check(name, status, opts={})
@@ -317,7 +329,7 @@ module Datadog
       event_string = format_event(title, text, opts)
       raise "Event #{title} payload is too big (more that 8KB), event discarded" if event_string.length > 8 * 1024
 
-      send_to_socket event_string
+      send_to_socket_synchronized event_string
     end
 
     # Send several metrics in the same UDP Packet
@@ -329,11 +341,15 @@ module Datadog
     #      s.increment('page.views')
     #    end
     def batch()
-      @batch_nesting_depth += 1
-      yield self
-    ensure
-      @batch_nesting_depth -= 1
-      flush_buffer if @batch_nesting_depth == 0
+      synchronize do
+        begin
+          @batch_nesting_depth += 1
+          yield self
+        ensure
+          @batch_nesting_depth -= 1
+          flush_buffer if @batch_nesting_depth == 0
+        end
+      end
     end
 
     def format_event(title, text, opts={})
@@ -361,7 +377,7 @@ module Datadog
 
     # Close the underlying socket
     def close()
-      @socket.close
+      synchronize { @socket.close }
     end
 
     private
@@ -441,14 +457,14 @@ module Datadog
         @buffer << message
         flush_buffer if @buffer.length >= @max_buffer_size
       else
-        send_to_socket(message)
+        send_to_socket_synchronized(message)
       end
     end
 
     def flush_buffer
       return @buffer if @buffer.empty?
-      send_to_socket(@buffer.join(NEW_LINE))
-      @buffer = Array.new
+      send_to_socket_synchronized(@buffer.join(NEW_LINE))
+      @buffer = Concurrent::Array.new
     end
 
     def connect_to_socket
@@ -463,7 +479,7 @@ module Datadog
     end
 
     def sock
-      @socket ||= connect_to_socket
+      synchronize { @socket ||= connect_to_socket }
     end
 
     def send_to_socket(message)
@@ -493,6 +509,12 @@ module Datadog
 
       self.class.logger.error { "Statsd: #{boom.class} #{boom}" } if self.class.logger
       nil
+    end
+
+    ##
+    # Use a monitor to synchronize the sending of a message to the socket
+    def send_to_socket_synchronized(message)
+      synchronize { send_to_socket(message) }
     end
   end
 end

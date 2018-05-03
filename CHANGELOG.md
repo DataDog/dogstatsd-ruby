@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## Unrelease
+
+ * Try to make this thread safe
+
 ## 3.3.0 / 2018.02.04
 
  * [FEATURE] Add distribution support (beta). See [#72][].
