@@ -1,7 +1,7 @@
 require_relative 'helper'
 require 'socket'
 require 'stringio'
-require 'mocha/mini_test'
+require 'mocha/minitest'
 
 SingleCov.covered! file: 'lib/datadog/statsd.rb' if RUBY_VERSION > "2.0"
 
