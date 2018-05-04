@@ -1,6 +1,6 @@
 # CHANGELOG
 
-## Unrelease
+## Unreleased
 
  * Try to make this thread safe
 
