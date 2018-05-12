@@ -774,13 +774,13 @@ describe Datadog::Statsd do
 
       it "Only title and text" do
         @statsd.event(title, text)
-        @statsd.socket.recv.must_equal [@statsd.format_event(title, text)]
+        @statsd.socket.recv.must_equal [@statsd.send(:format_event, title, text)]
       end
       it "With line break in Text and title" do
         title_break_line = "#{title} \n second line"
         text_break_line = "#{text} \n second line"
         @statsd.event(title_break_line, text_break_line)
-        @statsd.socket.recv.must_equal [@statsd.format_event(title_break_line, text_break_line)]
+        @statsd.socket.recv.must_equal [@statsd.send(:format_event, title_break_line, text_break_line)]
       end
       it "Event data string too long > 8KB" do
         long_text = "#{text} " * 200000
@@ -788,45 +788,45 @@ describe Datadog::Statsd do
       end
       it "With known alert_type" do
         @statsd.event(title, text, :alert_type => 'warning')
-        @statsd.socket.recv.must_equal ["#{@statsd.format_event(title, text)}|t:warning"]
+        @statsd.socket.recv.must_equal ["#{@statsd.send(:format_event, title, text)}|t:warning"]
       end
       it "With unknown alert_type" do
         @statsd.event(title, text, :alert_type => 'bizarre')
-        @statsd.socket.recv.must_equal ["#{@statsd.format_event(title, text)}|t:bizarre"]
+        @statsd.socket.recv.must_equal ["#{@statsd.send(:format_event, title, text)}|t:bizarre"]
       end
       it "With known priority" do
         @statsd.event(title, text, :priority => 'low')
-        @statsd.socket.recv.must_equal ["#{@statsd.format_event(title, text)}|p:low"]
+        @statsd.socket.recv.must_equal ["#{@statsd.send(:format_event, title, text)}|p:low"]
       end
       it "With unknown priority" do
         @statsd.event(title, text, :priority => 'bizarre')
-        @statsd.socket.recv.must_equal ["#{@statsd.format_event(title, text)}|p:bizarre"]
+        @statsd.socket.recv.must_equal ["#{@statsd.send(:format_event, title, text)}|p:bizarre"]
       end
       it "With hostname" do
         @statsd.event(title, text, :hostname => 'hostname_test')
-        @statsd.socket.recv.must_equal ["#{@statsd.format_event(title, text)}|h:hostname_test"]
+        @statsd.socket.recv.must_equal ["#{@statsd.send(:format_event, title, text)}|h:hostname_test"]
       end
       it "With aggregation_key" do
         @statsd.event(title, text, :aggregation_key => 'aggkey 1')
-        @statsd.socket.recv.must_equal ["#{@statsd.format_event(title, text)}|k:aggkey 1"]
+        @statsd.socket.recv.must_equal ["#{@statsd.send(:format_event, title, text)}|k:aggkey 1"]
       end
       it "With source_type_name" do
         @statsd.event(title, text, :source_type_name => 'source 1')
-        @statsd.socket.recv.must_equal ["#{@statsd.format_event(title, text)}|s:source 1"]
+        @statsd.socket.recv.must_equal ["#{@statsd.send(:format_event, title, text)}|s:source 1"]
       end
       it "With several tags" do
         @statsd.event(title, text, :tags => tags)
-        @statsd.socket.recv.must_equal ["#{@statsd.format_event(title, text)}|##{tags_joined}"]
+        @statsd.socket.recv.must_equal ["#{@statsd.send(:format_event, title, text)}|##{tags_joined}"]
       end
       it "Takes into account the common tags" do
-        basic_result = @statsd.format_event(title, text)
+        basic_result = @statsd.send(:format_event, title, text)
         common_tag = 'common'
         @statsd.instance_variable_set :@tags, [common_tag]
         @statsd.event(title, text)
         @statsd.socket.recv.must_equal ["#{basic_result}|##{common_tag}"]
       end
       it "combines common and specific tags" do
-        basic_result = @statsd.format_event(title, text)
+        basic_result = @statsd.send(:format_event, title, text)
         common_tag = 'common'
         @statsd.instance_variable_set :@tags, [common_tag]
         @statsd.event(title, text, :tags => tags)
@@ -840,7 +840,7 @@ describe Datadog::Statsd do
           :hostname => 'hostname_test',
           :tags => tags
         }
-        @statsd.socket.recv.must_equal ["#{@statsd.format_event(title, text, opts)}"]
+        @statsd.socket.recv.must_equal ["#{@statsd.send(:format_event, title, text, opts)}"]
       end
     end
   end

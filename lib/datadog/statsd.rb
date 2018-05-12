@@ -327,13 +327,32 @@ module Datadog
     #      s.gauge('users.online',156)
     #      s.increment('page.views')
     #    end
-    def batch()
+    def batch
       @batch_nesting_depth += 1
       yield self
     ensure
       @batch_nesting_depth -= 1
       flush_buffer if @batch_nesting_depth == 0
     end
+
+    # Close the underlying socket
+    def close
+      @socket.close
+    end
+
+    private
+
+    NEW_LINE = "\n".freeze
+    ESC_NEW_LINE = "\\n".freeze
+    COMMA = ",".freeze
+    PIPE = "|".freeze
+    DOT = ".".freeze
+    DOUBLE_COLON = "::".freeze
+    UNDERSCORE = "_".freeze
+    PROCESS_TIME_SUPPORTED = (RUBY_VERSION >= "2.1.0")
+
+    private_constant :NEW_LINE, :ESC_NEW_LINE, :COMMA, :PIPE, :DOT,
+      :DOUBLE_COLON, :UNDERSCORE
 
     def format_event(title, text, opts={})
       escaped_title = escape_event_content(title)
@@ -357,25 +376,6 @@ module Datadog
       raise "Event #{title} payload is too big (more that 8KB), event discarded" if event_string_data.length > MAX_EVENT_SIZE
       event_string_data
     end
-
-    # Close the underlying socket
-    def close()
-      @socket.close
-    end
-
-    private
-
-    NEW_LINE = "\n".freeze
-    ESC_NEW_LINE = "\\n".freeze
-    COMMA = ",".freeze
-    PIPE = "|".freeze
-    DOT = ".".freeze
-    DOUBLE_COLON = "::".freeze
-    UNDERSCORE = "_".freeze
-    PROCESS_TIME_SUPPORTED = (RUBY_VERSION >= "2.1.0")
-
-    private_constant :NEW_LINE, :ESC_NEW_LINE, :COMMA, :PIPE, :DOT,
-      :DOUBLE_COLON, :UNDERSCORE
 
     def tags_as_string(opts)
       tag_arr = opts[:tags] || []
