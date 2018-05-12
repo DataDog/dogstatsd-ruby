@@ -46,6 +46,8 @@ module Datadog
     CRITICAL  = 2
     UNKNOWN   = 3
 
+    MAX_EVENT_SIZE = 8 * 1024
+
     COUNTER_TYPE = 'c'.freeze
     GAUGE_TYPE = 'g'.freeze
     HISTOGRAM_TYPE = 'h'.freeze
@@ -314,10 +316,7 @@ module Datadog
     # @example Report an awful event:
     #   $statsd.event('Something terrible happened', 'The end is near if we do nothing', :alert_type=>'warning', :tags=>['end_of_times','urgent'])
     def event(title, text, opts={})
-      event_string = format_event(title, text, opts)
-      raise "Event #{title} payload is too big (more that 8KB), event discarded" if event_string.length > 8 * 1024
-
-      send_to_socket event_string
+      send_to_socket format_event(title, text, opts)
     end
 
     # Send several metrics in the same UDP Packet
@@ -355,8 +354,8 @@ module Datadog
         event_string_data << "|##{tags_string}"
       end
 
-      raise "Event #{title} payload is too big (more that 8KB), event discarded" if event_string_data.length > 8192 # 8 * 1024 = 8192
-      return event_string_data
+      raise "Event #{title} payload is too big (more that 8KB), event discarded" if event_string_data.length > MAX_EVENT_SIZE
+      event_string_data
     end
 
     # Close the underlying socket

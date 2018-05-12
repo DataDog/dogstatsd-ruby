@@ -182,6 +182,13 @@ describe Datadog::Statsd do
     end
   end
 
+  describe "#count" do
+    it "can set sample rate as 2nd argument" do
+      @statsd.expects(:send_stats).with("foobar", 123, "c", sample_rate: 0.1)
+      @statsd.count('foobar', 123, 0.1)
+    end
+  end
+
   describe "#gauge" do
     it "should send a message with a 'g' type, per the nearby fork" do
       @statsd.gauge('begrutten-suffusion', 536)
@@ -312,6 +319,13 @@ describe Datadog::Statsd do
     it "should reraise the error if block is failing" do
       assert_raises StandardError do
         @statsd.time('foobar') { raise StandardError, 'This is failing' }
+      end
+    end
+
+    it "can run without PROCESS_TIME_SUPPORTED" do
+      stub_const :PROCESS_TIME_SUPPORTED, false do
+        result = @statsd.time('foobar') { 'test' }
+        result.must_equal 'test'
       end
     end
 
@@ -474,6 +488,11 @@ describe Datadog::Statsd do
     it "should log socket errors" do
       @statsd.increment('foobar')
       @log.string.must_match 'Statsd: SocketError'
+    end
+
+    it "works without a logger" do
+      Datadog::Statsd.logger = nil
+      @statsd.increment('foobar')
     end
   end
 
@@ -678,7 +697,6 @@ describe Datadog::Statsd do
   end
 
   describe "batched" do
-
     it "should not send anything when the buffer is empty" do
       @statsd.batch { }
       assert_nil @statsd.socket.recv
@@ -879,6 +897,16 @@ describe Datadog::Statsd do
     else
       Time.stubs(:now).returns(Time.at(t))
     end
+  end
+
+  def stub_const(const, value)
+    old = Datadog::Statsd.const_get(const)
+    Datadog::Statsd.send(:remove_const, const)
+    Datadog::Statsd.const_set(const, value)
+    yield
+  ensure
+    Datadog::Statsd.send(:remove_const, const)
+    Datadog::Statsd.const_set(const, old)
   end
 end
 
