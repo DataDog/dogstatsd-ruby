@@ -729,7 +729,7 @@ describe Datadog::Statsd do
       @statsd.socket.recv.must_equal ['myothercounter:1|c']
     end
 
-    it "should flush when the buffer gets too big" do
+    it "should flush when the buffer has too many messages" do
       @statsd.batch do |s|
         # increment a counter 50 times in batch
         51.times do
@@ -747,6 +747,23 @@ describe Datadog::Statsd do
 
       # When the block finishes, the remaining buffer is flushed
       @statsd.socket.recv.must_equal ['mycounter:1|c']
+    end
+
+    it "flushes when the buffered messages are too long for an udp package" do
+      @statsd.batch do |s|
+        40.times { s.increment("a", tags: ["a" * 1000, "b" * 1000]) } # 80k chars
+        received = @statsd.socket.recv
+        received.size.must_equal 1
+        received.first.size.must_equal 64287
+        lines = received.first.split("\n")
+        lines.size.must_equal 32
+        lines.uniq.size.must_equal 1 # nothing cut off
+      end
+
+      # When the block finishes, the remaining buffer is flushed
+      received = @statsd.socket.recv
+      received.size.must_equal 1
+      received.first.split("\n").size.must_equal 8
     end
 
     it "should batch nested batch blocks" do
