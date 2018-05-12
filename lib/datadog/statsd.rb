@@ -76,7 +76,7 @@ module Datadog
     attr_reader :buffer
 
     # Maximum number of metrics in the buffer before it is flushed
-    attr_accessor :max_buffer_size
+    attr_reader :max_buffer_size
 
     class << self
       # Set to a standard logger instance to enable debug logging.
@@ -93,7 +93,8 @@ module Datadog
     # @param [Integer] port your statsd port
     # @option opts [String] :namespace set a namespace to be prepended to every metric name
     # @option opts [Array<String>] :tags tags to be added to every metric
-    def initialize(host = DEFAULT_HOST, port = DEFAULT_PORT, opts = EMPTY_OPTIONS, max_buffer_size=50)
+    # @option opts [Integer] :max_buffer_size max messages to buffer
+    def initialize(host = DEFAULT_HOST, port = DEFAULT_PORT, opts = EMPTY_OPTIONS)
       self.host, self.port = host, port
       @socket_path = opts[:socket_path]
       @prefix = nil
@@ -101,7 +102,7 @@ module Datadog
       self.namespace = opts[:namespace]
       self.tags = opts[:tags]
       @buffer = Array.new
-      self.max_buffer_size = max_buffer_size
+      @max_buffer_size = opts[:max_buffer_size] || 50
       @batch_nesting_depth = 0
     end
 
