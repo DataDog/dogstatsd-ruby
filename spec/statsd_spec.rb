@@ -730,18 +730,15 @@ describe Datadog::Statsd do
     end
 
     it "should flush when the buffer gets too big" do
+      expected_message = 'mycounter:1|c'
+      number_of_messages_to_fill_the_buffer = (8192 - 1) / (expected_message.bytesize + 1)
       @statsd.batch do |s|
-        # increment a counter 50 times in batch
-        51.times do
+        # increment a counter to fill the buffer and trigger buffer flush
+        (number_of_messages_to_fill_the_buffer + 1).times do
           s.increment("mycounter")
         end
 
-        # We should receive a packet of 50 messages that was automatically
-        # flushed when the buffer got too big
-        theoretical_reply = Array.new
-        50.times do
-          theoretical_reply.push('mycounter:1|c')
-        end
+        theoretical_reply = Array.new(number_of_messages_to_fill_the_buffer) { 'mycounter:1|c' }
         @statsd.socket.recv.must_equal [theoretical_reply.join("\n")]
       end
 

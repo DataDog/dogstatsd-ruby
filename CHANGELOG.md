@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## 4.0.0 / 0000.00.00
+
+* [BUGFIX] Make sure the UDP message fits into the 8k buffer of dd-agent. [#65][], [@Antti][]
+### Breaking changes
+max_buffer_size option now controls buffer size in bytes instead of a number of messages
+
 ## 3.3.0 / 2018.02.04
 
  * [FEATURE] Add distribution support (beta). See [#72][].
