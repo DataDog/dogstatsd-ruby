@@ -56,6 +56,11 @@ module Datadog
     SET_TYPE = 's'.freeze
     VERSION = "3.3.0".freeze
 
+    # https://en.wikipedia.org/wiki/User_Datagram_Protocol
+    # when talking osx-to-osx this is 9216
+    # can try via https://ruby-doc.org/stdlib-2.3.0/libdoc/socket/rdoc/UDPSocket.html#method-i-send
+    UDP_PAYLOAD_SIZE = 65507
+
     # A namespace to prepend to all statsd calls. Defaults to no namespace.
     attr_reader :namespace
 
@@ -75,7 +80,7 @@ module Datadog
     attr_reader :buffer
 
     # Maximum number of metrics in the buffer before it is flushed
-    attr_accessor :max_buffer_size
+    attr_reader :max_buffer_size
 
     class << self
       # Set to a standard logger instance to enable debug logging.
@@ -92,15 +97,20 @@ module Datadog
     # @param [Integer] port your statsd port
     # @option opts [String] :namespace set a namespace to be prepended to every metric name
     # @option opts [Array<String>] :tags tags to be added to every metric
-    def initialize(host = DEFAULT_HOST, port = DEFAULT_PORT, opts = {}, max_buffer_size=50)
+    # @option opts [Integer] :max_buffer_size max messages to buffer
+    # TODO: remove bad_old_max_buffer_size on next major bump
+    def initialize(host = DEFAULT_HOST, port = DEFAULT_PORT, opts = {}, bad_old_max_buffer_size=50)
       self.host, self.port = host, port
       @socket_path = opts[:socket_path]
       @prefix = nil
       @socket = connect_to_socket if @socket_path.nil?
       self.namespace = opts[:namespace]
       self.tags = opts[:tags]
-      @buffer = Array.new
-      self.max_buffer_size = max_buffer_size
+
+      # buffering
+      @max_buffer_size = opts[:max_buffer_size] || bad_old_max_buffer_size
+      @buffer = String.new # not using "" to avoid it being frozen when we switch to frozen strings
+      @buffer_size = 0
       @batch_nesting_depth = 0
     end
 
@@ -436,18 +446,26 @@ module Datadog
     end
 
     def send_stat(message)
-      if @batch_nesting_depth > 0
-        @buffer << message
-        flush_buffer if @buffer.length >= @max_buffer_size
-      else
+      if @batch_nesting_depth.zero?
         send_to_socket(message)
+      else
+        # flush when the buffer would get to large to fit into a UDP payload
+        flush_buffer if @buffer.bytesize + (@buffer_size.zero? ? 0 : 1) + message.bytesize >= UDP_PAYLOAD_SIZE
+
+        @buffer << NEW_LINE unless @buffer_size.zero?
+        @buffer << message
+        @buffer_size += 1
+
+        # flush buffer if this was the last message we can fit in
+        flush_buffer if @buffer_size >= @max_buffer_size
       end
     end
 
     def flush_buffer
-      return @buffer if @buffer.empty?
-      send_to_socket(@buffer.join(NEW_LINE))
-      @buffer = Array.new
+      return if @buffer_size.zero?
+      send_to_socket @buffer
+      @buffer = String.new
+      @buffer_size = 0
     end
 
     def connect_to_socket
