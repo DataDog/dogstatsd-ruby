@@ -182,6 +182,13 @@ describe Datadog::Statsd do
     end
   end
 
+  describe "#count" do
+    it "can set sample rate as 2nd argument" do
+      @statsd.expects(:send_stats).with("foobar", 123, "c", sample_rate: 0.1)
+      @statsd.count('foobar', 123, 0.1)
+    end
+  end
+
   describe "#gauge" do
     it "should send a message with a 'g' type, per the nearby fork" do
       @statsd.gauge('begrutten-suffusion', 536)
@@ -312,6 +319,13 @@ describe Datadog::Statsd do
     it "should reraise the error if block is failing" do
       assert_raises StandardError do
         @statsd.time('foobar') { raise StandardError, 'This is failing' }
+      end
+    end
+
+    it "can run without PROCESS_TIME_SUPPORTED" do
+      stub_const :PROCESS_TIME_SUPPORTED, false do
+        result = @statsd.time('foobar') { 'test' }
+        result.must_equal 'test'
       end
     end
 
@@ -474,6 +488,11 @@ describe Datadog::Statsd do
     it "should log socket errors" do
       @statsd.increment('foobar')
       @log.string.must_match 'Statsd: SocketError'
+    end
+
+    it "works without a logger" do
+      Datadog::Statsd.logger = nil
+      @statsd.increment('foobar')
     end
   end
 
@@ -678,7 +697,6 @@ describe Datadog::Statsd do
   end
 
   describe "batched" do
-
     it "should not send anything when the buffer is empty" do
       @statsd.batch { }
       assert_nil @statsd.socket.recv
@@ -756,13 +774,13 @@ describe Datadog::Statsd do
 
       it "Only title and text" do
         @statsd.event(title, text)
-        @statsd.socket.recv.must_equal [@statsd.format_event(title, text)]
+        @statsd.socket.recv.must_equal [@statsd.send(:format_event, title, text)]
       end
       it "With line break in Text and title" do
         title_break_line = "#{title} \n second line"
         text_break_line = "#{text} \n second line"
         @statsd.event(title_break_line, text_break_line)
-        @statsd.socket.recv.must_equal [@statsd.format_event(title_break_line, text_break_line)]
+        @statsd.socket.recv.must_equal [@statsd.send(:format_event, title_break_line, text_break_line)]
       end
       it "Event data string too long > 8KB" do
         long_text = "#{text} " * 200000
@@ -770,45 +788,45 @@ describe Datadog::Statsd do
       end
       it "With known alert_type" do
         @statsd.event(title, text, :alert_type => 'warning')
-        @statsd.socket.recv.must_equal ["#{@statsd.format_event(title, text)}|t:warning"]
+        @statsd.socket.recv.must_equal ["#{@statsd.send(:format_event, title, text)}|t:warning"]
       end
       it "With unknown alert_type" do
         @statsd.event(title, text, :alert_type => 'bizarre')
-        @statsd.socket.recv.must_equal ["#{@statsd.format_event(title, text)}|t:bizarre"]
+        @statsd.socket.recv.must_equal ["#{@statsd.send(:format_event, title, text)}|t:bizarre"]
       end
       it "With known priority" do
         @statsd.event(title, text, :priority => 'low')
-        @statsd.socket.recv.must_equal ["#{@statsd.format_event(title, text)}|p:low"]
+        @statsd.socket.recv.must_equal ["#{@statsd.send(:format_event, title, text)}|p:low"]
       end
       it "With unknown priority" do
         @statsd.event(title, text, :priority => 'bizarre')
-        @statsd.socket.recv.must_equal ["#{@statsd.format_event(title, text)}|p:bizarre"]
+        @statsd.socket.recv.must_equal ["#{@statsd.send(:format_event, title, text)}|p:bizarre"]
       end
       it "With hostname" do
         @statsd.event(title, text, :hostname => 'hostname_test')
-        @statsd.socket.recv.must_equal ["#{@statsd.format_event(title, text)}|h:hostname_test"]
+        @statsd.socket.recv.must_equal ["#{@statsd.send(:format_event, title, text)}|h:hostname_test"]
       end
       it "With aggregation_key" do
         @statsd.event(title, text, :aggregation_key => 'aggkey 1')
-        @statsd.socket.recv.must_equal ["#{@statsd.format_event(title, text)}|k:aggkey 1"]
+        @statsd.socket.recv.must_equal ["#{@statsd.send(:format_event, title, text)}|k:aggkey 1"]
       end
       it "With source_type_name" do
         @statsd.event(title, text, :source_type_name => 'source 1')
-        @statsd.socket.recv.must_equal ["#{@statsd.format_event(title, text)}|s:source 1"]
+        @statsd.socket.recv.must_equal ["#{@statsd.send(:format_event, title, text)}|s:source 1"]
       end
       it "With several tags" do
         @statsd.event(title, text, :tags => tags)
-        @statsd.socket.recv.must_equal ["#{@statsd.format_event(title, text)}|##{tags_joined}"]
+        @statsd.socket.recv.must_equal ["#{@statsd.send(:format_event, title, text)}|##{tags_joined}"]
       end
       it "Takes into account the common tags" do
-        basic_result = @statsd.format_event(title, text)
+        basic_result = @statsd.send(:format_event, title, text)
         common_tag = 'common'
         @statsd.instance_variable_set :@tags, [common_tag]
         @statsd.event(title, text)
         @statsd.socket.recv.must_equal ["#{basic_result}|##{common_tag}"]
       end
       it "combines common and specific tags" do
-        basic_result = @statsd.format_event(title, text)
+        basic_result = @statsd.send(:format_event, title, text)
         common_tag = 'common'
         @statsd.instance_variable_set :@tags, [common_tag]
         @statsd.event(title, text, :tags => tags)
@@ -822,7 +840,7 @@ describe Datadog::Statsd do
           :hostname => 'hostname_test',
           :tags => tags
         }
-        @statsd.socket.recv.must_equal ["#{@statsd.format_event(title, text, opts)}"]
+        @statsd.socket.recv.must_equal ["#{@statsd.send(:format_event, title, text, opts)}"]
       end
     end
   end
@@ -879,6 +897,16 @@ describe Datadog::Statsd do
     else
       Time.stubs(:now).returns(Time.at(t))
     end
+  end
+
+  def stub_const(const, value)
+    old = Datadog::Statsd.const_get(const)
+    Datadog::Statsd.send(:remove_const, const)
+    Datadog::Statsd.const_set(const, value)
+    yield
+  ensure
+    Datadog::Statsd.send(:remove_const, const)
+    Datadog::Statsd.const_set(const, old)
   end
 end
 
