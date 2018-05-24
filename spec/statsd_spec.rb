@@ -12,8 +12,10 @@ describe Datadog::Statsd do
     attr_accessor :socket
   end
 
+  let(:namespace) { nil }
+
   before do
-    @statsd = Datadog::Statsd.new('localhost', 1234)
+    @statsd = Datadog::Statsd.new('localhost', 1234, namespace: namespace)
     @statsd.socket = FakeUDPSocket.new
     Datadog::Statsd.logger = nil
   end
@@ -25,28 +27,29 @@ describe Datadog::Statsd do
   end
 
   describe "#initialize" do
-    it "should set the host and port" do
+    it "sets the host and port" do
       @statsd.host.must_equal 'localhost'
       @statsd.port.must_equal 1234
     end
 
-    it "should create a UDPSocket when nothing is given" do
+    it "uses default host and port when nil is given to allow only passing options" do
+      @statsd = Datadog::Statsd.new(nil, nil, {})
+      @statsd.host.must_equal '127.0.0.1'
+      @statsd.port.must_equal 8125
+    end
+
+    it "creates a UDPSocket when nothing is given" do
       statsd = Datadog::Statsd.new
       statsd.socket.must_be_instance_of(UDPSocket)
     end
 
-    it "should create a UDPSocket when host and port are given" do
-      statsd = Datadog::Statsd.new('localhost', 1234)
-      statsd.socket.must_be_instance_of(UDPSocket)
-    end
-
-    it "should not create a socket when socket_path is given" do
+    it "does not create a socket when socket_path is given" do
       # the socket may not exist when creating the Statsd object
       statsd = Datadog::Statsd.new('localhost', 1234, {socket_path: '/tmp/socket'})
       assert_nil statsd.socket
     end
 
-    it "should default the host to 127.0.0.1, port to 8125, namespace to nil, and tags to []" do
+    it "defaults host, port, namespace, and tags" do
       statsd = Datadog::Statsd.new
       statsd.host.must_equal '127.0.0.1'
       statsd.port.must_equal 8125
@@ -54,7 +57,7 @@ describe Datadog::Statsd do
       statsd.tags.must_equal []
     end
 
-    it 'should be able to set host, port, namespace, and global tags' do
+    it 'sets host, port, namespace, and tags' do
       statsd = Datadog::Statsd.new '1.3.3.7', 8126, :tags => %w(global), :namespace => 'space'
       statsd.host.must_equal '1.3.3.7'
       statsd.port.must_equal 8126
@@ -62,65 +65,11 @@ describe Datadog::Statsd do
       statsd.instance_variable_get('@prefix').must_equal 'space.'
       statsd.tags.must_equal ['global']
     end
-  end
 
-  describe "writers" do
-    it "should set host, port, namespace, and global tags" do
-      @statsd.host = '1.2.3.4'
-      @statsd.port = 5678
-      @statsd.namespace = 'n4m35p4c3'
-      @statsd.tags = ['t4g5']
-
-      @statsd.host.must_equal '1.2.3.4'
-      @statsd.port.must_equal 5678
-      @statsd.namespace.must_equal 'n4m35p4c3'
-      @statsd.tags.must_equal ['t4g5']
-    end
-
-    it "should not resolve hostnames to IPs" do
-      @statsd.host = 'localhost'
-      @statsd.host.must_equal 'localhost'
-    end
-
-    it "should set nil host to default" do
-      @statsd.host = nil
-      @statsd.host.must_equal '127.0.0.1'
-    end
-
-    it "should set nil port to default" do
-      @statsd.port = nil
-      @statsd.port.must_equal 8125
-    end
-
-    it 'should set prefix to nil when namespace is set to nil' do
-      @statsd.namespace = nil
-      assert_nil @statsd.namespace
-      assert_nil @statsd.instance_variable_get('@prefix')
-    end
-
-    it 'should set nil tags to default' do
-      @statsd.tags = nil
-      @statsd.tags.must_equal []
-    end
-
-    it 'should reject non-array tags' do
-      lambda { @statsd.tags = 'tsdfs' }.must_raise ArgumentError
-    end
-
-    it 'ignore nil tags' do
-      @statsd.tags = ['tag1', nil, 'tag2']
-      @statsd.tags.must_equal %w[tag1 tag2]
-    end
-
-    it 'converts symbols to strings' do
-      @statsd.tags = [:tag1, :tag2]
-      @statsd.tags.must_equal %w[tag1 tag2]
-    end
-
-    it 'assigns regular tags' do
-      tags = %w[tag1 tag2]
-      @statsd.tags = tags
-      @statsd.tags.must_equal tags
+    it 'fails on invalid tags' do
+      assert_raises ArgumentError do
+        Datadog::Statsd.new nil, nil, :tags => 'global'
+      end
     end
   end
 
@@ -395,7 +344,7 @@ describe Datadog::Statsd do
   end
 
   describe "with namespace" do
-    before { @statsd.namespace = 'service' }
+    let(:namespace) { 'service' }
 
     it "should add namespace to increment" do
       @statsd.increment('foobar')
@@ -680,21 +629,15 @@ describe Datadog::Statsd do
     end
 
     it "global tags setter" do
-      @statsd.tags = %w(country:usa other)
+      @statsd.instance_variable_set(:@tags, %w(country:usa other))
       @statsd.increment("c")
       @statsd.socket.recv.must_equal ['c:1|c|#country:usa,other']
     end
 
     it "global tags setter and regular tags" do
-      @statsd.tags = %w(country:usa other)
+      @statsd.instance_variable_set(:@tags, %w(country:usa other))
       @statsd.increment("c", :tags=>%w(somethingelse))
       @statsd.socket.recv.must_equal ['c:1|c|#country:usa,other,somethingelse']
-    end
-
-    it "nil global tags" do
-      @statsd.tags = nil
-      @statsd.increment("c")
-      @statsd.socket.recv.must_equal ['c:1|c']
     end
   end
 

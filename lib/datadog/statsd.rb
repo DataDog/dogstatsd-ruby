@@ -95,33 +95,22 @@ module Datadog
     # @option opts [Array<String>] :tags tags to be added to every metric
     # @option opts [Integer] :max_buffer_size max messages to buffer
     def initialize(host = DEFAULT_HOST, port = DEFAULT_PORT, opts = EMPTY_OPTIONS)
-      self.host, self.port = host, port
+      @host = host || DEFAULT_HOST
+      @port = port || DEFAULT_PORT
+
       @socket_path = opts[:socket_path]
-      @prefix = nil
       @socket = connect_to_socket if @socket_path.nil?
-      self.namespace = opts[:namespace]
-      self.tags = opts[:tags]
+
+      @namespace = opts[:namespace]
+      @prefix = @namespace ? "#{@namespace}.".freeze : nil
+
+      tags = opts[:tags]
+      raise ArgumentError, 'tags must be a Array<String>' unless tags.nil? or tags.is_a? Array
+      @tags = (tags || []).compact.map! {|tag| escape_tag_content(tag)}
+
       @buffer = Array.new
       @max_buffer_size = opts[:max_buffer_size] || 50
       @batch_nesting_depth = 0
-    end
-
-    def namespace=(namespace) #:nodoc:
-      @namespace = namespace
-      @prefix = namespace.nil? ? nil : "#{namespace}.".freeze
-    end
-
-    def host=(host) #:nodoc:
-      @host = host || DEFAULT_HOST
-    end
-
-    def port=(port) #:nodoc:
-      @port = port || DEFAULT_PORT
-    end
-
-    def tags=(tags) #:nodoc:
-      raise ArgumentError, 'tags must be a Array<String>' unless tags.nil? or tags.is_a? Array
-      @tags = (tags || []).compact.map! {|tag| escape_tag_content(tag)}
     end
 
     # Sends an increment (count = 1) for the given stat to the statsd server.
