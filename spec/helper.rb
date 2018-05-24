@@ -6,7 +6,7 @@ if RUBY_VERSION > "2.0"
 end
 
 require 'minitest/autorun'
-require 'mocha/mini_test'
+require 'mocha/minitest'
 require 'faker'
 
 $LOAD_PATH.unshift File.expand_path("../../lib", __FILE__)
