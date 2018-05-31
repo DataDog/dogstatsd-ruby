@@ -263,7 +263,7 @@ module Datadog
     #   $statsd.service_check('my.service.check', Statsd::CRITICAL, :tags=>['urgent'])
     def service_check(name, status, opts=EMPTY_OPTIONS)
       service_check_string = format_service_check(name, status, opts)
-      send_to_socket service_check_string
+      send_stat service_check_string
     end
 
     def format_service_check(name, status, opts=EMPTY_OPTIONS)
@@ -307,7 +307,7 @@ module Datadog
     # @example Report an awful event:
     #   $statsd.event('Something terrible happened', 'The end is near if we do nothing', :alert_type=>'warning', :tags=>['end_of_times','urgent'])
     def event(title, text, opts=EMPTY_OPTIONS)
-      send_to_socket format_event(title, text, opts)
+      send_stat format_event(title, text, opts)
     end
 
     # Send several metrics in the same UDP Packet
