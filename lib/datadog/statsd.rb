@@ -78,10 +78,8 @@ module Datadog
     # Maximum number of metrics in the buffer before it is flushed
     attr_reader :max_buffer_size
 
-    class << self
-      # Set to a standard logger instance to enable debug logging.
-      attr_accessor :logger
-    end
+    # Logger
+    attr_reader :logger
 
     # Return the current version of the library.
     # deprecated, but cannot be removed since uses might use it to check the version against older releases
@@ -93,10 +91,12 @@ module Datadog
     # @param [Integer] port your statsd port
     # @option opts [String] :namespace set a namespace to be prepended to every metric name
     # @option opts [Array<String>] :tags tags to be added to every metric
+    # @option opts [Loger] :logger for debugging
     # @option opts [Integer] :max_buffer_size max messages to buffer
     def initialize(host = DEFAULT_HOST, port = DEFAULT_PORT, opts = EMPTY_OPTIONS)
       @host = host || DEFAULT_HOST
       @port = port || DEFAULT_PORT
+      @logger = opts[:logger]
 
       @socket_path = opts[:socket_path]
       @socket = connect_to_socket if @socket_path.nil?
@@ -461,7 +461,7 @@ module Datadog
     end
 
     def send_to_socket(message)
-      self.class.logger.debug { "Statsd: #{message}" } if self.class.logger
+      @logger.debug { "Statsd: #{message}" } if @logger
       if @socket_path.nil?
         sock.send(message, 0)
       else
@@ -485,7 +485,7 @@ module Datadog
         end
       end
 
-      self.class.logger.error { "Statsd: #{boom.class} #{boom}" } if self.class.logger
+      @logger.error { "Statsd: #{boom.class} #{boom}" } if @logger
       nil
     end
   end

@@ -17,7 +17,6 @@ describe Datadog::Statsd do
   before do
     @statsd = Datadog::Statsd.new('localhost', 1234, namespace: namespace)
     @statsd.socket = FakeUDPSocket.new
-    Datadog::Statsd.logger = nil
   end
 
   describe ".VERSION" do
@@ -369,10 +368,10 @@ describe Datadog::Statsd do
 
   describe "with logging" do
     require 'stringio'
-    before { Datadog::Statsd.logger = Logger.new(@log = StringIO.new) }
+    before { @statsd.instance_variable_set(:@logger, Logger.new(@log = StringIO.new)) }
 
     it "should write to the log in debug" do
-      Datadog::Statsd.logger.level = Logger::DEBUG
+      @statsd.logger.level = Logger::DEBUG
 
       @statsd.increment('foobar')
 
@@ -380,7 +379,7 @@ describe Datadog::Statsd do
     end
 
     it "should not write to the log unless debug" do
-      Datadog::Statsd.logger.level = Logger::INFO
+      @statsd.logger.level = Logger::INFO
 
       @statsd.increment('foobar')
 
@@ -428,7 +427,7 @@ describe Datadog::Statsd do
 
   describe "handling socket errors" do
     before do
-      Datadog::Statsd.logger = Logger.new(@log = StringIO.new)
+      @statsd.instance_variable_set(:@logger, Logger.new(@log = StringIO.new))
       @statsd.socket.instance_eval { def send(*) raise SocketError end }
     end
 
@@ -442,14 +441,14 @@ describe Datadog::Statsd do
     end
 
     it "works without a logger" do
-      Datadog::Statsd.logger = nil
+      @statsd.instance_variable_set(:@logger, nil)
       @statsd.increment('foobar')
     end
   end
 
   describe "handling closed socket" do
     before do
-      Datadog::Statsd.logger = Logger.new(@log = StringIO.new)
+      @statsd.instance_variable_set(:@logger, Logger.new(@log = StringIO.new))
     end
 
     it "should try once to reconnect" do
@@ -500,7 +499,6 @@ describe Datadog::Statsd do
   describe "UDS error handling" do
     before do
       @statsd = Datadog::Statsd.new('localhost', 1234, {:socket_path => '/tmp/socket'})
-      Datadog::Statsd.logger = Logger.new(@log = StringIO.new)
     end
 
     describe "when socket throws connection reset error" do
