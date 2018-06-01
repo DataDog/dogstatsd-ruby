@@ -40,13 +40,15 @@ describe Datadog::Statsd do
 
     it "creates a UDPSocket when nothing is given" do
       statsd = Datadog::Statsd.new
-      statsd.socket.must_be_instance_of(UDPSocket)
+      statsd.send(:sock).must_be_instance_of(UDPSocket)
     end
 
-    it "does not create a socket when socket_path is given" do
+    it "create a Socket when socket_path is given" do
       # the socket may not exist when creating the Statsd object
       statsd = Datadog::Statsd.new('localhost', 1234, {socket_path: '/tmp/socket'})
-      assert_nil statsd.socket
+      assert_raises Errno::ENOENT do
+        statsd.send(:sock)
+      end
     end
 
     it "defaults host, port, namespace, and tags" do

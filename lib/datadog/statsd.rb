@@ -99,7 +99,6 @@ module Datadog
       @port = port || DEFAULT_PORT
 
       @socket_path = opts[:socket_path]
-      @socket = connect_to_socket if @socket_path.nil?
 
       @namespace = opts[:namespace]
       @prefix = @namespace ? "#{@namespace}.".freeze : nil
@@ -446,16 +445,17 @@ module Datadog
     end
 
     def connect_to_socket
-      if !@socket_path.nil?
-        socket = Socket.new(Socket::AF_UNIX, Socket::SOCK_DGRAM)
-        socket.connect(Socket.pack_sockaddr_un(@socket_path))
-      else
+      if @socket_path.nil?
         socket = UDPSocket.new
         socket.connect(@host, @port)
+      else
+        socket = Socket.new(Socket::AF_UNIX, Socket::SOCK_DGRAM)
+        socket.connect(Socket.pack_sockaddr_un(@socket_path))
       end
       socket
     end
 
+    # TODO: rename to `socket` which breaks a lot of tests
     def sock
       @socket ||= connect_to_socket
     end
@@ -468,11 +468,17 @@ module Datadog
         sock.sendmsg_nonblock(message)
       end
     rescue => boom
-      if @socket_path && (boom.is_a?(Errno::ECONNREFUSED) ||
-                          boom.is_a?(Errno::ECONNRESET) ||
-                          boom.is_a?(Errno::ENOENT))
-        return @socket = nil
+      # Give up on this socket if it looks like it is bad
+      bad_socket = !@socket_path.nil? && (
+        boom.is_a?(Errno::ECONNREFUSED) ||
+        boom.is_a?(Errno::ECONNRESET) ||
+        boom.is_a?(Errno::ENOENT)
+      )
+      if bad_socket
+        @socket = nil
+        return
       end
+
       # Try once to reconnect if the socket has been closed
       retries ||= 1
       if retries <= 1 && boom.is_a?(IOError) && boom.message =~ /closed stream/i
