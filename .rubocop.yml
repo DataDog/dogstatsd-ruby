@@ -1,6 +1,6 @@
 AllCops:
   DisplayCopNames: true
-  TargetRubyVersion: 1.9
+  TargetRubyVersion: 2.0
 
 LineLength:
   Max: 120

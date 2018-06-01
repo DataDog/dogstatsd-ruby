@@ -83,26 +83,33 @@ module Datadog
 
     # @param [String] host your statsd host
     # @param [Integer] port your statsd port
-    # @option opts [String] :namespace set a namespace to be prepended to every metric name
-    # @option opts [Array<String>] :tags tags to be added to every metric
-    # @option opts [Loger] :logger for debugging
-    # @option opts [Integer] :max_buffer_size max messages to buffer
-    def initialize(host = DEFAULT_HOST, port = DEFAULT_PORT, opts = EMPTY_OPTIONS)
+    # @option [String] namespace set a namespace to be prepended to every metric name
+    # @option [Array<String>] tags tags to be added to every metric
+    # @option [Loger] logger for debugging
+    # @option [Integer] max_buffer_size max messages to buffer
+    # @option [String] socket_path unix socket path
+    def initialize(
+      host = DEFAULT_HOST,
+      port = DEFAULT_PORT,
+      namespace: nil,
+      tags: nil,
+      max_buffer_size: nil,
+      socket_path: nil,
+      logger: nil
+    )
       @host = host || DEFAULT_HOST
       @port = port || DEFAULT_PORT
-      @logger = opts[:logger]
+      @logger = logger
+      @socket_path = socket_path
 
-      @socket_path = opts[:socket_path]
-
-      @namespace = opts[:namespace]
+      @namespace = namespace
       @prefix = @namespace ? "#{@namespace}.".freeze : nil
 
-      tags = opts[:tags]
       raise ArgumentError, 'tags must be a Array<String>' unless tags.nil? or tags.is_a? Array
       @tags = (tags || []).compact.map! {|tag| escape_tag_content(tag)}
 
       @buffer = Array.new
-      @max_buffer_size = opts[:max_buffer_size] || 50
+      @max_buffer_size = max_buffer_size || 50
       @batch_nesting_depth = 0
     end
 
@@ -461,7 +468,7 @@ module Datadog
       else
         sock.sendmsg_nonblock(message)
       end
-    rescue => boom
+    rescue StandardError => boom
       # Give up on this socket if it looks like it is bad
       bad_socket = !@socket_path.nil? && (
         boom.is_a?(Errno::ECONNREFUSED) ||
@@ -480,7 +487,7 @@ module Datadog
         begin
           @socket = connect_to_socket
           retry
-        rescue => e
+        rescue StandardError => e
           boom = e
         end
       end
