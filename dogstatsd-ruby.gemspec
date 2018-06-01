@@ -3,7 +3,7 @@ require "datadog/statsd"
 
 Gem::Specification.new do |s|
   s.name = "dogstatsd-ruby"
-  s.version = Datadog::Statsd.VERSION
+  s.version = Datadog::Statsd::VERSION
 
   s.authors = ["Rein Henrichs"]
 

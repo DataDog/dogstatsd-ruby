@@ -20,9 +20,9 @@ describe Datadog::Statsd do
     Datadog::Statsd.logger = nil
   end
 
-  describe ".VERSION" do
+  describe "VERSION" do
     it "has a version" do
-      Datadog::Statsd.VERSION.must_match(/^\d+\.\d+\.\d+/)
+      Datadog::Statsd::VERSION.must_match(/^\d+\.\d+\.\d+/)
     end
   end
 
