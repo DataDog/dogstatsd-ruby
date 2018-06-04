@@ -5,10 +5,14 @@ gem 'rack', '~> 1.6'
 gem 'minitest'
 gem "yard", "~> 0.8.7.3"
 gem 'single_cov'
-gem 'concurrent-ruby', '~> 1.0.5', require: 'concurrent'
+gem 'concurrent-ruby', '~> 1.0.5'
 
-unless RUBY_VERSION.start_with?("1.9")
-  gem 'rubocop', "~> 0.49.0", platform: :ruby_25 # bump this and TargetRubyVersion once we drop ruby 1.9
+if RUBY_VERSION >= "2.0.0"
+  gem 'rubocop', "~> 0.49.0" # bump this and TargetRubyVersion once we drop ruby 1.9
+end
+
+if RUBY_VERSION >= "2.3.0"
+  gem 'allocation_stats'
 end
 
 group :development do

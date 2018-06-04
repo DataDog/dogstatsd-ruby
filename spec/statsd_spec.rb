@@ -1,7 +1,8 @@
+# frozen_string_literal: true
 require_relative 'helper'
+require 'allocation_stats' if RUBY_VERSION >= "2.3.0"
 require 'socket'
 require 'stringio'
-require 'mocha/minitest'
 
 SingleCov.covered! file: 'lib/datadog/statsd.rb' if RUBY_VERSION > "2.0"
 
@@ -11,9 +12,12 @@ describe Datadog::Statsd do
     attr_accessor :socket
   end
 
+  let(:namespace) { nil }
+
   before do
-    @statsd = Datadog::Statsd.new('localhost', 1234)
+    @statsd = Datadog::Statsd.new('localhost', 1234, namespace: namespace)
     @statsd.socket = FakeUDPSocket.new
+    Datadog::Statsd.logger = nil
   end
 
   describe ".VERSION" do
@@ -49,28 +53,29 @@ describe Datadog::Statsd do
   end
 
   describe "#initialize" do
-    it "should set the host and port" do
+    it "sets the host and port" do
       @statsd.host.must_equal 'localhost'
       @statsd.port.must_equal 1234
     end
 
-    it "should create a UDPSocket when nothing is given" do
+    it "uses default host and port when nil is given to allow only passing options" do
+      @statsd = Datadog::Statsd.new(nil, nil, {})
+      @statsd.host.must_equal '127.0.0.1'
+      @statsd.port.must_equal 8125
+    end
+
+    it "creates a UDPSocket when nothing is given" do
       statsd = Datadog::Statsd.new
       statsd.socket.must_be_instance_of(UDPSocket)
     end
 
-    it "should create a UDPSocket when host and port are given" do
-      statsd = Datadog::Statsd.new('localhost', 1234)
-      statsd.socket.must_be_instance_of(UDPSocket)
-    end
-
-    it "should not create a socket when socket_path is given" do
+    it "does not create a socket when socket_path is given" do
       # the socket may not exist when creating the Statsd object
       statsd = Datadog::Statsd.new('localhost', 1234, {socket_path: '/tmp/socket'})
       assert_nil statsd.socket
     end
 
-    it "should default the host to 127.0.0.1, port to 8125, namespace to nil, and tags to []" do
+    it "defaults host, port, namespace, and tags" do
       statsd = Datadog::Statsd.new
       statsd.host.must_equal '127.0.0.1'
       statsd.port.must_equal 8125
@@ -78,7 +83,7 @@ describe Datadog::Statsd do
       statsd.tags.must_equal []
     end
 
-    it 'should be able to set host, port, namespace, and global tags' do
+    it 'sets host, port, namespace, and tags' do
       statsd = Datadog::Statsd.new '1.3.3.7', 8126, :tags => %w(global), :namespace => 'space'
       statsd.host.must_equal '1.3.3.7'
       statsd.port.must_equal 8126
@@ -86,65 +91,11 @@ describe Datadog::Statsd do
       statsd.instance_variable_get('@prefix').must_equal 'space.'
       statsd.tags.must_equal ['global']
     end
-  end
 
-  describe "writers" do
-    it "should set host, port, namespace, and global tags" do
-      @statsd.host = '1.2.3.4'
-      @statsd.port = 5678
-      @statsd.namespace = 'n4m35p4c3'
-      @statsd.tags = ['t4g5']
-
-      @statsd.host.must_equal '1.2.3.4'
-      @statsd.port.must_equal 5678
-      @statsd.namespace.must_equal 'n4m35p4c3'
-      @statsd.tags.must_equal ['t4g5']
-    end
-
-    it "should not resolve hostnames to IPs" do
-      @statsd.host = 'localhost'
-      @statsd.host.must_equal 'localhost'
-    end
-
-    it "should set nil host to default" do
-      @statsd.host = nil
-      @statsd.host.must_equal '127.0.0.1'
-    end
-
-    it "should set nil port to default" do
-      @statsd.port = nil
-      @statsd.port.must_equal 8125
-    end
-
-    it 'should set prefix to nil when namespace is set to nil' do
-      @statsd.namespace = nil
-      assert_nil @statsd.namespace
-      assert_nil @statsd.instance_variable_get('@prefix')
-    end
-
-    it 'should set nil tags to default' do
-      @statsd.tags = nil
-      @statsd.tags.must_equal []
-    end
-
-    it 'should reject non-array tags' do
-      lambda { @statsd.tags = 'tsdfs' }.must_raise ArgumentError
-    end
-
-    it 'ignore nil tags' do
-      @statsd.tags = ['tag1', nil, 'tag2']
-      @statsd.tags.must_equal %w[tag1 tag2]
-    end
-
-    it 'converts symbols to strings' do
-      @statsd.tags = [:tag1, :tag2]
-      @statsd.tags.must_equal %w[tag1 tag2]
-    end
-
-    it 'assigns regular tags' do
-      tags = %w[tag1 tag2]
-      @statsd.tags = tags
-      @statsd.tags.must_equal tags
+    it 'fails on invalid tags' do
+      assert_raises ArgumentError do
+        Datadog::Statsd.new nil, nil, :tags => 'global'
+      end
     end
   end
 
@@ -205,6 +156,13 @@ describe Datadog::Statsd do
         @statsd.decrement('foobar', :by=>5)
         @statsd.socket.recv.must_equal ['foobar:-5|c']
       end
+    end
+  end
+
+  describe "#count" do
+    it "can set sample rate as 2nd argument" do
+      @statsd.expects(:send_stats).with("foobar", 123, "c", sample_rate: 0.1)
+      @statsd.count('foobar', 123, 0.1)
     end
   end
 
@@ -341,6 +299,13 @@ describe Datadog::Statsd do
       end
     end
 
+    it "can run without PROCESS_TIME_SUPPORTED" do
+      stub_const :PROCESS_TIME_SUPPORTED, false do
+        result = @statsd.time('foobar') { 'test' }
+        result.must_equal 'test'
+      end
+    end
+
     describe "with a sample rate" do
       before { class << @statsd; def rand; 0; end; end } # ensure delivery
       it "should format the message according to the statsd spec" do
@@ -405,7 +370,7 @@ describe Datadog::Statsd do
   end
 
   describe "with namespace" do
-    before { @statsd.namespace = 'service' }
+    let(:namespace) { 'service' }
 
     it "should add namespace to increment" do
       @statsd.increment('foobar')
@@ -430,7 +395,7 @@ describe Datadog::Statsd do
 
   describe "with logging" do
     require 'stringio'
-    before { Datadog::Statsd.logger = Logger.new(@log = StringIO.new)}
+    before { Datadog::Statsd.logger = Logger.new(@log = StringIO.new) }
 
     it "should write to the log in debug" do
       Datadog::Statsd.logger.level = Logger::DEBUG
@@ -500,6 +465,11 @@ describe Datadog::Statsd do
     it "should log socket errors" do
       @statsd.increment('foobar')
       @log.string.must_match 'Statsd: SocketError'
+    end
+
+    it "works without a logger" do
+      Datadog::Statsd.logger = nil
+      @statsd.increment('foobar')
     end
   end
 
@@ -685,26 +655,19 @@ describe Datadog::Statsd do
     end
 
     it "global tags setter" do
-      @statsd.tags = %w(country:usa other)
+      @statsd.instance_variable_set(:@tags, %w(country:usa other))
       @statsd.increment("c")
       @statsd.socket.recv.must_equal ['c:1|c|#country:usa,other']
     end
 
     it "global tags setter and regular tags" do
-      @statsd.tags = %w(country:usa other)
+      @statsd.instance_variable_set(:@tags, %w(country:usa other))
       @statsd.increment("c", :tags=>%w(somethingelse))
       @statsd.socket.recv.must_equal ['c:1|c|#country:usa,other,somethingelse']
-    end
-
-    it "nil global tags" do
-      @statsd.tags = nil
-      @statsd.increment("c")
-      @statsd.socket.recv.must_equal ['c:1|c']
     end
   end
 
   describe "batched" do
-
     it "should not send anything when the buffer is empty" do
       @statsd.batch { }
       assert_nil @statsd.socket.recv
@@ -782,13 +745,13 @@ describe Datadog::Statsd do
 
       it "Only title and text" do
         @statsd.event(title, text)
-        @statsd.socket.recv.must_equal [@statsd.format_event(title, text)]
+        @statsd.socket.recv.must_equal [@statsd.send(:format_event, title, text)]
       end
       it "With line break in Text and title" do
         title_break_line = "#{title} \n second line"
         text_break_line = "#{text} \n second line"
         @statsd.event(title_break_line, text_break_line)
-        @statsd.socket.recv.must_equal [@statsd.format_event(title_break_line, text_break_line)]
+        @statsd.socket.recv.must_equal [@statsd.send(:format_event, title_break_line, text_break_line)]
       end
       it "Event data string too long > 8KB" do
         long_text = "#{text} " * 200000
@@ -796,45 +759,45 @@ describe Datadog::Statsd do
       end
       it "With known alert_type" do
         @statsd.event(title, text, :alert_type => 'warning')
-        @statsd.socket.recv.must_equal ["#{@statsd.format_event(title, text)}|t:warning"]
+        @statsd.socket.recv.must_equal ["#{@statsd.send(:format_event, title, text)}|t:warning"]
       end
       it "With unknown alert_type" do
         @statsd.event(title, text, :alert_type => 'bizarre')
-        @statsd.socket.recv.must_equal ["#{@statsd.format_event(title, text)}|t:bizarre"]
+        @statsd.socket.recv.must_equal ["#{@statsd.send(:format_event, title, text)}|t:bizarre"]
       end
       it "With known priority" do
         @statsd.event(title, text, :priority => 'low')
-        @statsd.socket.recv.must_equal ["#{@statsd.format_event(title, text)}|p:low"]
+        @statsd.socket.recv.must_equal ["#{@statsd.send(:format_event, title, text)}|p:low"]
       end
       it "With unknown priority" do
         @statsd.event(title, text, :priority => 'bizarre')
-        @statsd.socket.recv.must_equal ["#{@statsd.format_event(title, text)}|p:bizarre"]
+        @statsd.socket.recv.must_equal ["#{@statsd.send(:format_event, title, text)}|p:bizarre"]
       end
       it "With hostname" do
         @statsd.event(title, text, :hostname => 'hostname_test')
-        @statsd.socket.recv.must_equal ["#{@statsd.format_event(title, text)}|h:hostname_test"]
+        @statsd.socket.recv.must_equal ["#{@statsd.send(:format_event, title, text)}|h:hostname_test"]
       end
       it "With aggregation_key" do
         @statsd.event(title, text, :aggregation_key => 'aggkey 1')
-        @statsd.socket.recv.must_equal ["#{@statsd.format_event(title, text)}|k:aggkey 1"]
+        @statsd.socket.recv.must_equal ["#{@statsd.send(:format_event, title, text)}|k:aggkey 1"]
       end
       it "With source_type_name" do
         @statsd.event(title, text, :source_type_name => 'source 1')
-        @statsd.socket.recv.must_equal ["#{@statsd.format_event(title, text)}|s:source 1"]
+        @statsd.socket.recv.must_equal ["#{@statsd.send(:format_event, title, text)}|s:source 1"]
       end
       it "With several tags" do
         @statsd.event(title, text, :tags => tags)
-        @statsd.socket.recv.must_equal ["#{@statsd.format_event(title, text)}|##{tags_joined}"]
+        @statsd.socket.recv.must_equal ["#{@statsd.send(:format_event, title, text)}|##{tags_joined}"]
       end
       it "Takes into account the common tags" do
-        basic_result = @statsd.format_event(title, text)
+        basic_result = @statsd.send(:format_event, title, text)
         common_tag = 'common'
         @statsd.instance_variable_set :@tags, [common_tag]
         @statsd.event(title, text)
         @statsd.socket.recv.must_equal ["#{basic_result}|##{common_tag}"]
       end
       it "combines common and specific tags" do
-        basic_result = @statsd.format_event(title, text)
+        basic_result = @statsd.send(:format_event, title, text)
         common_tag = 'common'
         @statsd.instance_variable_set :@tags, [common_tag]
         @statsd.event(title, text, :tags => tags)
@@ -848,7 +811,7 @@ describe Datadog::Statsd do
           :hostname => 'hostname_test',
           :tags => tags
         }
-        @statsd.socket.recv.must_equal ["#{@statsd.format_event(title, text, opts)}"]
+        @statsd.socket.recv.must_equal ["#{@statsd.send(:format_event, title, text, opts)}"]
       end
     end
   end
@@ -898,6 +861,27 @@ describe Datadog::Statsd do
     end
   end
 
+  describe "GC" do
+    before { skip('AllocationStats is not available: skipping.') unless defined?(AllocationStats) }
+
+    it "produces low amounts of garbage for simple methods" do
+      assert_allocations(6) { @statsd.increment('foobar') }
+    end
+
+    it "produces low amounts of garbage for timeing" do
+      assert_allocations(6) { @statsd.time('foobar') { 1111 } }
+    end
+
+    def assert_allocations(count, &block)
+      trace = AllocationStats.trace(&block)
+      details = trace.allocations
+        .group_by(:sourcefile, :sourceline, :class)
+        .sort_by_count
+        .to_text
+      trace.new_allocations.size.must_equal count, details
+    end
+  end
+
   def stub_time(shift)
     t = 12345.0 + shift
     if RUBY_VERSION >= "2.1.0"
@@ -905,6 +889,16 @@ describe Datadog::Statsd do
     else
       Time.stubs(:now).returns(Time.at(t))
     end
+  end
+
+  def stub_const(const, value)
+    old = Datadog::Statsd.const_get(const)
+    Datadog::Statsd.send(:remove_const, const)
+    Datadog::Statsd.const_set(const, value)
+    yield
+  ensure
+    Datadog::Statsd.send(:remove_const, const)
+    Datadog::Statsd.const_set(const, old)
   end
 end
 

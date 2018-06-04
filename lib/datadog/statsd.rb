@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 require 'concurrent'
 require 'monitor'
 require 'socket'
@@ -49,6 +50,8 @@ module Datadog
     CRITICAL  = 2
     UNKNOWN   = 3
 
+    MAX_EVENT_SIZE = 8 * 1024
+
     COUNTER_TYPE = 'c'.freeze
     GAUGE_TYPE = 'g'.freeze
     HISTOGRAM_TYPE = 'h'.freeze
@@ -76,7 +79,7 @@ module Datadog
     attr_reader :buffer
 
     # Maximum number of metrics in the buffer before it is flushed
-    attr_accessor :max_buffer_size
+    attr_reader :max_buffer_size
 
     class << self
       # Set to a standard logger instance to enable debug logging.
@@ -113,44 +116,26 @@ module Datadog
     # @param [Integer] port your statsd port
     # @option opts [String] :namespace set a namespace to be prepended to every metric name
     # @option opts [Array<String>] :tags tags to be added to every metric
-    def initialize(host = DEFAULT_HOST, port = DEFAULT_PORT, opts = {}, max_buffer_size=50)
+    # @option opts [Integer] :max_buffer_size max messages to buffer
+    def initialize(host = DEFAULT_HOST, port = DEFAULT_PORT, opts = EMPTY_OPTIONS)
       super()
 
-      self.host, self.port = host, port
+      @host = host || DEFAULT_HOST
+      @port = port || DEFAULT_PORT
+
       @socket_path = opts[:socket_path]
-      @prefix = nil
       @socket = connect_to_socket if @socket_path.nil?
-      self.namespace = opts[:namespace]
-      self.tags = opts[:tags]
+
+      @namespace = opts[:namespace]
+      @prefix = @namespace ? "#{@namespace}.".freeze : nil
+
+      tags = opts[:tags]
+      raise ArgumentError, 'tags must be a Array<String>' unless tags.nil? or tags.is_a? Array
+      @tags = (tags || []).compact.map! {|tag| escape_tag_content(tag)}
+
       @buffer = Concurrent::Array.new
-      self.max_buffer_size = max_buffer_size
+      @max_buffer_size = opts[:max_buffer_size] || 50
       @batch_nesting_depth = 0
-    end
-
-    def namespace=(namespace) #:nodoc:
-      synchronize do
-        @namespace = namespace
-        @prefix = namespace.nil? ? nil : "#{namespace}.".freeze
-      end
-    end
-
-    def host=(host) #:nodoc:
-      synchronize do
-        @host = host || DEFAULT_HOST
-      end
-    end
-
-    def port=(port) #:nodoc:
-      synchronize do
-        @port = port || DEFAULT_PORT
-      end
-    end
-
-    def tags=(tags) #:nodoc:
-      synchronize do
-        raise ArgumentError, 'tags must be an Array<String>' unless tags.nil? or tags.is_a? Array
-        @tags = (tags || []).compact.map! {|tag| escape_tag_content(tag)}
-      end
     end
 
     # Sends an increment (count = 1) for the given stat to the statsd server.
@@ -161,7 +146,7 @@ module Datadog
     # @option opts [Array<String>] :tags An array of tags
     # @option opts [Numeric] :by increment value, default 1
     # @see #count
-    def increment(stat, opts={})
+    def increment(stat, opts=EMPTY_OPTIONS)
       opts = {:sample_rate => opts} if opts.is_a? Numeric
       incr_value = opts.fetch(:by, 1)
       count stat, incr_value, opts
@@ -175,7 +160,7 @@ module Datadog
     # @option opts [Array<String>] :tags An array of tags
     # @option opts [Numeric] :by decrement value, default 1
     # @see #count
-    def decrement(stat, opts={})
+    def decrement(stat, opts=EMPTY_OPTIONS)
       opts = {:sample_rate => opts} if opts.is_a? Numeric
       decr_value = - opts.fetch(:by, 1)
       count stat, decr_value, opts
@@ -188,7 +173,7 @@ module Datadog
     # @param [Hash] opts the options to create the metric with
     # @option opts [Numeric] :sample_rate sample rate, 1 for always
     # @option opts [Array<String>] :tags An array of tags
-    def count(stat, count, opts={})
+    def count(stat, count, opts=EMPTY_OPTIONS)
       opts = {:sample_rate => opts} if opts.is_a? Numeric
       send_stats stat, count, COUNTER_TYPE, opts
     end
@@ -206,7 +191,7 @@ module Datadog
     # @option opts [Array<String>] :tags An array of tags
     # @example Report the current user count:
     #   $statsd.gauge('user.count', User.count)
-    def gauge(stat, value, opts={})
+    def gauge(stat, value, opts=EMPTY_OPTIONS)
       opts = {:sample_rate => opts} if opts.is_a? Numeric
       send_stats stat, value, GAUGE_TYPE, opts
     end
@@ -220,7 +205,7 @@ module Datadog
     # @option opts [Array<String>] :tags An array of tags
     # @example Report the current user count:
     #   $statsd.histogram('user.count', User.count)
-    def histogram(stat, value, opts={})
+    def histogram(stat, value, opts=EMPTY_OPTIONS)
       send_stats stat, value, HISTOGRAM_TYPE, opts
     end
 
@@ -236,7 +221,7 @@ module Datadog
     # @option opts [Array<String>] :tags An array of tags
     # @example Report the current user count:
     #   $statsd.distribution('user.count', User.count)
-    def distribution(stat, value, opts={})
+    def distribution(stat, value, opts=EMPTY_OPTIONS)
       send_stats stat, value, DISTRIBUTION_TYPE, opts
     end
 
@@ -250,7 +235,7 @@ module Datadog
     # @param [Hash] opts the options to create the metric with
     # @option opts [Numeric] :sample_rate sample rate, 1 for always
     # @option opts [Array<String>] :tags An array of tags
-    def timing(stat, ms, opts={})
+    def timing(stat, ms, opts=EMPTY_OPTIONS)
       opts = {:sample_rate => opts} if opts.is_a? Numeric
       send_stats stat, ms, TIMING_TYPE, opts
     end
@@ -268,7 +253,7 @@ module Datadog
     # @see #timing
     # @example Report the time (in ms) taken to activate an account
     #   $statsd.time('account.activate') { @account.activate! }
-    def time(stat, opts={})
+    def time(stat, opts=EMPTY_OPTIONS)
       opts = {:sample_rate => opts} if opts.is_a? Numeric
       start = (PROCESS_TIME_SUPPORTED ? Process.clock_gettime(Process::CLOCK_MONOTONIC) : Time.now.to_f)
       return yield
@@ -285,7 +270,7 @@ module Datadog
     # @option opts [Array<String>] :tags An array of tags
     # @example Record a unique visitory by id:
     #   $statsd.set('visitors.uniques', User.id)
-    def set(stat, value, opts={})
+    def set(stat, value, opts=EMPTY_OPTIONS)
       opts = {:sample_rate => opts} if opts.is_a? Numeric
       send_stats stat, value, SET_TYPE, opts
     end
@@ -301,13 +286,13 @@ module Datadog
       # @option opts [String, nil] :message (nil) A message to associate with this service check status
     # @example Report a critical service check status
     #   $statsd.service_check('my.service.check', Statsd::CRITICAL, :tags=>['urgent'])
-    def service_check(name, status, opts={})
+    def service_check(name, status, opts=EMPTY_OPTIONS)
       service_check_string = format_service_check(name, status, opts)
-      send_to_socket_synchronized service_check_string
+      send_to_socket service_check_string
     end
 
-    def format_service_check(name, status, opts={})
-      sc_string = "_sc|#{name}|#{status}"
+    def format_service_check(name, status, opts=EMPTY_OPTIONS)
+      sc_string = "_sc|#{name}|#{status}".dup
 
       SC_OPT_KEYS.each do |key, shorthand_key|
         next unless opts[key]
@@ -346,11 +331,8 @@ module Datadog
     # @option opts [Array<String>] :tags tags to be added to every metric
     # @example Report an awful event:
     #   $statsd.event('Something terrible happened', 'The end is near if we do nothing', :alert_type=>'warning', :tags=>['end_of_times','urgent'])
-    def event(title, text, opts={})
-      event_string = format_event(title, text, opts)
-      raise "Event #{title} payload is too big (more that 8KB), event discarded" if event_string.length > 8 * 1024
-
-      send_to_socket_synchronized event_string
+    def event(title, text, opts=EMPTY_OPTIONS)
+      send_to_socket format_event(title, text, opts)
     end
 
     # Send several metrics in the same UDP Packet
@@ -361,22 +343,38 @@ module Datadog
     #      s.gauge('users.online',156)
     #      s.increment('page.views')
     #    end
-    def batch()
-      synchronize do
-        begin
-          @batch_nesting_depth += 1
-          yield self
-        ensure
-          @batch_nesting_depth -= 1
-          flush_buffer if @batch_nesting_depth == 0
-        end
-      end
+    def batch
+      @batch_nesting_depth += 1
+      yield self
+    ensure
+      @batch_nesting_depth -= 1
+      flush_buffer if @batch_nesting_depth == 0
     end
 
-    def format_event(title, text, opts={})
+    # Close the underlying socket
+    def close
+      synchronize { @socket.close }
+    end
+
+    private
+
+    NEW_LINE = "\n".freeze
+    ESC_NEW_LINE = "\\n".freeze
+    COMMA = ",".freeze
+    PIPE = "|".freeze
+    DOT = ".".freeze
+    DOUBLE_COLON = "::".freeze
+    UNDERSCORE = "_".freeze
+    PROCESS_TIME_SUPPORTED = (RUBY_VERSION >= "2.1.0")
+    EMPTY_OPTIONS = {}.freeze
+
+    private_constant :NEW_LINE, :ESC_NEW_LINE, :COMMA, :PIPE, :DOT,
+      :DOUBLE_COLON, :UNDERSCORE, :EMPTY_OPTIONS
+
+    def format_event(title, text, opts=EMPTY_OPTIONS)
       escaped_title = escape_event_content(title)
       escaped_text = escape_event_content(text)
-      event_string_data = "_e{#{escaped_title.length},#{escaped_text.length}}:#{escaped_title}|#{escaped_text}"
+      event_string_data = "_e{#{escaped_title.length},#{escaped_text.length}}:#{escaped_title}|#{escaped_text}".dup
 
       # We construct the string to be sent by adding '|key:value' parts to it when needed
       # All pipes ('|') in the metadata are removed. Title and Text can keep theirs
@@ -392,33 +390,17 @@ module Datadog
         event_string_data << "|##{tags_string}"
       end
 
-      raise "Event #{title} payload is too big (more that 8KB), event discarded" if event_string_data.length > 8192 # 8 * 1024 = 8192
-      return event_string_data
+      raise "Event #{title} payload is too big (more that 8KB), event discarded" if event_string_data.length > MAX_EVENT_SIZE
+      event_string_data
     end
-
-    # Close the underlying socket
-    def close()
-      synchronize { @socket.close }
-    end
-
-    private
-
-    NEW_LINE = "\n".freeze
-    ESC_NEW_LINE = "\\n".freeze
-    COMMA = ",".freeze
-    PIPE = "|".freeze
-    DOT = ".".freeze
-    DOUBLE_COLON = "::".freeze
-    UNDERSCORE = "_".freeze
-    PROCESS_TIME_SUPPORTED = (RUBY_VERSION >= "2.1.0")
-
-    private_constant :NEW_LINE, :ESC_NEW_LINE, :COMMA, :PIPE, :DOT,
-      :DOUBLE_COLON, :UNDERSCORE
 
     def tags_as_string(opts)
-      tag_arr = opts[:tags] || []
-      tag_arr = tag_arr.map { |tag| escape_tag_content(tag) }
-      tag_arr = tags + tag_arr # @tags are normalized when set, so not need to normalize them again
+      if tag_arr = opts[:tags]
+        tag_arr = tag_arr.map { |tag| escape_tag_content(tag) }
+        tag_arr = tags + tag_arr # @tags are normalized when set, so not need to normalize them again
+      else
+        tag_arr = tags
+      end
       tag_arr.join(COMMA) unless tag_arr.empty?
     end
 
@@ -440,10 +422,10 @@ module Datadog
       escape_event_content(msg).gsub('m:'.freeze, 'm\:'.freeze)
     end
 
-    def send_stats(stat, delta, type, opts={})
+    def send_stats(stat, delta, type, opts=EMPTY_OPTIONS)
       sample_rate = opts[:sample_rate] || 1
       if sample_rate == 1 or rand < sample_rate
-        full_stat = ''
+        full_stat = ''.dup
         full_stat << @prefix if @prefix
 
         stat = stat.is_a?(String) ? stat.dup : stat.to_s
@@ -478,13 +460,13 @@ module Datadog
         @buffer << message
         flush_buffer if @buffer.length >= @max_buffer_size
       else
-        send_to_socket_synchronized(message)
+        send_to_socket(message)
       end
     end
 
     def flush_buffer
       return @buffer if @buffer.empty?
-      send_to_socket_synchronized(@buffer.join(NEW_LINE))
+      send_to_socket(@buffer.join(NEW_LINE))
       @buffer = Concurrent::Array.new
     end
 
@@ -504,38 +486,36 @@ module Datadog
     end
 
     def send_to_socket(message)
-      self.class.logger.debug { "Statsd: #{message}" } if self.class.logger
-      if @socket_path.nil?
-        sock.send(message, 0)
-      else
-        sock.sendmsg_nonblock(message)
-      end
-    rescue => boom
-      if @socket_path && (boom.is_a?(Errno::ECONNREFUSED) ||
-                          boom.is_a?(Errno::ECONNRESET) ||
-                          boom.is_a?(Errno::ENOENT))
-        return @socket = nil
-      end
-      # Try once to reconnect if the socket has been closed
-      retries ||= 1
-      if retries <= 1 && boom.is_a?(IOError) && boom.message =~ /closed stream/i
-        retries += 1
+      synchronize do
         begin
-          @socket = connect_to_socket
-          retry
-        rescue => e
-          boom = e
+          self.class.logger.debug { "Statsd: #{message}" } if self.class.logger
+          if @socket_path.nil?
+            sock.send(message, 0)
+          else
+            sock.sendmsg_nonblock(message)
+          end
+        rescue => boom
+          if @socket_path && (boom.is_a?(Errno::ECONNREFUSED) ||
+                              boom.is_a?(Errno::ECONNRESET) ||
+                              boom.is_a?(Errno::ENOENT))
+            return @socket = nil
+          end
+          # Try once to reconnect if the socket has been closed
+          retries ||= 1
+          if retries <= 1 && boom.is_a?(IOError) && boom.message =~ /closed stream/i
+            retries += 1
+            begin
+              @socket = connect_to_socket
+              retry
+            rescue => e
+              boom = e
+            end
+          end
+
+          self.class.logger.error { "Statsd: #{boom.class} #{boom}" } if self.class.logger
+          nil
         end
       end
-
-      self.class.logger.error { "Statsd: #{boom.class} #{boom}" } if self.class.logger
-      nil
-    end
-
-    ##
-    # Use a monitor to synchronize the sending of a message to the socket
-    def send_to_socket_synchronized(message)
-      synchronize { send_to_socket(message) }
     end
   end
 end

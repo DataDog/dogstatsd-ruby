@@ -5,6 +5,12 @@
  * Try to make this thread safe
  * Introduce Datadog::Statsd.current to simplify access to a universal client instance
 
+## NEXT
+
+### Breaking changes
+
+ * port / host / tags / namespace can no longer be set on the instance to allow thread-safety [#87][] by [@grosser][] 
+
 ## 3.3.0 / 2018.02.04
 
  * [FEATURE] Add distribution support (beta). See [#72][].
