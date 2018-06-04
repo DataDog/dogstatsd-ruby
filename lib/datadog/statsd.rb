@@ -344,10 +344,10 @@ module Datadog
     #      s.increment('page.views')
     #    end
     def batch
-      @batch_nesting_depth += 1
+      synchronize { @batch_nesting_depth += 1 }
       yield self
     ensure
-      @batch_nesting_depth -= 1
+      synchronize { @batch_nesting_depth -= 1 }
       flush_buffer if @batch_nesting_depth == 0
     end
 
