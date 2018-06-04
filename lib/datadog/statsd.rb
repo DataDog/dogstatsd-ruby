@@ -92,26 +92,6 @@ module Datadog
       VERSION
     end
 
-    ##
-    # Get the current instance of a StatsD client
-    #
-    # @param *args [Array<Object>]
-    #     Any number of arguments passed to the constructor when building a new instance
-    #
-    # @return [Datadog::Statsd]
-    #     An instance of the StatsD client or a new one using the provided arguments
-    def self.current(*args)
-      @current ||= Datadog::Statsd.new(*args)
-    end
-
-    ##
-    # Set the current StatsD client to be used
-    #
-    # @param client [Datadog::Statsd] The client used on subsequent calls to .current
-    def self.current=(client)
-      @current = client
-    end
-
     # @param [String] host your statsd host
     # @param [Integer] port your statsd port
     # @option opts [String] :namespace set a namespace to be prepended to every metric name
