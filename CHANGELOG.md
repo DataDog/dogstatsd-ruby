@@ -5,6 +5,7 @@
 ### Breaking changes
 
  * port / host / tags / namespace can no longer be set on the instance to allow thread-safety [#87][] by [@grosser][] 
+ * replace global logger with instance option [#90][] by [@grosser][] 
 
 ## 3.3.0 / 2018.02.04
 
