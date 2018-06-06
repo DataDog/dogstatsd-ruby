@@ -3,7 +3,7 @@ require 'bundler/gem_tasks'
 require 'rake/testtask'
 require 'yard'
 
-task :default => :spec
+task default: [:spec, :rubocop]
 
 Rake::TestTask.new(:spec) do |spec|
   spec.loader = :direct
