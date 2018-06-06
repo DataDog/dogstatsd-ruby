@@ -230,6 +230,7 @@ module Datadog
       finished = (PROCESS_TIME_SUPPORTED ? Process.clock_gettime(Process::CLOCK_MONOTONIC) : Time.now.to_f)
       timing(stat, ((finished - start) * 1000).round, opts)
     end
+
     # Sends a value to be tracked as a set to the statsd server.
     #
     # @param [String] stat stat name.
@@ -256,30 +257,7 @@ module Datadog
     # @example Report a critical service check status
     #   $statsd.service_check('my.service.check', Statsd::CRITICAL, :tags=>['urgent'])
     def service_check(name, status, opts=EMPTY_OPTIONS)
-      service_check_string = format_service_check(name, status, opts)
-      send_stat service_check_string
-    end
-
-    def format_service_check(name, status, opts=EMPTY_OPTIONS)
-      sc_string = "_sc|#{name}|#{status}".dup
-
-      SC_OPT_KEYS.each do |key, shorthand_key|
-        next unless opts[key]
-
-        if key == :tags
-          if tags_string = tags_as_string(opts)
-            sc_string << "|##{tags_string}"
-          end
-        elsif key == :message
-          message = remove_pipes(opts[:message])
-          escaped_message = escape_service_check_message(message)
-          sc_string << "|m:#{escaped_message}"
-        else
-          value = remove_pipes(opts[key])
-          sc_string << "|#{shorthand_key}#{value}"
-        end
-      end
-      return sc_string
+      send_stat format_service_check(name, status, opts)
     end
 
     # This end point allows you to post events to the stream. You can tag them, set priority and even aggregate them with other events.
@@ -339,6 +317,28 @@ module Datadog
 
     private_constant :NEW_LINE, :ESC_NEW_LINE, :COMMA, :PIPE, :DOT,
       :DOUBLE_COLON, :UNDERSCORE, :EMPTY_OPTIONS
+
+    def format_service_check(name, status, opts=EMPTY_OPTIONS)
+      sc_string = "_sc|#{name}|#{status}".dup
+
+      SC_OPT_KEYS.each do |key, shorthand_key|
+        next unless opts[key]
+
+        if key == :tags
+          if tags_string = tags_as_string(opts)
+            sc_string << "|##{tags_string}"
+          end
+        elsif key == :message
+          message = remove_pipes(opts[:message])
+          escaped_message = escape_service_check_message(message)
+          sc_string << "|m:#{escaped_message}"
+        else
+          value = remove_pipes(opts[key])
+          sc_string << "|#{shorthand_key}#{value}"
+        end
+      end
+      sc_string
+    end
 
     def format_event(title, text, opts=EMPTY_OPTIONS)
       escaped_title = escape_event_content(title)

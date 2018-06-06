@@ -796,29 +796,31 @@ describe Datadog::Statsd do
       tags = Faker::Lorem.words(rand(1..10))
       tags_joined = tags.join(",")
 
-      it "Only name and status" do
+      it "sends with only name and status" do
         @statsd.service_check(name, status)
-        @statsd.socket.recv.must_equal [@statsd.format_service_check(name, status)]
+        @statsd.socket.recv.must_equal [@statsd.send(:format_service_check, name, status)]
       end
 
-      it "With hostname" do
+      it "sends with with hostname" do
         @statsd.service_check(name, status, :hostname => hostname)
         @statsd.socket.recv.must_equal ["_sc|#{name}|#{status}|h:#{hostname}"]
       end
 
-      it "With message" do
+      it "sends with with message" do
         @statsd.service_check(name, status, :message => 'testing | m: \n')
         @statsd.socket.recv.must_equal ["_sc|#{name}|#{status}|m:testing  m\\: \\n"]
       end
 
-      it "With tags" do
+      it "sends with with tags" do
         @statsd.service_check(name, status, :tags => tags)
         @statsd.socket.recv.must_equal ["_sc|#{name}|#{status}|##{tags_joined}"]
       end
 
-      it "With hostname, message, and tags" do
-        @statsd.service_check(name, status, :message => 'testing | m: \n', :hostname => 'hostname_test',
-                              :tags => tags)
+      it "sends with with hostname, message, and tags" do
+        @statsd.service_check(
+          name, status,
+          :message => 'testing | m: \n', :hostname => 'hostname_test', :tags => tags
+        )
         @statsd.socket.recv.must_equal ["_sc|#{name}|#{status}|h:#{hostname}|##{tags_joined}|m:testing  m\\: \\n"]
       end
     end
