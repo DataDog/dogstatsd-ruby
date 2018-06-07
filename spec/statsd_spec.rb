@@ -72,6 +72,12 @@ describe Datadog::Statsd do
         Datadog::Statsd.new nil, nil, :tags => 'global'
       end
     end
+
+    it "fails on unknown options" do
+      assert_raises ArgumentError do
+        Datadog::Statsd.new nil, nil, :foo => 'bar'
+      end
+    end
   end
 
   describe "#increment" do
@@ -243,10 +249,12 @@ describe Datadog::Statsd do
       end
 
       it "should still time if block is failing" do
-        @statsd.time('foobar') do
-          stub_time 1
-          raise StandardError, 'This is failing'
-        end rescue
+        assert_raises StandardError do
+          @statsd.time('foobar') do
+            stub_time 1
+            raise StandardError, 'This is failing'
+          end
+        end
         @statsd.socket.recv.must_equal ['foobar:1000|ms']
       end
 

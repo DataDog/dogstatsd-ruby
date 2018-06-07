@@ -18,5 +18,6 @@ Gem::Specification.new do |s|
   s.files = Dir["LICENSE.txt", "README.md", "lib/**/*.rb",]
   s.homepage = "http://github.com/datadog/dogstatsd-ruby"
   s.licenses = ["MIT"]
+  s.required_ruby_version = '>= 2.0.0'
 end
 
