@@ -13,10 +13,11 @@ describe Datadog::Statsd do
   end
 
   let(:namespace) { nil }
+  let(:socket) { FakeUDPSocket.new }
 
   before do
     @statsd = Datadog::Statsd.new('localhost', 1234, namespace: namespace)
-    @statsd.socket = FakeUDPSocket.new
+    @statsd.connection.instance_variable_set(:@socket, socket)
   end
 
   describe "VERSION" do
@@ -27,41 +28,41 @@ describe Datadog::Statsd do
 
   describe "#initialize" do
     it "sets the host and port" do
-      @statsd.host.must_equal 'localhost'
-      @statsd.port.must_equal 1234
+      @statsd.connection.host.must_equal 'localhost'
+      @statsd.connection.port.must_equal 1234
     end
 
     it "uses default host and port when nil is given to allow only passing options" do
       @statsd = Datadog::Statsd.new(nil, nil, {})
-      @statsd.host.must_equal '127.0.0.1'
-      @statsd.port.must_equal 8125
+      @statsd.connection.host.must_equal '127.0.0.1'
+      @statsd.connection.port.must_equal 8125
     end
 
     it "creates a UDPSocket when nothing is given" do
       statsd = Datadog::Statsd.new
-      statsd.send(:sock).must_be_instance_of(UDPSocket)
+      statsd.connection.send(:socket).must_be_instance_of(UDPSocket)
     end
 
     it "create a Socket when socket_path is given" do
       # the socket may not exist when creating the Statsd object
       statsd = Datadog::Statsd.new('localhost', 1234, {socket_path: '/tmp/socket'})
       assert_raises Errno::ENOENT do
-        statsd.send(:sock)
+        statsd.connection.send(:socket)
       end
     end
 
     it "defaults host, port, namespace, and tags" do
       statsd = Datadog::Statsd.new
-      statsd.host.must_equal '127.0.0.1'
-      statsd.port.must_equal 8125
+      statsd.connection.host.must_equal '127.0.0.1'
+      statsd.connection.port.must_equal 8125
       assert_nil statsd.namespace
       statsd.tags.must_equal []
     end
 
     it 'sets host, port, namespace, and tags' do
       statsd = Datadog::Statsd.new '1.3.3.7', 8126, :tags => %w(global), :namespace => 'space'
-      statsd.host.must_equal '1.3.3.7'
-      statsd.port.must_equal 8126
+      statsd.connection.host.must_equal '1.3.3.7'
+      statsd.connection.port.must_equal 8126
       statsd.namespace.must_equal 'space'
       statsd.instance_variable_get('@prefix').must_equal 'space.'
       statsd.tags.must_equal ['global']
@@ -81,16 +82,16 @@ describe Datadog::Statsd do
   end
 
   describe "#increment" do
-    it "should format the message according to the statsd spec" do
+    it "formats the message according to the statsd spec" do
       @statsd.increment('foobar')
-      @statsd.socket.recv.must_equal ['foobar:1|c']
+      socket.recv.must_equal ['foobar:1|c']
     end
 
     describe "with a sample rate" do
       before { class << @statsd; def rand; 0; end; end } # ensure delivery
       it "should format the message according to the statsd spec" do
         @statsd.increment('foobar', :sample_rate=>0.5)
-        @statsd.socket.recv.must_equal ['foobar:1|c|@0.5']
+        socket.recv.must_equal ['foobar:1|c|@0.5']
       end
     end
 
@@ -98,14 +99,14 @@ describe Datadog::Statsd do
       before { class << @statsd; def rand; 0; end; end } # ensure delivery
       it "should format the message according to the statsd spec" do
         @statsd.increment('foobar', 0.5)
-        @statsd.socket.recv.must_equal ['foobar:1|c|@0.5']
+        socket.recv.must_equal ['foobar:1|c|@0.5']
       end
     end
 
     describe "with a increment by" do
       it "should increment by the number given" do
         @statsd.increment('foobar', :by=>5)
-        @statsd.socket.recv.must_equal ['foobar:5|c']
+        socket.recv.must_equal ['foobar:5|c']
       end
     end
   end
@@ -113,14 +114,14 @@ describe Datadog::Statsd do
   describe "#decrement" do
     it "should format the message according to the statsd spec" do
       @statsd.decrement('foobar')
-      @statsd.socket.recv.must_equal ['foobar:-1|c']
+      socket.recv.must_equal ['foobar:-1|c']
     end
 
     describe "with a sample rate" do
       before { class << @statsd; def rand; 0; end; end } # ensure delivery
       it "should format the message according to the statsd spec" do
         @statsd.decrement('foobar', :sample_rate => 0.5)
-        @statsd.socket.recv.must_equal ['foobar:-1|c|@0.5']
+        socket.recv.must_equal ['foobar:-1|c|@0.5']
       end
     end
 
@@ -128,14 +129,14 @@ describe Datadog::Statsd do
       before { class << @statsd; def rand; 0; end; end } # ensure delivery
       it "should format the message according to the statsd spec" do
         @statsd.decrement('foobar', 0.5)
-        @statsd.socket.recv.must_equal ['foobar:-1|c|@0.5']
+        socket.recv.must_equal ['foobar:-1|c|@0.5']
       end
     end
 
     describe "with a decrement by" do
       it "should decrement by the number given" do
         @statsd.decrement('foobar', :by=>5)
-        @statsd.socket.recv.must_equal ['foobar:-5|c']
+        socket.recv.must_equal ['foobar:-5|c']
       end
     end
   end
@@ -150,16 +151,16 @@ describe Datadog::Statsd do
   describe "#gauge" do
     it "should send a message with a 'g' type, per the nearby fork" do
       @statsd.gauge('begrutten-suffusion', 536)
-      @statsd.socket.recv.must_equal ['begrutten-suffusion:536|g']
+      socket.recv.must_equal ['begrutten-suffusion:536|g']
       @statsd.gauge('begrutten-suffusion', -107.3)
-      @statsd.socket.recv.must_equal ['begrutten-suffusion:-107.3|g']
+      socket.recv.must_equal ['begrutten-suffusion:-107.3|g']
     end
 
     describe "with a sample rate" do
       before { class << @statsd; def rand; 0; end; end } # ensure delivery
       it "should format the message according to the statsd spec" do
         @statsd.gauge('begrutten-suffusion', 536, :sample_rate=>0.1)
-        @statsd.socket.recv.must_equal ['begrutten-suffusion:536|g|@0.1']
+        socket.recv.must_equal ['begrutten-suffusion:536|g|@0.1']
       end
     end
 
@@ -167,7 +168,7 @@ describe Datadog::Statsd do
       before { class << @statsd; def rand; 0; end; end } # ensure delivery
       it "should format the message according to the statsd spec" do
         @statsd.gauge('begrutten-suffusion', 536, 0.1)
-        @statsd.socket.recv.must_equal ['begrutten-suffusion:536|g|@0.1']
+        socket.recv.must_equal ['begrutten-suffusion:536|g|@0.1']
       end
     end
   end
@@ -175,16 +176,16 @@ describe Datadog::Statsd do
   describe "#histogram" do
     it "should send a message with a 'h' type, per the nearby fork" do
       @statsd.histogram('ohmy', 536)
-      @statsd.socket.recv.must_equal ['ohmy:536|h']
+      socket.recv.must_equal ['ohmy:536|h']
       @statsd.histogram('ohmy', -107.3)
-      @statsd.socket.recv.must_equal ['ohmy:-107.3|h']
+      socket.recv.must_equal ['ohmy:-107.3|h']
     end
 
     describe "with a sample rate" do
       before { class << @statsd; def rand; 0; end; end } # ensure delivery
       it "should format the message according to the statsd spec" do
         @statsd.gauge('begrutten-suffusion', 536, :sample_rate=>0.1)
-        @statsd.socket.recv.must_equal ['begrutten-suffusion:536|g|@0.1']
+        socket.recv.must_equal ['begrutten-suffusion:536|g|@0.1']
       end
     end
   end
@@ -192,14 +193,14 @@ describe Datadog::Statsd do
   describe "#set" do
     it "should send a message with a 's' type, per the nearby fork" do
       @statsd.set('my.set', 536)
-      @statsd.socket.recv.must_equal ['my.set:536|s']
+      socket.recv.must_equal ['my.set:536|s']
     end
 
     describe "with a sample rate" do
       before { class << @statsd; def rand; 0; end; end } # ensure delivery
       it "should send a message with a 's' type, per the nearby fork" do
         @statsd.set('my.set', 536, :sample_rate=>0.5)
-        @statsd.socket.recv.must_equal ['my.set:536|s|@0.5']
+        socket.recv.must_equal ['my.set:536|s|@0.5']
       end
     end
 
@@ -207,7 +208,7 @@ describe Datadog::Statsd do
       before { class << @statsd; def rand; 0; end; end } # ensure delivery
       it "should send a message with a 's' type, per the nearby fork" do
         @statsd.set('my.set', 536, 0.5)
-        @statsd.socket.recv.must_equal ['my.set:536|s|@0.5']
+        socket.recv.must_equal ['my.set:536|s|@0.5']
       end
     end
   end
@@ -215,14 +216,14 @@ describe Datadog::Statsd do
   describe "#timing" do
     it "should format the message according to the statsd spec" do
       @statsd.timing('foobar', 500)
-      @statsd.socket.recv.must_equal ['foobar:500|ms']
+      socket.recv.must_equal ['foobar:500|ms']
     end
 
     describe "with a sample rate" do
       before { class << @statsd; def rand; 0; end; end } # ensure delivery
       it "should format the message according to the statsd spec" do
         @statsd.timing('foobar', 500, :sample_rate=>0.5)
-        @statsd.socket.recv.must_equal ['foobar:500|ms|@0.5']
+        socket.recv.must_equal ['foobar:500|ms|@0.5']
       end
     end
 
@@ -230,7 +231,7 @@ describe Datadog::Statsd do
       before { class << @statsd; def rand; 0; end; end } # ensure delivery
       it "should format the message according to the statsd spec" do
         @statsd.timing('foobar', 500, 0.5)
-        @statsd.socket.recv.must_equal ['foobar:500|ms|@0.5']
+        socket.recv.must_equal ['foobar:500|ms|@0.5']
       end
     end
   end
@@ -245,7 +246,7 @@ describe Datadog::Statsd do
         @statsd.time('foobar') do
           stub_time 1
         end
-        @statsd.socket.recv.must_equal ['foobar:1000|ms']
+        socket.recv.must_equal ['foobar:1000|ms']
       end
 
       it "should still time if block is failing" do
@@ -255,7 +256,7 @@ describe Datadog::Statsd do
             raise StandardError, 'This is failing'
           end
         end
-        @statsd.socket.recv.must_equal ['foobar:1000|ms']
+        socket.recv.must_equal ['foobar:1000|ms']
       end
 
       def helper_time_return
@@ -267,7 +268,7 @@ describe Datadog::Statsd do
 
       it "should still time if block `return`s" do
         helper_time_return
-        @statsd.socket.recv.must_equal ['foobar:1000|ms']
+        socket.recv.must_equal ['foobar:1000|ms']
       end
     end
 
@@ -296,7 +297,7 @@ describe Datadog::Statsd do
         @statsd.time('foobar', :sample_rate=>0.5) do
           stub_time 1
         end
-        @statsd.socket.recv.must_equal ['foobar:1000|ms|@0.5']
+        socket.recv.must_equal ['foobar:1000|ms|@0.5']
       end
     end
 
@@ -307,7 +308,7 @@ describe Datadog::Statsd do
         @statsd.time('foobar', 0.5) do
           stub_time 1
         end
-        @statsd.socket.recv.must_equal ['foobar:1000|ms|@0.5']
+        socket.recv.must_equal ['foobar:1000|ms|@0.5']
       end
     end
   end
@@ -317,7 +318,7 @@ describe Datadog::Statsd do
       before { class << @statsd; def rand; raise end; end }
       it "should send" do
         @statsd.timing('foobar', 500, :sample_rate=>1)
-        @statsd.socket.recv.must_equal ['foobar:500|ms']
+        socket.recv.must_equal ['foobar:500|ms']
       end
     end
 
@@ -325,7 +326,7 @@ describe Datadog::Statsd do
       before { class << @statsd; def rand; 0; end; end } # ensure delivery
       it "should send" do
         @statsd.timing('foobar', 500, :sample_rate=>0.5)
-        @statsd.socket.recv.must_equal ['foobar:500|ms|@0.5']
+        socket.recv.must_equal ['foobar:500|ms|@0.5']
       end
     end
 
@@ -340,7 +341,7 @@ describe Datadog::Statsd do
       before { class << @statsd; def rand; 0; end; end } # ensure delivery
       it "should send" do
         @statsd.timing('foobar', 500, :sample_rate=>0.5)
-        @statsd.socket.recv.must_equal ['foobar:500|ms|@0.5']
+        socket.recv.must_equal ['foobar:500|ms|@0.5']
       end
     end
   end
@@ -348,7 +349,7 @@ describe Datadog::Statsd do
   describe "#distribution" do
     it "send a message with d type" do
       @statsd.distribution('begrutten-suffusion', 536)
-      @statsd.socket.recv.must_equal ['begrutten-suffusion:536|d']
+      socket.recv.must_equal ['begrutten-suffusion:536|d']
     end
   end
 
@@ -357,43 +358,45 @@ describe Datadog::Statsd do
 
     it "should add namespace to increment" do
       @statsd.increment('foobar')
-      @statsd.socket.recv.must_equal ['service.foobar:1|c']
+      socket.recv.must_equal ['service.foobar:1|c']
     end
 
     it "should add namespace to decrement" do
       @statsd.decrement('foobar')
-      @statsd.socket.recv.must_equal ['service.foobar:-1|c']
+      socket.recv.must_equal ['service.foobar:-1|c']
     end
 
     it "should add namespace to timing" do
       @statsd.timing('foobar', 500)
-      @statsd.socket.recv.must_equal ['service.foobar:500|ms']
+      socket.recv.must_equal ['service.foobar:500|ms']
     end
 
     it "should add namespace to gauge" do
       @statsd.gauge('foobar', 500)
-      @statsd.socket.recv.must_equal ['service.foobar:500|g']
+      socket.recv.must_equal ['service.foobar:500|g']
     end
   end
 
   describe "with logging" do
     require 'stringio'
-    before { @statsd.instance_variable_set(:@logger, Logger.new(@log = StringIO.new)) }
+    let(:logger) { Logger.new(log) }
+    let(:log) { StringIO.new }
+    before { @statsd.connection.instance_variable_set(:@logger, logger) }
 
-    it "should write to the log in debug" do
-      @statsd.logger.level = Logger::DEBUG
+    it "writes to the log in debug" do
+      logger.level = Logger::DEBUG
 
       @statsd.increment('foobar')
 
-      @log.string.must_match "Statsd: foobar:1|c"
+      log.string.must_match "Statsd: foobar:1|c"
     end
 
-    it "should not write to the log unless debug" do
-      @statsd.logger.level = Logger::INFO
+    it "does not write to the log unless debug" do
+      logger.level = Logger::INFO
 
       @statsd.increment('foobar')
 
-      @log.string.must_be_empty
+      log.string.must_be_empty
     end
   end
 
@@ -406,12 +409,12 @@ describe Datadog::Statsd do
       class Datadog::Statsd::SomeClass; end
       @statsd.increment(Datadog::Statsd::SomeClass, :sample_rate=>1)
 
-      @statsd.socket.recv.must_equal ['Datadog.Statsd.SomeClass:1|c']
+      socket.recv.must_equal ['Datadog.Statsd.SomeClass:1|c']
     end
 
     it "should replace statsd reserved chars in the stat name" do
       @statsd.increment('ray@hostname.blah|blah.blah:blah')
-      @statsd.socket.recv.must_equal ['ray_hostname.blah_blah.blah_blah:1|c']
+      socket.recv.must_equal ['ray_hostname.blah_blah.blah_blah:1|c']
     end
 
     it "should handle frozen strings" do
@@ -422,7 +425,7 @@ describe Datadog::Statsd do
   describe "tag names" do
     it "replaces reserved chars for tags" do
       @statsd.increment('stat', tags: ["name:foo,bar|foo"])
-      @statsd.socket.recv.must_equal ['stat:1|c|#name:foobarfoo']
+      socket.recv.must_equal ['stat:1|c|#name:foobarfoo']
     end
 
     it "handles the cases when some tags are frozen strings" do
@@ -431,14 +434,14 @@ describe Datadog::Statsd do
 
     it "converts all values to strings" do
       @statsd.increment('stat', tags: [:sample_tag])
-      @statsd.socket.recv.must_equal ['stat:1|c|#sample_tag']
+      socket.recv.must_equal ['stat:1|c|#sample_tag']
     end
   end
 
   describe "handling socket errors" do
     before do
-      @statsd.instance_variable_set(:@logger, Logger.new(@log = StringIO.new))
-      @statsd.socket.instance_eval { def send(*) raise SocketError end }
+      @statsd.connection.instance_variable_set(:@logger, Logger.new(@log = StringIO.new))
+      socket.instance_eval { def send(*) raise SocketError end }
     end
 
     it "should ignore socket errors" do
@@ -458,51 +461,32 @@ describe Datadog::Statsd do
 
   describe "handling closed socket" do
     before do
-      @statsd.instance_variable_set(:@logger, Logger.new(@log = StringIO.new))
+      @statsd.connection.instance_variable_set(:@logger, Logger.new(@log = StringIO.new))
     end
 
-    it "should try once to reconnect" do
-      @statsd.socket.instance_eval do
-        def send_calls() @send_calls ; end
-
-        def send(*args)
-          @send_calls ||= 0
-          @send_calls += 1
-          raise IOError.new("closed stream") unless @send_calls > 1
-          super(*args)
-        end
-      end
-      @statsd.instance_eval { def connect_to_socket(*) @socket ; end }
+    it "tries to reconnect once" do
+      @statsd.connection.expects(:socket).times(2).returns(socket)
+      socket.expects(:send).returns("YEP") # 2nd call
+      socket.expects(:send).raises(IOError.new("closed stream")) # first call
 
       @statsd.increment('foobar')
-
-      @statsd.socket.send_calls.must_equal 2
-      @statsd.socket.recv.must_equal ["foobar:1|c"]
     end
 
-    it "should ignore and log if it fails to reconnect" do
-      @statsd.socket.instance_eval do
-        def send_calls() @send_calls ; end
-
-        def send(*)
-          @send_calls ||= 0
-          @send_calls += 1
-          raise IOError.new("closed stream")
-        end
-      end
-      @statsd.instance_eval { def connect_to_socket(*) @socket ; end }
+    it "ignores and logs if it fails to reconnect" do
+      @statsd.connection.expects(:socket).times(2).returns(socket)
+      socket.expects(:send).raises(RuntimeError) # 2nd call
+      socket.expects(:send).raises(IOError.new("closed stream")) # first call
 
       assert_nil @statsd.increment('foobar')
-      @statsd.socket.send_calls.must_equal 2
-      @log.string.must_match 'Statsd: IOError closed stream'
+      @log.string.must_include 'Statsd: RuntimeError'
     end
 
-    it "should ignore and log errors while trying to reconnect" do
-      @statsd.socket.instance_eval { def send(*) raise IOError.new("closed stream") end }
-      @statsd.instance_eval { def connect_to_socket(*) raise SocketError end }
+    it "ignores and logs errors while trying to reconnect" do
+      socket.expects(:send).raises(IOError.new("closed stream"))
+      @statsd.connection.expects(:connect).raises(SocketError)
 
       assert_nil @statsd.increment('foobar')
-      @log.string.must_match 'Statsd: SocketError'
+      @log.string.must_include 'Statsd: SocketError'
     end
   end
 
@@ -615,23 +599,23 @@ describe Datadog::Statsd do
 
     it "gauges support tags" do
       @statsd.gauge("gauge", 1, :tags=>%w(country:usa state:ny))
-      @statsd.socket.recv.must_equal ['gauge:1|g|#country:usa,state:ny']
+      socket.recv.must_equal ['gauge:1|g|#country:usa,state:ny']
     end
 
     it "counters support tags" do
       @statsd.increment("c", :tags=>%w(country:usa other))
-      @statsd.socket.recv.must_equal ['c:1|c|#country:usa,other']
+      socket.recv.must_equal ['c:1|c|#country:usa,other']
 
       @statsd.decrement("c", :tags=>%w(country:china))
-      @statsd.socket.recv.must_equal ['c:-1|c|#country:china']
+      socket.recv.must_equal ['c:-1|c|#country:china']
 
       @statsd.count("c", 100, :tags=>%w(country:finland))
-      @statsd.socket.recv.must_equal ['c:100|c|#country:finland']
+      socket.recv.must_equal ['c:100|c|#country:finland']
     end
 
     it "timing support tags" do
       @statsd.timing("t", 200, :tags=>%w(country:canada other))
-      @statsd.socket.recv.must_equal ['t:200|ms|#country:canada,other']
+      socket.recv.must_equal ['t:200|ms|#country:canada,other']
 
       @statsd.time('foobar', :tags => ["123"]) { sleep(0.001); 'test' }
     end
@@ -639,27 +623,27 @@ describe Datadog::Statsd do
     it "global tags setter" do
       @statsd.instance_variable_set(:@tags, %w(country:usa other))
       @statsd.increment("c")
-      @statsd.socket.recv.must_equal ['c:1|c|#country:usa,other']
+      socket.recv.must_equal ['c:1|c|#country:usa,other']
     end
 
     it "global tags setter and regular tags" do
       @statsd.instance_variable_set(:@tags, %w(country:usa other))
       @statsd.increment("c", :tags=>%w(somethingelse))
-      @statsd.socket.recv.must_equal ['c:1|c|#country:usa,other,somethingelse']
+      socket.recv.must_equal ['c:1|c|#country:usa,other,somethingelse']
     end
   end
 
   describe "batched" do
     it "should not send anything when the buffer is empty" do
       @statsd.batch { }
-      assert_nil @statsd.socket.recv
+      assert_nil socket.recv
     end
 
     it "should allow to send single sample in one packet" do
       @statsd.batch do |s|
         s.increment("mycounter")
       end
-      @statsd.socket.recv.must_equal ['mycounter:1|c']
+      socket.recv.must_equal ['mycounter:1|c']
     end
 
     it "should allow to send multiple sample in one packet" do
@@ -667,7 +651,7 @@ describe Datadog::Statsd do
         s.increment("mycounter")
         s.decrement("myothercounter")
       end
-      @statsd.socket.recv.must_equal ["mycounter:1|c\nmyothercounter:-1|c"]
+      socket.recv.must_equal ["mycounter:1|c\nmyothercounter:-1|c"]
     end
 
     it "should default back to single metric packet after the block" do
@@ -677,9 +661,9 @@ describe Datadog::Statsd do
       end
       @statsd.increment("mycounter")
       @statsd.increment("myothercounter")
-      @statsd.socket.recv.must_equal ["mygauge:10|g\nmyothergauge:20|g"]
-      @statsd.socket.recv.must_equal ['mycounter:1|c']
-      @statsd.socket.recv.must_equal ['myothercounter:1|c']
+      socket.recv.must_equal ["mygauge:10|g\nmyothergauge:20|g"]
+      socket.recv.must_equal ['mycounter:1|c']
+      socket.recv.must_equal ['myothercounter:1|c']
     end
 
     it "should flush when the buffer gets too big" do
@@ -692,11 +676,11 @@ describe Datadog::Statsd do
         end
 
         theoretical_reply = Array.new(number_of_messages_to_fill_the_buffer) { 'mycounter:1|c' }
-        @statsd.socket.recv.must_equal [theoretical_reply.join("\n")]
+        socket.recv.must_equal [theoretical_reply.join("\n")]
       end
 
       # When the block finishes, the remaining buffer is flushed
-      @statsd.socket.recv.must_equal ['mycounter:1|c']
+      socket.recv.must_equal ['mycounter:1|c']
     end
 
     it "should batch nested batch blocks" do
@@ -708,10 +692,10 @@ describe Datadog::Statsd do
         @statsd.increment("level-1-again")
       end
       # all three should be sent in a single batch when the outer block finishes
-      @statsd.socket.recv.must_equal ["level-1:1|c\nlevel-2:1|c\nlevel-1-again:1|c"]
+      socket.recv.must_equal ["level-1:1|c\nlevel-2:1|c\nlevel-1-again:1|c"]
       # we should revert back to sending single metric packets
       @statsd.increment("outside")
-      @statsd.socket.recv.must_equal ["outside:1|c"]
+      socket.recv.must_equal ["outside:1|c"]
     end
   end
 
@@ -724,13 +708,13 @@ describe Datadog::Statsd do
 
       it "Only title and text" do
         @statsd.event(title, text)
-        @statsd.socket.recv.must_equal [@statsd.send(:format_event, title, text)]
+        socket.recv.must_equal [@statsd.send(:format_event, title, text)]
       end
       it "With line break in Text and title" do
         title_break_line = "#{title} \n second line"
         text_break_line = "#{text} \n second line"
         @statsd.event(title_break_line, text_break_line)
-        @statsd.socket.recv.must_equal [@statsd.send(:format_event, title_break_line, text_break_line)]
+        socket.recv.must_equal [@statsd.send(:format_event, title_break_line, text_break_line)]
       end
       it "Event data string too long > 8KB" do
         long_text = "#{text} " * 200000
@@ -738,49 +722,49 @@ describe Datadog::Statsd do
       end
       it "With known alert_type" do
         @statsd.event(title, text, :alert_type => 'warning')
-        @statsd.socket.recv.must_equal ["#{@statsd.send(:format_event, title, text)}|t:warning"]
+        socket.recv.must_equal ["#{@statsd.send(:format_event, title, text)}|t:warning"]
       end
       it "With unknown alert_type" do
         @statsd.event(title, text, :alert_type => 'bizarre')
-        @statsd.socket.recv.must_equal ["#{@statsd.send(:format_event, title, text)}|t:bizarre"]
+        socket.recv.must_equal ["#{@statsd.send(:format_event, title, text)}|t:bizarre"]
       end
       it "With known priority" do
         @statsd.event(title, text, :priority => 'low')
-        @statsd.socket.recv.must_equal ["#{@statsd.send(:format_event, title, text)}|p:low"]
+        socket.recv.must_equal ["#{@statsd.send(:format_event, title, text)}|p:low"]
       end
       it "With unknown priority" do
         @statsd.event(title, text, :priority => 'bizarre')
-        @statsd.socket.recv.must_equal ["#{@statsd.send(:format_event, title, text)}|p:bizarre"]
+        socket.recv.must_equal ["#{@statsd.send(:format_event, title, text)}|p:bizarre"]
       end
       it "With hostname" do
         @statsd.event(title, text, :hostname => 'hostname_test')
-        @statsd.socket.recv.must_equal ["#{@statsd.send(:format_event, title, text)}|h:hostname_test"]
+        socket.recv.must_equal ["#{@statsd.send(:format_event, title, text)}|h:hostname_test"]
       end
       it "With aggregation_key" do
         @statsd.event(title, text, :aggregation_key => 'aggkey 1')
-        @statsd.socket.recv.must_equal ["#{@statsd.send(:format_event, title, text)}|k:aggkey 1"]
+        socket.recv.must_equal ["#{@statsd.send(:format_event, title, text)}|k:aggkey 1"]
       end
       it "With source_type_name" do
         @statsd.event(title, text, :source_type_name => 'source 1')
-        @statsd.socket.recv.must_equal ["#{@statsd.send(:format_event, title, text)}|s:source 1"]
+        socket.recv.must_equal ["#{@statsd.send(:format_event, title, text)}|s:source 1"]
       end
       it "With several tags" do
         @statsd.event(title, text, :tags => tags)
-        @statsd.socket.recv.must_equal ["#{@statsd.send(:format_event, title, text)}|##{tags_joined}"]
+        socket.recv.must_equal ["#{@statsd.send(:format_event, title, text)}|##{tags_joined}"]
       end
       it "Takes into account the common tags" do
         basic_result = @statsd.send(:format_event, title, text)
         common_tag = 'common'
         @statsd.instance_variable_set :@tags, [common_tag]
         @statsd.event(title, text)
-        @statsd.socket.recv.must_equal ["#{basic_result}|##{common_tag}"]
+        socket.recv.must_equal ["#{basic_result}|##{common_tag}"]
       end
       it "combines common and specific tags" do
         basic_result = @statsd.send(:format_event, title, text)
         common_tag = 'common'
         @statsd.instance_variable_set :@tags, [common_tag]
         @statsd.event(title, text, :tags => tags)
-        @statsd.socket.recv.must_equal ["#{basic_result}|##{common_tag},#{tags_joined}"]
+        socket.recv.must_equal ["#{basic_result}|##{common_tag},#{tags_joined}"]
       end
       it "With alert_type, priority, hostname, several tags" do
         @statsd.event(title, text, :alert_type => 'warning', :priority => 'low', :hostname => 'hostname_test', :tags => tags)
@@ -790,7 +774,7 @@ describe Datadog::Statsd do
           :hostname => 'hostname_test',
           :tags => tags
         }
-        @statsd.socket.recv.must_equal ["#{@statsd.send(:format_event, title, text, opts)}"]
+        socket.recv.must_equal ["#{@statsd.send(:format_event, title, text, opts)}"]
       end
     end
   end
@@ -805,22 +789,22 @@ describe Datadog::Statsd do
 
       it "sends with only name and status" do
         @statsd.service_check(name, status)
-        @statsd.socket.recv.must_equal [@statsd.send(:format_service_check, name, status)]
+        socket.recv.must_equal [@statsd.send(:format_service_check, name, status)]
       end
 
       it "sends with with hostname" do
         @statsd.service_check(name, status, :hostname => hostname)
-        @statsd.socket.recv.must_equal ["_sc|#{name}|#{status}|h:#{hostname}"]
+        socket.recv.must_equal ["_sc|#{name}|#{status}|h:#{hostname}"]
       end
 
       it "sends with with message" do
         @statsd.service_check(name, status, :message => 'testing | m: \n')
-        @statsd.socket.recv.must_equal ["_sc|#{name}|#{status}|m:testing  m\\: \\n"]
+        socket.recv.must_equal ["_sc|#{name}|#{status}|m:testing  m\\: \\n"]
       end
 
       it "sends with with tags" do
         @statsd.service_check(name, status, :tags => tags)
-        @statsd.socket.recv.must_equal ["_sc|#{name}|#{status}|##{tags_joined}"]
+        socket.recv.must_equal ["_sc|#{name}|#{status}|##{tags_joined}"]
       end
 
       it "sends with with hostname, message, and tags" do
@@ -828,16 +812,14 @@ describe Datadog::Statsd do
           name, status,
           :message => 'testing | m: \n', :hostname => 'hostname_test', :tags => tags
         )
-        @statsd.socket.recv.must_equal ["_sc|#{name}|#{status}|h:#{hostname}|##{tags_joined}|m:testing  m\\: \\n"]
+        socket.recv.must_equal ["_sc|#{name}|#{status}|h:#{hostname}|##{tags_joined}|m:testing  m\\: \\n"]
       end
     end
   end
 
   describe "#close" do
     it "closes the socket" do
-      socket = MiniTest::Mock.new
-      socket.expect :close, nil
-      @statsd.socket = socket
+      socket.expects(:close)
       @statsd.close
     end
   end
