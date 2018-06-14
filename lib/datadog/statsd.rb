@@ -98,6 +98,56 @@ module Datadog
       end
     end
 
+    class Batch
+      def initialize(connection, max_buffer_bytes)
+        @connection = connection
+        @max_buffer_bytes = max_buffer_bytes
+        @depth = 0
+        reset
+      end
+
+      def open
+        @depth += 1
+        yield
+      ensure
+        @depth -= 1
+        flush if !open?
+      end
+
+      def open?
+        @depth > 0
+      end
+
+      def add(message)
+        message_bytes = message.bytesize
+
+        unless @buffer_bytes == 0
+          if @buffer_bytes + 1 + message_bytes >= @max_buffer_bytes
+            flush
+          else
+            @buffer << NEW_LINE
+            @buffer_bytes += 1
+          end
+        end
+
+        @buffer << message
+        @buffer_bytes += message_bytes
+      end
+
+      def flush
+        return if @buffer_bytes == 0
+        @connection.write @buffer
+        reset
+      end
+
+      private
+
+      def reset
+        @buffer = String.new
+        @buffer_bytes = 0
+      end
+    end
+
     # Create a dictionary to assign a key to every parameter's name, except for tags (treated differently)
     # Goal: Simple and fast to add some other parameters
     OPTS_KEYS = {
@@ -172,11 +222,7 @@ module Datadog
       raise ArgumentError, 'tags must be a Array<String>' unless tags.nil? or tags.is_a? Array
       @tags = (tags || []).compact.map! {|tag| escape_tag_content(tag)}
 
-      # batching
-      @max_buffer_bytes = max_buffer_bytes
-      @buffer = String.new
-      @buffer_bytes = 0
-      @batch_nesting_depth = 0
+      @batch = Batch.new @connection, max_buffer_bytes
     end
 
     # Sends an increment (count = 1) for the given stat to the statsd server.
@@ -363,11 +409,7 @@ module Datadog
     #      s.increment('page.views')
     #    end
     def batch
-      @batch_nesting_depth += 1
-      yield self
-    ensure
-      @batch_nesting_depth -= 1
-      flush_buffer if @batch_nesting_depth == 0
+      @batch.open { yield self }
     end
 
     # Close the underlying socket
@@ -497,29 +539,11 @@ module Datadog
     end
 
     def send_stat(message)
-      if @batch_nesting_depth > 0
-        message_bytes = message.bytesize
-        unless @buffer_bytes == 0
-          if @buffer_bytes + 1 + message_bytes >= @max_buffer_bytes
-            flush_buffer
-          else
-            @buffer << NEW_LINE
-            @buffer_bytes += 1
-          end
-        end
-
-        @buffer << message
-        @buffer_bytes += message_bytes
+      if @batch.open?
+        @batch.add message
       else
         @connection.write(message)
       end
-    end
-
-    def flush_buffer
-      return if @buffer_bytes == 0
-      @connection.write(@buffer)
-      @buffer = String.new
-      @buffer_bytes = 0
     end
   end
 end
