@@ -77,7 +77,7 @@ module Datadog
 
       # Close the underlying socket
       def close
-        @socket.close
+        @socket && @socket.close
       end
 
       private
@@ -177,6 +177,15 @@ module Datadog
       @buffer = String.new
       @buffer_bytes = 0
       @batch_nesting_depth = 0
+    end
+
+    # yield a new instance to a block and close it when done
+    # for short-term use-cases that don't want to close the socket manually
+    def self.open(*args)
+      instance = new(*args)
+      yield instance
+    ensure
+      instance.close
     end
 
     # Sends an increment (count = 1) for the given stat to the statsd server.
