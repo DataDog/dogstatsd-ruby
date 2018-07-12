@@ -81,6 +81,23 @@ describe Datadog::Statsd do
     end
   end
 
+  describe "#open" do
+    it "sends and then closes" do
+      instance = nil
+      Datadog::Statsd.open('1.2.3.4', 1234) do |s|
+        instance = s
+        s.connection.host.must_equal '1.2.3.4'
+        s.increment 'foo'
+        s.connection.expects(:close)
+      end
+      instance.class.must_equal Datadog::Statsd
+    end
+
+    it "does not fail closing when nothing was sent" do
+      Datadog::Statsd.open('1.2.3.4', 1234) {}
+    end
+  end
+
   describe "#increment" do
     it "formats the message according to the statsd spec" do
       @statsd.increment('foobar')
