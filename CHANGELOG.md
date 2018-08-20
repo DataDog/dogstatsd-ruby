@@ -195,3 +195,4 @@ Future versions are likely to introduce backward incompatibilities with < Ruby 1
 [@sensadrome]: https://github.com/sensadrome
 [@sj26]: https://github.com/sj26
 [@sullerandras]: https://github.com/sullerandras
+
