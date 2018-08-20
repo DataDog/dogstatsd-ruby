@@ -1,6 +1,6 @@
 # CHANGELOG
 
-## 4.4.0 / 2018.08.20
+## 4.0.0 / 2018.08.20
 
 * [IMPROVEMENT] Add `.open` for short-lived reporting that does not leave sockets around [#96][] by [@grosser][]
 * [IMPROVEMENT] Extract batch logic into a class [#95][] by [@grosser][]
@@ -195,3 +195,4 @@ Future versions are likely to introduce backward incompatibilities with < Ruby 1
 [@sensadrome]: https://github.com/sensadrome
 [@sj26]: https://github.com/sj26
 [@sullerandras]: https://github.com/sullerandras
+
