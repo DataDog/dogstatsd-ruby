@@ -28,9 +28,10 @@ statsd = Datadog::Statsd.new('localhost', 8125)
 
 # Increment a counter.
 statsd.increment('page.views')
+statsd.increment('messages.count', by: 2, tags: ['kind:incoming'])
 
 # Record a gauge 50% of the time.
-statsd.gauge('users.online', 123, :sample_rate=>0.5)
+statsd.gauge('users.online', 123, sample_rate: 0.5)
 
 # Sample a histogram
 statsd.histogram('file.upload.size', 1234)
@@ -48,7 +49,7 @@ statsd.batch do |s|
 end
 
 # Tag a metric.
-statsd.histogram('query.time', 10, :tags => ["version:1"])
+statsd.histogram('query.time', 10, tags: ['version:1'])
 
 # Auto-close socket after end of block
 Datadog::Statsd.open('localhost', 8125) do |s|
@@ -62,10 +63,15 @@ Aggregation in the stream is made on hostname/event_type/source_type/aggregation
 
 ``` ruby
 # Post a simple message
-statsd.event("There might be a storm tomorrow", "A friend warned me earlier.")
+statsd.event('There might be a storm tomorrow', 'A friend warned me earlier.')
 
 # Cry for help
-statsd.event("SO MUCH SNOW", "Started yesterday and it won't stop !!", :alert_type => "error", :tags => ["urgent", "endoftheworld"])
+statsd.event(
+  'SO MUCH SNOW',
+  "Started yesterday and it won't stop !!",
+  alert_type: 'error',
+  tags: ['urgent', 'endoftheworld']
+)
 ```
 
 
