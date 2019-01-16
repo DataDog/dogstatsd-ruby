@@ -587,6 +587,31 @@ describe Datadog::Statsd do
       end
     end
 
+    describe "when socket throws not connected error" do
+      before do
+        @fake_socket = Minitest::Mock.new
+        @fake_socket.expect(:connect, true) { true }
+        @fake_socket.expect :sendmsg_nonblock, true, ['foo:1|c']
+        @fake_socket.expect(:sendmsg_nonblock, true) { raise Errno::ENOTCONN }
+
+        @fake_socket2 = Minitest::Mock.new
+        @fake_socket2.expect(:connect, true) { true }
+        @fake_socket2.expect :sendmsg_nonblock, true, ['bar:1|c']
+      end
+
+      it "should ignore message and try reconnect on next call" do
+        Socket.stub(:new, @fake_socket) do
+          @statsd.increment('foo')
+        end
+        @statsd.increment('baz')
+        Socket.stub(:new, @fake_socket2) do
+          @statsd.increment('bar')
+        end
+        @fake_socket.verify
+        @fake_socket2.verify
+      end
+    end
+    
     describe "when socket is full" do
       before do
         @fake_socket = Minitest::Mock.new
