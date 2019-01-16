@@ -52,6 +52,7 @@ module Datadog
         bad_socket = !@socket_path.nil? && (
           boom.is_a?(Errno::ECONNREFUSED) ||
           boom.is_a?(Errno::ECONNRESET) ||
+          boom.is_a?(Errno::ENOTCONN) ||
           boom.is_a?(Errno::ENOENT)
         )
         if bad_socket
