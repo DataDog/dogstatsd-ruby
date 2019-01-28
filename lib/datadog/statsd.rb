@@ -396,7 +396,7 @@ module Datadog
     # it will be grouped with other events that don't have an event type.
     #
     # @param [String] title Event title
-    # @param [String] text Event text. Supports \n
+    # @param [String] text Event text. Supports newlines (+\n+)
     # @param [Hash] opts the additional data about the event
     # @option opts [Integer, nil] :date_happened (nil) Assign a timestamp to the event. Default is now when none
     # @option opts [String, nil] :hostname (nil) Assign a hostname to the event.
