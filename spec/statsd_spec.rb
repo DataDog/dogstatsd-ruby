@@ -79,6 +79,11 @@ describe Datadog::Statsd do
         Datadog::Statsd.new nil, nil, :foo => 'bar'
       end
     end
+
+    it "accepts tags as a hash" do
+      statsd = Datadog::Statsd.new '1.3.3.7', 8126, :tags => {one: "one", two: "two"}, :namespace => 'space'
+      statsd.tags.must_equal ['one:one', 'two:two']
+    end
   end
 
   describe "#open" do
@@ -638,40 +643,73 @@ describe Datadog::Statsd do
   end
 
   describe "tagged" do
+    describe "tags as an array of strings" do
+      it "gauges support tags" do
+        @statsd.gauge("gauge", 1, :tags=>%w(country:usa state:ny))
+        socket.recv.must_equal ['gauge:1|g|#country:usa,state:ny']
+      end
 
-    it "gauges support tags" do
-      @statsd.gauge("gauge", 1, :tags=>%w(country:usa state:ny))
-      socket.recv.must_equal ['gauge:1|g|#country:usa,state:ny']
+      it "counters support tags" do
+        @statsd.increment("c", :tags=>%w(country:usa other))
+        socket.recv.must_equal ['c:1|c|#country:usa,other']
+
+        @statsd.decrement("c", :tags=>%w(country:china))
+        socket.recv.must_equal ['c:-1|c|#country:china']
+
+        @statsd.count("c", 100, :tags=>%w(country:finland))
+        socket.recv.must_equal ['c:100|c|#country:finland']
+      end
+
+      it "timing support tags" do
+        @statsd.timing("t", 200, :tags=>%w(country:canada other))
+        socket.recv.must_equal ['t:200|ms|#country:canada,other']
+
+        @statsd.time('foobar', :tags => ["123"]) { sleep(0.001); 'test' }
+      end
+
+      it "global tags setter" do
+        @statsd.instance_variable_set(:@tags, %w(country:usa other))
+        @statsd.increment("c")
+        socket.recv.must_equal ['c:1|c|#country:usa,other']
+      end
+
+      it "global tags setter and regular tags" do
+        @statsd.instance_variable_set(:@tags, %w(country:usa other))
+        @statsd.increment("c", :tags=>%w(somethingelse))
+        socket.recv.must_equal ['c:1|c|#country:usa,other,somethingelse']
+      end
     end
 
-    it "counters support tags" do
-      @statsd.increment("c", :tags=>%w(country:usa other))
-      socket.recv.must_equal ['c:1|c|#country:usa,other']
+    describe "tags as hashes" do
+      it "gauges support tags" do
+        @statsd.gauge("gauge", 1, :tags =>{ country: 'usa', state: 'ny' })
+        socket.recv.must_equal ['gauge:1|g|#country:usa,state:ny']
+      end
 
-      @statsd.decrement("c", :tags=>%w(country:china))
-      socket.recv.must_equal ['c:-1|c|#country:china']
+      it "counters support tags" do
+        @statsd.increment("c", :tags => { country: 'usa', other: nil })
+        socket.recv.must_equal ['c:1|c|#country:usa,other']
 
-      @statsd.count("c", 100, :tags=>%w(country:finland))
-      socket.recv.must_equal ['c:100|c|#country:finland']
-    end
+        @statsd.decrement("c", :tags => { country: 'china' })
+        socket.recv.must_equal ['c:-1|c|#country:china']
 
-    it "timing support tags" do
-      @statsd.timing("t", 200, :tags=>%w(country:canada other))
-      socket.recv.must_equal ['t:200|ms|#country:canada,other']
+        @statsd.count("c", 100, :tags => { country: 'finland' })
+        socket.recv.must_equal ['c:100|c|#country:finland']
+      end
 
-      @statsd.time('foobar', :tags => ["123"]) { sleep(0.001); 'test' }
-    end
+      it "timing support tags" do
+        @statsd.timing("t", 200, :tags => { country: 'canada', other: nil })
+        socket.recv.must_equal ['t:200|ms|#country:canada,other']
 
-    it "global tags setter" do
-      @statsd.instance_variable_set(:@tags, %w(country:usa other))
-      @statsd.increment("c")
-      socket.recv.must_equal ['c:1|c|#country:usa,other']
-    end
+        @statsd.time('foobar', :tags => ["123"]) { sleep(0.001); 'test' }
+      end
 
-    it "global tags setter and regular tags" do
-      @statsd.instance_variable_set(:@tags, %w(country:usa other))
-      @statsd.increment("c", :tags=>%w(somethingelse))
-      socket.recv.must_equal ['c:1|c|#country:usa,other,somethingelse']
+      it "global tags setter and regular tags" do
+        @statsd.instance_variable_set(:@tags, %w(country:usa other))
+        @statsd.increment("c", :tags=> { something: 'else'})
+        socket.recv.must_equal ['c:1|c|#country:usa,other,something:else']
+      end
+
     end
   end
 
