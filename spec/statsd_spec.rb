@@ -506,6 +506,37 @@ describe Datadog::Statsd do
       @log.string.must_include 'Statsd: SocketError'
     end
   end
+  
+  describe "handling not connected socket" do
+    before do
+      @statsd.connection.instance_variable_set(:@logger, Logger.new(@log = StringIO.new))
+    end
+
+    it "tries to reconnect once" do
+      @statsd.connection.expects(:socket).times(2).returns(socket)
+      socket.expects(:send).returns("YEP") # 2nd call
+      socket.expects(:send).raises(Errno::ENOTCONN.new("closed stream")) # first call
+
+      @statsd.increment('foobar')
+    end
+
+    it "ignores and logs if it fails to reconnect" do
+      @statsd.connection.expects(:socket).times(2).returns(socket)
+      socket.expects(:send).raises(RuntimeError) # 2nd call
+      socket.expects(:send).raises(Errno::ENOTCONN.new) # first call
+
+      assert_nil @statsd.increment('foobar')
+      @log.string.must_include 'Statsd: RuntimeError'
+    end
+
+    it "ignores and logs errors while trying to reconnect" do
+      socket.expects(:send).raises(Errno::ENOTCONN.new)
+      @statsd.connection.expects(:connect).raises(SocketError)
+
+      assert_nil @statsd.increment('foobar')
+      @log.string.must_include 'Statsd: SocketError'
+    end
+  end
 
   describe "UDS error handling" do
     before do
@@ -568,31 +599,6 @@ describe Datadog::Statsd do
         @fake_socket.expect(:connect, true) { true }
         @fake_socket.expect :sendmsg_nonblock, true, ['foo:1|c']
         @fake_socket.expect(:sendmsg_nonblock, true) { raise Errno::ENOENT }
-
-        @fake_socket2 = Minitest::Mock.new
-        @fake_socket2.expect(:connect, true) { true }
-        @fake_socket2.expect :sendmsg_nonblock, true, ['bar:1|c']
-      end
-
-      it "should ignore message and try reconnect on next call" do
-        Socket.stub(:new, @fake_socket) do
-          @statsd.increment('foo')
-        end
-        @statsd.increment('baz')
-        Socket.stub(:new, @fake_socket2) do
-          @statsd.increment('bar')
-        end
-        @fake_socket.verify
-        @fake_socket2.verify
-      end
-    end
-
-    describe "when socket throws not connected error" do
-      before do
-        @fake_socket = Minitest::Mock.new
-        @fake_socket.expect(:connect, true) { true }
-        @fake_socket.expect :sendmsg_nonblock, true, ['foo:1|c']
-        @fake_socket.expect(:sendmsg_nonblock, true) { raise Errno::ENOTCONN }
 
         @fake_socket2 = Minitest::Mock.new
         @fake_socket2.expect(:connect, true) { true }
