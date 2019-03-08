@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## 4.1.0 / 2019.03.08
+
+* [FEATURE] Handle ENOTCONN [#102][] by [@blaines][]
+* [IMPROVEMENT] Retry first before losing message when receiving ENOTCONN [#104][] by [@blaines][]
+
 ## 4.0.0 / 2018.08.20
 
 * [IMPROVEMENT] Add `.open` for short-lived reporting that does not leave sockets around [#96][] by [@grosser][]
@@ -178,8 +183,11 @@ Future versions are likely to introduce backward incompatibilities with < Ruby 1
 [#94]: https://github.com/DataDog/dogstatsd-ruby/issues/94
 [#95]: https://github.com/DataDog/dogstatsd-ruby/issues/95
 [#96]: https://github.com/DataDog/dogstatsd-ruby/issues/96
+[#102]: https://github.com/DataDog/dogstatsd-ruby/issues/102
+[#104]: https://github.com/DataDog/dogstatsd-ruby/issues/104
 [@AMekss]: https://github.com/AMekss
 [@adimitrov]: https://github.com/adimitrov
+[@blaines]: https://github.com/blaines
 [@degemer]: https://github.com/degemer
 [@djpate]: https://github.com/djpate
 [@fimmtiu]: https://github.com/fimmtiu
@@ -195,4 +203,3 @@ Future versions are likely to introduce backward incompatibilities with < Ruby 1
 [@sensadrome]: https://github.com/sensadrome
 [@sj26]: https://github.com/sj26
 [@sullerandras]: https://github.com/sullerandras
-
