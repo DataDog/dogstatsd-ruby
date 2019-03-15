@@ -96,7 +96,7 @@ describe Datadog::Statsd do
       stub = Proc.new do |arg|
         arg == 'DD_ENTITY_ID' ? '04652bb7-19b7-11e9-9cc6-42010a9c016d' : nil
       end
-        ENV.stub :fetch, stub do
+      ENV.stub :fetch, stub do
         statsd = Datadog::Statsd.new '1.3.3.7', 8126, :tags => %w(global), :namespace => 'space'
         statsd.connection.host.must_equal '1.3.3.7'
         statsd.connection.port.must_equal 8126
