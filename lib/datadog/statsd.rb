@@ -34,8 +34,8 @@ module Datadog
       attr_reader :socket_path
 
       def initialize(host, port, socket_path, logger)
-        @host = host || DEFAULT_HOST
-        @port = port || DEFAULT_PORT
+        @host = host || ENV.fetch('DD_AGENT_HOST', nil) || DEFAULT_HOST
+        @port = port || ENV.fetch('DD_DOGSTATSD_PORT', nil) || DEFAULT_PORT
         @socket_path = socket_path
         @logger = logger
       end
@@ -222,6 +222,9 @@ module Datadog
 
       raise ArgumentError, 'tags must be a Array<String>' unless tags.nil? or tags.is_a? Array
       @tags = (tags || []).compact.map! {|tag| escape_tag_content(tag)}
+
+      # append the entity id to tags if DD_ENTITY_ID env var is not nil
+      @tags << 'dd.internal.entity_id:' + ENV.fetch('DD_ENTITY_ID', nil) unless ENV.fetch('DD_ENTITY_ID', nil).nil?
 
       @batch = Batch.new @connection, max_buffer_bytes
     end
