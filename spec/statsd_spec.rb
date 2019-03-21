@@ -32,6 +32,17 @@ describe Datadog::Statsd do
       @statsd.connection.port.must_equal 1234
     end
 
+    it "uses env vars host and port when nil is given" do
+      stub = Proc.new do |arg|
+        arg == 'DD_AGENT_HOST' ? 'myhost' : '1234'
+      end
+      ENV.stub :fetch, stub do
+        @statsd = Datadog::Statsd.new(nil, nil, {})
+        @statsd.connection.host.must_equal 'myhost'
+        @statsd.connection.port.must_equal '1234'
+      end
+    end
+
     it "uses default host and port when nil is given to allow only passing options" do
       @statsd = Datadog::Statsd.new(nil, nil, {})
       @statsd.connection.host.must_equal '127.0.0.1'
@@ -59,6 +70,19 @@ describe Datadog::Statsd do
       statsd.tags.must_equal []
     end
 
+    it "defaults host, port, namespace, and tags contains entity id" do
+      stub = Proc.new do |arg|
+        arg == 'DD_ENTITY_ID' ? '04652bb7-19b7-11e9-9cc6-42010a9c016d' : nil
+      end
+      ENV.stub :fetch, stub do
+        statsd = Datadog::Statsd.new
+        statsd.connection.host.must_equal '127.0.0.1'
+        statsd.connection.port.must_equal 8125
+        assert_nil statsd.namespace
+        statsd.tags.must_equal ['dd.internal.entity_id:04652bb7-19b7-11e9-9cc6-42010a9c016d']
+      end
+    end
+
     it 'sets host, port, namespace, and tags' do
       statsd = Datadog::Statsd.new '1.3.3.7', 8126, :tags => %w(global), :namespace => 'space'
       statsd.connection.host.must_equal '1.3.3.7'
@@ -66,6 +90,20 @@ describe Datadog::Statsd do
       statsd.namespace.must_equal 'space'
       statsd.instance_variable_get('@prefix').must_equal 'space.'
       statsd.tags.must_equal ['global']
+    end
+
+    it 'sets host, port, namespace, and tags and get entity id from inv var' do
+      stub = Proc.new do |arg|
+        arg == 'DD_ENTITY_ID' ? '04652bb7-19b7-11e9-9cc6-42010a9c016d' : nil
+      end
+      ENV.stub :fetch, stub do
+        statsd = Datadog::Statsd.new '1.3.3.7', 8126, :tags => %w(global), :namespace => 'space'
+        statsd.connection.host.must_equal '1.3.3.7'
+        statsd.connection.port.must_equal 8126
+        statsd.namespace.must_equal 'space'
+        statsd.instance_variable_get('@prefix').must_equal 'space.'
+        statsd.tags.must_equal ['global', 'dd.internal.entity_id:04652bb7-19b7-11e9-9cc6-42010a9c016d']
+      end
     end
 
     it 'fails on invalid tags' do
