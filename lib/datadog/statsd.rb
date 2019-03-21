@@ -224,7 +224,7 @@ module Datadog
       @tags = (tags || []).compact.map! {|tag| escape_tag_content(tag)}
 
       # append the entity id to tags if DD_ENTITY_ID env var is not nil
-      @tags << 'dd.internal.entity_id:' + ENV.fetch('DD_ENTITY_ID', nil) unless ENV.fetch('DD_ENTITY_ID', nil).nil?
+      @tags << 'dd.internal.entity_id:' + escape_tag_content(ENV.fetch('DD_ENTITY_ID', nil)) unless ENV.fetch('DD_ENTITY_ID', nil).nil?
 
       @batch = Batch.new @connection, max_buffer_bytes
     end
