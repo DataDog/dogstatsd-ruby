@@ -13,10 +13,11 @@ describe Datadog::Statsd do
   end
 
   let(:namespace) { nil }
+  let(:sample_rate) { nil }
   let(:socket) { FakeUDPSocket.new }
 
   before do
-    @statsd = Datadog::Statsd.new('localhost', 1234, namespace: namespace)
+    @statsd = Datadog::Statsd.new('localhost', 1234, namespace: namespace, sample_rate: sample_rate)
     @statsd.connection.instance_variable_set(:@socket, socket)
   end
 
@@ -369,34 +370,73 @@ describe Datadog::Statsd do
   end
 
   describe "#sampled" do
-    describe "when the sample rate is 1" do
-      before { class << @statsd; def rand; raise end; end }
-      it "should send" do
-        @statsd.timing('foobar', 500, :sample_rate=>1)
-        socket.recv.must_equal ['foobar:500|ms']
+    describe "local setting" do
+      describe "when the sample rate is 1" do
+        before { class << @statsd; def rand; raise end; end }
+        it "should send" do
+          @statsd.timing('foobar', 500, :sample_rate=>1)
+          socket.recv.must_equal ['foobar:500|ms']
+        end
+      end
+
+      describe "when the sample rate is greater than a random value [0,1]" do
+        before { class << @statsd; def rand; 0; end; end } # ensure delivery
+        it "should send" do
+          @statsd.timing('foobar', 500, :sample_rate=>0.5)
+          socket.recv.must_equal ['foobar:500|ms|@0.5']
+        end
+      end
+
+      describe "when the sample rate is less than a random value [0,1]" do
+        before { class << @statsd; def rand; 1; end; end } # ensure no delivery
+        it "should not send" do
+          assert_nil @statsd.timing('foobar', 500, :sample_rate=>0.5)
+        end
+      end
+
+      describe "when the sample rate is equal to a random value [0,1]" do
+        before { class << @statsd; def rand; 0.5; end; end } # ensure delivery
+        it "should send" do
+          @statsd.timing('foobar', 500, :sample_rate=>0.5)
+          socket.recv.must_equal ['foobar:500|ms|@0.5']
+        end
       end
     end
 
-    describe "when the sample rate is greater than a random value [0,1]" do
-      before { class << @statsd; def rand; 0; end; end } # ensure delivery
-      it "should send" do
-        @statsd.timing('foobar', 500, :sample_rate=>0.5)
-        socket.recv.must_equal ['foobar:500|ms|@0.5']
+    describe "global setting" do
+      describe "when the sample rate is 1" do
+        let(:sample_rate) { 1 }
+        before { class << @statsd; def rand; raise end; end }
+        it "should send" do
+          @statsd.timing('foobar', 500)
+          socket.recv.must_equal ['foobar:500|ms']
+        end
       end
-    end
 
-    describe "when the sample rate is less than a random value [0,1]" do
-      before { class << @statsd; def rand; 1; end; end } # ensure no delivery
-      it "should not send" do
-        assert_nil @statsd.timing('foobar', 500, :sample_rate=>0.5)
+      describe "when the sample rate is greater than a random value [0,1]" do
+        let(:sample_rate) { 0.5 }
+        before { class << @statsd; def rand; 0; end; end } # ensure delivery
+        it "should send" do
+          @statsd.timing('foobar', 500)
+          socket.recv.must_equal ['foobar:500|ms|@0.5']
+        end
       end
-    end
 
-    describe "when the sample rate is equal to a random value [0,1]" do
-      before { class << @statsd; def rand; 0.5; end; end } # ensure delivery
-      it "should send" do
-        @statsd.timing('foobar', 500, :sample_rate=>0.5)
-        socket.recv.must_equal ['foobar:500|ms|@0.5']
+      describe "when the sample rate is less than a random value [0,1]" do
+        let(:sample_rate) { 0.5 }
+        before { class << @statsd; def rand; 1; end; end } # ensure no delivery
+        it "should not send" do
+          assert_nil @statsd.timing('foobar', 500)
+        end
+      end
+
+      describe "when the sample rate is equal to a random value [0,1]" do
+        let(:sample_rate) { 0.5 }
+        before { class << @statsd; def rand; 0.5; end; end } # ensure delivery
+        it "should send" do
+          @statsd.timing('foobar', 500)
+          socket.recv.must_equal ['foobar:500|ms|@0.5']
+        end
       end
     end
   end

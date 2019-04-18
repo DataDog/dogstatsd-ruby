@@ -195,6 +195,9 @@ module Datadog
     # Maximum buffer size in bytes before it is flushed
     attr_reader :max_buffer_bytes
 
+    # Default sample rate
+    attr_reader :sample_rate
+
     # Connection
     attr_reader :connection
 
@@ -205,6 +208,7 @@ module Datadog
     # @option [Loger] logger for debugging
     # @option [Integer] max_buffer_bytes max bytes to buffer when using #batch
     # @option [String] socket_path unix socket path
+    # @option [Float] default sample rate if not overridden
     def initialize(
       host = nil,
       port = nil,
@@ -212,13 +216,16 @@ module Datadog
       tags: nil,
       max_buffer_bytes: 8192,
       socket_path: nil,
-      logger: nil
+      logger: nil,
+      sample_rate: nil
     )
       @connection = Connection.new(host, port, socket_path, logger)
       @logger = logger
 
       @namespace = namespace
       @prefix = @namespace ? "#{@namespace}.".freeze : nil
+
+      @sample_rate = sample_rate
 
       raise ArgumentError, 'tags must be a Array<String>' unless tags.nil? or tags.is_a? Array
       @tags = (tags || []).compact.map! {|tag| escape_tag_content(tag)}
@@ -519,7 +526,7 @@ module Datadog
     end
 
     def send_stats(stat, delta, type, opts=EMPTY_OPTIONS)
-      sample_rate = opts[:sample_rate] || 1
+      sample_rate = opts[:sample_rate] || @sample_rate || 1
       if sample_rate == 1 or rand <= sample_rate
         full_stat = ''.dup
         full_stat << @prefix if @prefix
