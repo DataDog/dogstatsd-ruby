@@ -520,7 +520,7 @@ module Datadog
 
     def send_stats(stat, delta, type, opts=EMPTY_OPTIONS)
       sample_rate = opts[:sample_rate] || 1
-      if sample_rate == 1 or rand < sample_rate
+      if sample_rate == 1 or rand <= sample_rate
         full_stat = ''.dup
         full_stat << @prefix if @prefix
 

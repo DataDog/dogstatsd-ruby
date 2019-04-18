@@ -393,7 +393,7 @@ describe Datadog::Statsd do
     end
 
     describe "when the sample rate is equal to a random value [0,1]" do
-      before { class << @statsd; def rand; 0; end; end } # ensure delivery
+      before { class << @statsd; def rand; 0.5; end; end } # ensure delivery
       it "should send" do
         @statsd.timing('foobar', 500, :sample_rate=>0.5)
         socket.recv.must_equal ['foobar:500|ms|@0.5']
