@@ -470,7 +470,7 @@ module Datadog
     def format_event(title, text, opts=EMPTY_OPTIONS)
       escaped_title = escape_event_content(title)
       escaped_text = escape_event_content(text)
-      event_string_data = "_e{#{escaped_title.length},#{escaped_text.length}}:#{escaped_title}|#{escaped_text}".dup
+      event_string_data = "_e{#{escaped_title.bytesize},#{escaped_text.bytesize}}:#{escaped_title}|#{escaped_text}".dup
 
       # We construct the string to be sent by adding '|key:value' parts to it when needed
       # All pipes ('|') in the metadata are removed. Title and Text can keep theirs
@@ -486,7 +486,7 @@ module Datadog
         event_string_data << "|##{tags_string}"
       end
 
-      raise "Event #{title} payload is too big (more that 8KB), event discarded" if event_string_data.length > MAX_EVENT_SIZE
+      raise "Event #{title} payload is too big (more that 8KB), event discarded" if event_string_data.bytesize > MAX_EVENT_SIZE
       event_string_data
     end
 
