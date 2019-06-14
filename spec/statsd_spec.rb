@@ -13,10 +13,11 @@ describe Datadog::Statsd do
   end
 
   let(:namespace) { nil }
+  let(:sample_rate) { nil }
   let(:socket) { FakeUDPSocket.new }
 
   before do
-    @statsd = Datadog::Statsd.new('localhost', 1234, namespace: namespace)
+    @statsd = Datadog::Statsd.new('localhost', 1234, namespace: namespace, sample_rate: sample_rate)
     @statsd.connection.instance_variable_set(:@socket, socket)
   end
 
@@ -30,6 +31,17 @@ describe Datadog::Statsd do
     it "sets the host and port" do
       @statsd.connection.host.must_equal 'localhost'
       @statsd.connection.port.must_equal 1234
+    end
+
+    it "uses env vars host and port when nil is given" do
+      stub = Proc.new do |arg|
+        arg == 'DD_AGENT_HOST' ? 'myhost' : '1234'
+      end
+      ENV.stub :fetch, stub do
+        @statsd = Datadog::Statsd.new(nil, nil, {})
+        @statsd.connection.host.must_equal 'myhost'
+        @statsd.connection.port.must_equal '1234'
+      end
     end
 
     it "uses default host and port when nil is given to allow only passing options" do
@@ -59,6 +71,19 @@ describe Datadog::Statsd do
       statsd.tags.must_equal []
     end
 
+    it "defaults host, port, namespace, and tags contains entity id" do
+      stub = Proc.new do |arg|
+        arg == 'DD_ENTITY_ID' ? '04652bb7-19b7-11e9-9cc6-42010a9c016d' : nil
+      end
+      ENV.stub :fetch, stub do
+        statsd = Datadog::Statsd.new
+        statsd.connection.host.must_equal '127.0.0.1'
+        statsd.connection.port.must_equal 8125
+        assert_nil statsd.namespace
+        statsd.tags.must_equal ['dd.internal.entity_id:04652bb7-19b7-11e9-9cc6-42010a9c016d']
+      end
+    end
+
     it 'sets host, port, namespace, and tags' do
       statsd = Datadog::Statsd.new '1.3.3.7', 8126, :tags => %w(global), :namespace => 'space'
       statsd.connection.host.must_equal '1.3.3.7'
@@ -66,6 +91,20 @@ describe Datadog::Statsd do
       statsd.namespace.must_equal 'space'
       statsd.instance_variable_get('@prefix').must_equal 'space.'
       statsd.tags.must_equal ['global']
+    end
+
+    it 'sets host, port, namespace, and tags and get entity id from inv var' do
+      stub = Proc.new do |arg|
+        arg == 'DD_ENTITY_ID' ? '04652bb7-19b7-11e9-9cc6-42010a9c016d' : nil
+      end
+      ENV.stub :fetch, stub do
+        statsd = Datadog::Statsd.new '1.3.3.7', 8126, :tags => %w(global), :namespace => 'space'
+        statsd.connection.host.must_equal '1.3.3.7'
+        statsd.connection.port.must_equal 8126
+        statsd.namespace.must_equal 'space'
+        statsd.instance_variable_get('@prefix').must_equal 'space.'
+        statsd.tags.must_equal ['global', 'dd.internal.entity_id:04652bb7-19b7-11e9-9cc6-42010a9c016d']
+      end
     end
 
     it 'fails on invalid tags' do
@@ -336,34 +375,73 @@ describe Datadog::Statsd do
   end
 
   describe "#sampled" do
-    describe "when the sample rate is 1" do
-      before { class << @statsd; def rand; raise end; end }
-      it "should send" do
-        @statsd.timing('foobar', 500, :sample_rate=>1)
-        socket.recv.must_equal ['foobar:500|ms']
+    describe "local setting" do
+      describe "when the sample rate is 1" do
+        before { class << @statsd; def rand; raise end; end }
+        it "should send" do
+          @statsd.timing('foobar', 500, :sample_rate=>1)
+          socket.recv.must_equal ['foobar:500|ms']
+        end
+      end
+
+      describe "when the sample rate is greater than a random value [0,1]" do
+        before { class << @statsd; def rand; 0; end; end } # ensure delivery
+        it "should send" do
+          @statsd.timing('foobar', 500, :sample_rate=>0.5)
+          socket.recv.must_equal ['foobar:500|ms|@0.5']
+        end
+      end
+
+      describe "when the sample rate is less than a random value [0,1]" do
+        before { class << @statsd; def rand; 1; end; end } # ensure no delivery
+        it "should not send" do
+          assert_nil @statsd.timing('foobar', 500, :sample_rate=>0.5)
+        end
+      end
+
+      describe "when the sample rate is equal to a random value [0,1]" do
+        before { class << @statsd; def rand; 0.5; end; end } # ensure delivery
+        it "should send" do
+          @statsd.timing('foobar', 500, :sample_rate=>0.5)
+          socket.recv.must_equal ['foobar:500|ms|@0.5']
+        end
       end
     end
 
-    describe "when the sample rate is greater than a random value [0,1]" do
-      before { class << @statsd; def rand; 0; end; end } # ensure delivery
-      it "should send" do
-        @statsd.timing('foobar', 500, :sample_rate=>0.5)
-        socket.recv.must_equal ['foobar:500|ms|@0.5']
+    describe "global setting" do
+      describe "when the sample rate is 1" do
+        let(:sample_rate) { 1 }
+        before { class << @statsd; def rand; raise end; end }
+        it "should send" do
+          @statsd.timing('foobar', 500)
+          socket.recv.must_equal ['foobar:500|ms']
+        end
       end
-    end
 
-    describe "when the sample rate is less than a random value [0,1]" do
-      before { class << @statsd; def rand; 1; end; end } # ensure no delivery
-      it "should not send" do
-        assert_nil @statsd.timing('foobar', 500, :sample_rate=>0.5)
+      describe "when the sample rate is greater than a random value [0,1]" do
+        let(:sample_rate) { 0.5 }
+        before { class << @statsd; def rand; 0; end; end } # ensure delivery
+        it "should send" do
+          @statsd.timing('foobar', 500)
+          socket.recv.must_equal ['foobar:500|ms|@0.5']
+        end
       end
-    end
 
-    describe "when the sample rate is equal to a random value [0,1]" do
-      before { class << @statsd; def rand; 0; end; end } # ensure delivery
-      it "should send" do
-        @statsd.timing('foobar', 500, :sample_rate=>0.5)
-        socket.recv.must_equal ['foobar:500|ms|@0.5']
+      describe "when the sample rate is less than a random value [0,1]" do
+        let(:sample_rate) { 0.5 }
+        before { class << @statsd; def rand; 1; end; end } # ensure no delivery
+        it "should not send" do
+          assert_nil @statsd.timing('foobar', 500)
+        end
+      end
+
+      describe "when the sample rate is equal to a random value [0,1]" do
+        let(:sample_rate) { 0.5 }
+        before { class << @statsd; def rand; 0.5; end; end } # ensure delivery
+        it "should send" do
+          @statsd.timing('foobar', 500)
+          socket.recv.must_equal ['foobar:500|ms|@0.5']
+        end
       end
     end
   end
@@ -511,6 +589,37 @@ describe Datadog::Statsd do
       @log.string.must_include 'Statsd: SocketError'
     end
   end
+  
+  describe "handling not connected socket" do
+    before do
+      @statsd.connection.instance_variable_set(:@logger, Logger.new(@log = StringIO.new))
+    end
+
+    it "tries to reconnect once" do
+      @statsd.connection.expects(:socket).times(2).returns(socket)
+      socket.expects(:send).returns("YEP") # 2nd call
+      socket.expects(:send).raises(Errno::ENOTCONN.new("closed stream")) # first call
+
+      @statsd.increment('foobar')
+    end
+
+    it "ignores and logs if it fails to reconnect" do
+      @statsd.connection.expects(:socket).times(2).returns(socket)
+      socket.expects(:send).raises(RuntimeError) # 2nd call
+      socket.expects(:send).raises(Errno::ENOTCONN.new) # first call
+
+      assert_nil @statsd.increment('foobar')
+      @log.string.must_include 'Statsd: RuntimeError'
+    end
+
+    it "ignores and logs errors while trying to reconnect" do
+      socket.expects(:send).raises(Errno::ENOTCONN.new)
+      @statsd.connection.expects(:connect).raises(SocketError)
+
+      assert_nil @statsd.increment('foobar')
+      @log.string.must_include 'Statsd: SocketError'
+    end
+  end
 
   describe "UDS error handling" do
     before do
@@ -573,31 +682,6 @@ describe Datadog::Statsd do
         @fake_socket.expect(:connect, true) { true }
         @fake_socket.expect :sendmsg_nonblock, true, ['foo:1|c']
         @fake_socket.expect(:sendmsg_nonblock, true) { raise Errno::ENOENT }
-
-        @fake_socket2 = Minitest::Mock.new
-        @fake_socket2.expect(:connect, true) { true }
-        @fake_socket2.expect :sendmsg_nonblock, true, ['bar:1|c']
-      end
-
-      it "should ignore message and try reconnect on next call" do
-        Socket.stub(:new, @fake_socket) do
-          @statsd.increment('foo')
-        end
-        @statsd.increment('baz')
-        Socket.stub(:new, @fake_socket2) do
-          @statsd.increment('bar')
-        end
-        @fake_socket.verify
-        @fake_socket2.verify
-      end
-    end
-
-    describe "when socket throws not connected error" do
-      before do
-        @fake_socket = Minitest::Mock.new
-        @fake_socket.expect(:connect, true) { true }
-        @fake_socket.expect :sendmsg_nonblock, true, ['foo:1|c']
-        @fake_socket.expect(:sendmsg_nonblock, true) { raise Errno::ENOTCONN }
 
         @fake_socket2 = Minitest::Mock.new
         @fake_socket2.expect(:connect, true) { true }

@@ -28,9 +28,10 @@ statsd = Datadog::Statsd.new('localhost', 8125)
 
 # Increment a counter.
 statsd.increment('page.views')
+statsd.increment('messages.count', by: 2, tags: ['kind:incoming'])
 
 # Record a gauge 50% of the time.
-statsd.gauge('users.online', 123, :sample_rate=>0.5)
+statsd.gauge('users.online', 123, sample_rate: 0.5)
 
 # Sample a histogram
 statsd.histogram('file.upload.size', 1234)
@@ -48,7 +49,7 @@ statsd.batch do |s|
 end
 
 # Tag a metric.
-statsd.histogram('query.time', 10, :tags => ["version:1"])
+statsd.histogram('query.time', 10, tags: ['version:1'])
 
 # Tag a metric by passing in a Hash
 statsd.histogram('query.time', 10, :tags => {version: 1})
@@ -65,12 +66,32 @@ Aggregation in the stream is made on hostname/event_type/source_type/aggregation
 
 ``` ruby
 # Post a simple message
-statsd.event("There might be a storm tomorrow", "A friend warned me earlier.")
+statsd.event('There might be a storm tomorrow', 'A friend warned me earlier.')
 
 # Cry for help
-statsd.event("SO MUCH SNOW", "Started yesterday and it won't stop !!", :alert_type => "error", :tags => ["urgent", "endoftheworld"])
+statsd.event(
+  'SO MUCH SNOW',
+  "Started yesterday and it won't stop !!",
+  alert_type: 'error',
+  tags: ['urgent', 'endoftheworld']
+)
 ```
 
+
+
+Origin detection over UDP
+-------------
+Origin detection is a method to detect which pod DogStatsD packets are coming from in order to add the pod's tags to the tag list.
+
+To enable origin detection over UDP, add the following lines to your application manifest
+```yaml
+env:
+  - name: DD_ENTITY_ID
+    valueFrom:
+      fieldRef:
+        fieldPath: metadata.uid
+```
+The DogStatsD client attaches an internal tag, `entity_id`. The value of this tag is the content of the `DD_ENTITY_ID` environment variable, which is the pod’s UID.
 
 
 Documentation
