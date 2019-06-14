@@ -33,32 +33,15 @@ module Datadog
       # DogStatsd unix socket path. Not used by default.
       attr_reader :socket_path
 
-      def initialize(host, port, socket_path, logger)
-        @host = host || ENV.fetch('DD_AGENT_HOST', nil) || DEFAULT_HOST
-        @port = port || ENV.fetch('DD_DOGSTATSD_PORT', nil) || DEFAULT_PORT
-        @socket_path = socket_path
-        @logger = logger
+      # Close the underlying socket
+      def close
+        @socket && @socket.close
       end
 
       def write(message)
         @logger.debug { "Statsd: #{message}" } if @logger
-        if @socket_path.nil?
-          socket.send(message, 0)
-        else
-          socket.sendmsg_nonblock(message)
-        end
+        send_message(message)
       rescue StandardError => boom
-        # Give up on this socket if it looks like it is bad
-        bad_socket = !@socket_path.nil? && (
-          boom.is_a?(Errno::ECONNREFUSED) ||
-          boom.is_a?(Errno::ECONNRESET) ||
-          boom.is_a?(Errno::ENOENT)
-        )
-        if bad_socket
-          @socket = nil
-          return
-        end
-
         # Try once to reconnect if the socket has been closed
         retries ||= 1
         if retries <= 1 && boom.is_a?(Errno::ENOTCONN) or
@@ -76,26 +59,54 @@ module Datadog
         nil
       end
 
-      # Close the underlying socket
-      def close
-        @socket && @socket.close
-      end
-
       private
 
       def socket
         @socket ||= connect
       end
+    end
+
+    class UDPConnection < Connection
+      def initialize(host, port, logger)
+        @host = host || ENV.fetch('DD_AGENT_HOST', nil) || DEFAULT_HOST
+        @port = port || ENV.fetch('DD_DOGSTATSD_PORT', nil) || DEFAULT_PORT
+        @logger = logger
+      end
+
+      private
 
       def connect
-        if @socket_path.nil?
-          socket = UDPSocket.new
-          socket.connect(@host, @port)
-        else
-          socket = Socket.new(Socket::AF_UNIX, Socket::SOCK_DGRAM)
-          socket.connect(Socket.pack_sockaddr_un(@socket_path))
-        end
+        socket = UDPSocket.new
+        socket.connect(@host, @port)
         socket
+      end
+
+      def send_message(message)
+        socket.send(message, 0)
+      end
+    end
+
+    class UDSConnection < Connection
+      class BadSocketError < StandardError; end
+
+      def initialize(socket_path, logger)
+        @socket_path = socket_path
+        @logger = logger
+      end
+
+      private
+
+      def connect
+        socket = Socket.new(Socket::AF_UNIX, Socket::SOCK_DGRAM)
+        socket.connect(Socket.pack_sockaddr_un(@socket_path))
+        socket
+      end
+
+      def send_message(message)
+        socket.sendmsg_nonblock(message)
+      rescue Errno::ECONNREFUSED, Errno::ECONNRESET, Errno::ENOENT => e
+        @socket = nil
+        raise BadSocketError, "#{e.class}: #{e}"
       end
     end
 
@@ -219,7 +230,11 @@ module Datadog
       logger: nil,
       sample_rate: nil
     )
-      @connection = Connection.new(host, port, socket_path, logger)
+      if socket_path.nil?
+        @connection = UDPConnection.new(host, port, logger)
+      else
+        @connection = UDSConnection.new(socket_path, logger)
+      end
       @logger = logger
 
       @namespace = namespace
