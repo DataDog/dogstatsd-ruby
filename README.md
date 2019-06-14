@@ -51,6 +51,9 @@ end
 # Tag a metric.
 statsd.histogram('query.time', 10, tags: ['version:1'])
 
+# Tag a metric by passing in a Hash
+statsd.histogram('query.time', 10, :tags => {version: 1})
+
 # Auto-close socket after end of block
 Datadog::Statsd.open('localhost', 8125) do |s|
   s.increment('page.views')

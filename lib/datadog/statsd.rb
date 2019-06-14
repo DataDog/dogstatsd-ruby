@@ -215,8 +215,8 @@ module Datadog
     # @param [String] host your statsd host
     # @param [Integer] port your statsd port
     # @option [String] namespace set a namespace to be prepended to every metric name
-    # @option [Array<String>] tags tags to be added to every metric
-    # @option [Loger] logger for debugging
+    # @option [Array<String>|Hash] tags tags to be added to every metric
+    # @option [Logger] logger for debugging
     # @option [Integer] max_buffer_bytes max bytes to buffer when using #batch
     # @option [String] socket_path unix socket path
     # @option [Float] default sample rate if not overridden
@@ -242,7 +242,11 @@ module Datadog
 
       @sample_rate = sample_rate
 
-      raise ArgumentError, 'tags must be a Array<String>' unless tags.nil? or tags.is_a? Array
+      unless tags.nil? or tags.is_a? Array or tags.is_a? Hash
+        raise ArgumentError, 'tags must be a Array<String> or a Hash'
+      end
+
+      tags = tag_hash_to_array(tags) if tags.is_a? Hash
       @tags = (tags || []).compact.map! {|tag| escape_tag_content(tag)}
 
       # append the entity id to tags if DD_ENTITY_ID env var is not nil
@@ -514,12 +518,17 @@ module Datadog
 
     def tags_as_string(opts)
       if tag_arr = opts[:tags]
+        tag_arr = tag_hash_to_array(tag_arr) if tag_arr.is_a? Hash
         tag_arr = tag_arr.map { |tag| escape_tag_content(tag) }
         tag_arr = tags + tag_arr # @tags are normalized when set, so not need to normalize them again
       else
         tag_arr = tags
       end
       tag_arr.join(COMMA) unless tag_arr.empty?
+    end
+
+    def tag_hash_to_array(tag_hash)
+      tag_hash.to_a.map {|pair| pair.compact.join(":")}
     end
 
     def escape_event_content(msg)
