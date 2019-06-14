@@ -1,25 +1,43 @@
 # CHANGELOG
 
-## NEXT
+## 4.2.0 / 2019.04.04
+
+* [FEATURE] Added environment vars support for host, port and entity id [#109][] by [@ahmed-mez][]
+
+## 4.1.0 / 2019.03.08
+
+* [FEATURE] Handle ENOTCONN [#102][] by [@blaines][]
+* [IMPROVEMENT] Retry first before losing message when receiving ENOTCONN [#104][] by [@blaines][]
+
+## 4.0.0 / 2018.08.20
+
+* [IMPROVEMENT] Add `.open` for short-lived reporting that does not leave sockets around [#96][] by [@grosser][]
+* [IMPROVEMENT] Extract batch logic into a class [#95][] by [@grosser][]
+* [IMPROVEMENT] Extract connection for separation of concerns [#94][] by [@grosser][]
+* [IMPROVEMENT] Fail fast on unknown options [#93][] by [@grosser][]
+* [IMPROVEMENT] Always lazy connect [#92][] by [@grosser][]
+* [IMPROVEMENT] Batch events and service checks too [#88][] by [@grosser][]
+* [IMPROVEMENT] Remove bad argument after options [#83][] by [@grosser][]
+* [IMPROVEMENT] Reduce object allocation and make all strings frozen on ruby 2.3+ [#78][] by [@grosser][]
 
 ### Breaking changes
 
- * port / host / socket_path readers are now on statsd.connection
- * port / host / tags / namespace can no longer be set on the instance to allow thread-safety [#87][] by [@grosser][] 
- * replace global logger with instance option [#90][] by [@grosser][] 
- * make format_service_check private [#89][] [@grosser][] 
- * [IMPROVEMENT] Frozen strings and less allocations everywhere. [#78][], [@grosser][]
- * [BUGFIX] Make sure the UDP message fits into the 8k buffer of dd-agent. [#86][], [@Antti][]
- * max_buffer_size initializer argument removed and replaced with max_buffer_bytes (defaults to 8192)
- * max_buffer_size/max_buffer_size= methods removed
- * format_event is now private
+* Remove deprecated `version` method [#91][] by [@grosser][]
+* port / host / tags / namespace can no longer be set on the instance to allow thread-safety [#87][] by [@grosser][]
+* port / host / socket_path readers are now on statsd.connection
+* Make `logger` an instance var [#90][] by [@grosser][]
+* Make `format_service_check` private [#89][] by [@grosser][]
+* Improve code coverage / make `format_event` private [#84][] by [@grosser][]
+* Set buffer size in bytes [#86][] by [@grosser][]
+* max_buffer_size initializer argument removed and replaced with max_buffer_bytes (defaults to 8192)
+* max_buffer_size/max_buffer_size= methods removed
 
 ## 3.3.0 / 2018.02.04
 
- * [FEATURE] Add distribution support (beta). See [#72][].
- * [IMPROVEMENT] A ton of cleanups and refinements courtesy of [@grosser][]. See [#68][], [#69][], [#73][], [#74][], [#75][], [#76][], [#77][].
- * [IMPROVEMENT] Unify tag handling in `format_service_check`. See [#71][] by [@grosser][].
- * [IMPROVEMENT] Use faster time method on ruby >= 2.1. See [#70][] by [@grosser][].
+* [FEATURE] Add distribution support (beta). See [#72][].
+* [IMPROVEMENT] A ton of cleanups and refinements courtesy of [@grosser][]. See [#68][], [#69][], [#73][], [#74][], [#75][], [#76][], [#77][].
+* [IMPROVEMENT] Unify tag handling in `format_service_check`. See [#71][] by [@grosser][].
+* [IMPROVEMENT] Use faster time method on ruby >= 2.1. See [#70][] by [@grosser][].
 
 ## 3.2.0 / 2017.12.21
 
@@ -41,6 +59,7 @@
 * [IMPROVEMENT] Use a instance variable to decide whether to batch or not. [#47][] [@fimmtiu][]
 
 ### Breaking changes
+
 #### Host resolution
 
 Host resolution was previously done every time a message was sent, it is now
@@ -63,13 +82,15 @@ resolve the `host`.
 ## 2.0.0 / 2016.09.22
 
 ### Breaking changes
+
 #### Namespace
 
 The `Statsd` is now namespaced under the Datadog module. [#32][] [@djpate][]
 
 To update:
-- `require 'statsd'` -> `require 'datadog/statsd'`
-- `Statsd` -> `Datadog::Statsd`
+
+* `require 'statsd'` -> `require 'datadog/statsd'`
+* `Statsd` -> `Datadog::Statsd`
 
 #### Tags
 
@@ -152,8 +173,27 @@ Future versions are likely to introduce backward incompatibilities with < Ruby 1
 [#75]: https://github.com/DataDog/dogstatsd-ruby/issues/75
 [#76]: https://github.com/DataDog/dogstatsd-ruby/issues/76
 [#77]: https://github.com/DataDog/dogstatsd-ruby/issues/77
+[#78]: https://github.com/DataDog/dogstatsd-ruby/issues/78
+[#83]: https://github.com/DataDog/dogstatsd-ruby/issues/83
+[#84]: https://github.com/DataDog/dogstatsd-ruby/issues/84
+[#86]: https://github.com/DataDog/dogstatsd-ruby/issues/86
+[#87]: https://github.com/DataDog/dogstatsd-ruby/issues/87
+[#88]: https://github.com/DataDog/dogstatsd-ruby/issues/88
+[#89]: https://github.com/DataDog/dogstatsd-ruby/issues/89
+[#90]: https://github.com/DataDog/dogstatsd-ruby/issues/90
+[#91]: https://github.com/DataDog/dogstatsd-ruby/issues/91
+[#92]: https://github.com/DataDog/dogstatsd-ruby/issues/92
+[#93]: https://github.com/DataDog/dogstatsd-ruby/issues/93
+[#94]: https://github.com/DataDog/dogstatsd-ruby/issues/94
+[#95]: https://github.com/DataDog/dogstatsd-ruby/issues/95
+[#96]: https://github.com/DataDog/dogstatsd-ruby/issues/96
+[#102]: https://github.com/DataDog/dogstatsd-ruby/issues/102
+[#104]: https://github.com/DataDog/dogstatsd-ruby/issues/104
+[#109]: https://github.com/DataDog/dogstatsd-ruby/issues/109
 [@AMekss]: https://github.com/AMekss
 [@adimitrov]: https://github.com/adimitrov
+[@ahmed-mez]: https://github.com/ahmed-mez
+[@blaines]: https://github.com/blaines
 [@degemer]: https://github.com/degemer
 [@djpate]: https://github.com/djpate
 [@fimmtiu]: https://github.com/fimmtiu

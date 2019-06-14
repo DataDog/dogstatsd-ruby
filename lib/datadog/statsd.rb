@@ -44,7 +44,8 @@ module Datadog
       rescue StandardError => boom
         # Try once to reconnect if the socket has been closed
         retries ||= 1
-        if retries <= 1 && boom.is_a?(IOError) && boom.message =~ /closed stream/i
+        if retries <= 1 && boom.is_a?(Errno::ENOTCONN) or
+           retries <= 1 && boom.is_a?(IOError) && boom.message =~ /closed stream/i
           retries += 1
           begin
             @socket = connect
@@ -67,8 +68,8 @@ module Datadog
 
     class UDPConnection < Connection
       def initialize(host, port, logger)
-        @host = host || DEFAULT_HOST
-        @port = port || DEFAULT_PORT
+        @host = host || ENV.fetch('DD_AGENT_HOST', nil) || DEFAULT_HOST
+        @port = port || ENV.fetch('DD_DOGSTATSD_PORT', nil) || DEFAULT_PORT
         @logger = logger
       end
 
@@ -191,7 +192,7 @@ module Datadog
     DISTRIBUTION_TYPE = 'd'.freeze
     TIMING_TYPE = 'ms'.freeze
     SET_TYPE = 's'.freeze
-    VERSION = "3.3.0".freeze
+    VERSION = "4.2.0".freeze
 
     # A namespace to prepend to all statsd calls. Defaults to no namespace.
     attr_reader :namespace
@@ -205,6 +206,9 @@ module Datadog
     # Maximum buffer size in bytes before it is flushed
     attr_reader :max_buffer_bytes
 
+    # Default sample rate
+    attr_reader :sample_rate
+
     # Connection
     attr_reader :connection
 
@@ -215,6 +219,7 @@ module Datadog
     # @option [Loger] logger for debugging
     # @option [Integer] max_buffer_bytes max bytes to buffer when using #batch
     # @option [String] socket_path unix socket path
+    # @option [Float] default sample rate if not overridden
     def initialize(
       host = nil,
       port = nil,
@@ -222,7 +227,8 @@ module Datadog
       tags: nil,
       max_buffer_bytes: 8192,
       socket_path: nil,
-      logger: nil
+      logger: nil,
+      sample_rate: nil
     )
       if socket_path.nil?
         @connection = UDPConnection.new(host, port, logger)
@@ -234,8 +240,13 @@ module Datadog
       @namespace = namespace
       @prefix = @namespace ? "#{@namespace}.".freeze : nil
 
+      @sample_rate = sample_rate
+
       raise ArgumentError, 'tags must be a Array<String>' unless tags.nil? or tags.is_a? Array
       @tags = (tags || []).compact.map! {|tag| escape_tag_content(tag)}
+
+      # append the entity id to tags if DD_ENTITY_ID env var is not nil
+      @tags << 'dd.internal.entity_id:' + escape_tag_content(ENV.fetch('DD_ENTITY_ID', nil)) unless ENV.fetch('DD_ENTITY_ID', nil).nil?
 
       @batch = Batch.new @connection, max_buffer_bytes
     end
@@ -409,7 +420,7 @@ module Datadog
     # it will be grouped with other events that don't have an event type.
     #
     # @param [String] title Event title
-    # @param [String] text Event text. Supports \n
+    # @param [String] text Event text. Supports newlines (+\n+)
     # @param [Hash] opts the additional data about the event
     # @option opts [Integer, nil] :date_happened (nil) Assign a timestamp to the event. Default is now when none
     # @option opts [String, nil] :hostname (nil) Assign a hostname to the event.
@@ -481,7 +492,7 @@ module Datadog
     def format_event(title, text, opts=EMPTY_OPTIONS)
       escaped_title = escape_event_content(title)
       escaped_text = escape_event_content(text)
-      event_string_data = "_e{#{escaped_title.length},#{escaped_text.length}}:#{escaped_title}|#{escaped_text}".dup
+      event_string_data = "_e{#{escaped_title.bytesize},#{escaped_text.bytesize}}:#{escaped_title}|#{escaped_text}".dup
 
       # We construct the string to be sent by adding '|key:value' parts to it when needed
       # All pipes ('|') in the metadata are removed. Title and Text can keep theirs
@@ -497,7 +508,7 @@ module Datadog
         event_string_data << "|##{tags_string}"
       end
 
-      raise "Event #{title} payload is too big (more that 8KB), event discarded" if event_string_data.length > MAX_EVENT_SIZE
+      raise "Event #{title} payload is too big (more that 8KB), event discarded" if event_string_data.bytesize > MAX_EVENT_SIZE
       event_string_data
     end
 
@@ -530,8 +541,8 @@ module Datadog
     end
 
     def send_stats(stat, delta, type, opts=EMPTY_OPTIONS)
-      sample_rate = opts[:sample_rate] || 1
-      if sample_rate == 1 or rand < sample_rate
+      sample_rate = opts[:sample_rate] || @sample_rate || 1
+      if sample_rate == 1 or rand <= sample_rate
         full_stat = ''.dup
         full_stat << @prefix if @prefix
 
