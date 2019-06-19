@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## 4.3.0 / 2019.06.24
+
+* [FEATURE] Allow passing tags as a hash [#107][] by [@jtzemp][]
+* [FEATURE] Added a setting for the global sample rate [#110][] by [@claytono][]
+* [BUGFIX] Fix non-ascii event texts being truncated [#112][] by [@devleoper][]
+* [BUGFIX] Display error if `write` fails due to a bad socket [#97][] by [@abicky][]
+
 ## 4.2.0 / 2019.04.04
 
 * [FEATURE] Added environment vars support for host, port and entity id [#109][] by [@ahmed-mez][]
@@ -187,20 +194,28 @@ Future versions are likely to introduce backward incompatibilities with < Ruby 1
 [#94]: https://github.com/DataDog/dogstatsd-ruby/issues/94
 [#95]: https://github.com/DataDog/dogstatsd-ruby/issues/95
 [#96]: https://github.com/DataDog/dogstatsd-ruby/issues/96
+[#97]: https://github.com/DataDog/dogstatsd-ruby/issues/97
 [#102]: https://github.com/DataDog/dogstatsd-ruby/issues/102
 [#104]: https://github.com/DataDog/dogstatsd-ruby/issues/104
+[#107]: https://github.com/DataDog/dogstatsd-ruby/issues/107
 [#109]: https://github.com/DataDog/dogstatsd-ruby/issues/109
+[#110]: https://github.com/DataDog/dogstatsd-ruby/issues/110
+[#112]: https://github.com/DataDog/dogstatsd-ruby/issues/112
 [@AMekss]: https://github.com/AMekss
+[@abicky]: https://github.com/abicky
 [@adimitrov]: https://github.com/adimitrov
 [@ahmed-mez]: https://github.com/ahmed-mez
 [@blaines]: https://github.com/blaines
+[@claytono]: https://github.com/claytono
 [@degemer]: https://github.com/degemer
+[@devleoper]: https://github.com/devleoper
 [@djpate]: https://github.com/djpate
 [@fimmtiu]: https://github.com/fimmtiu
 [@gleseur]: https://github.com/gleseur
 [@grosser]: https://github.com/grosser
 [@jacobbednarz]: https://github.com/jacobbednarz
 [@janester]: https://github.com/janester
+[@jtzemp]: https://github.com/jtzemp
 [@misterbyrne]: https://github.com/misterbyrne
 [@nelhage]: https://github.com/nelhage
 [@olefriis]: https://github.com/olefriis
