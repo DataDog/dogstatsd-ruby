@@ -1016,7 +1016,7 @@ describe Datadog::Statsd do
       assert_allocations(6) { @statsd.increment('foobar') }
     end
 
-    it "produces low amounts of garbage for timeing" do
+    it "produces low amounts of garbage for timing" do
       assert_allocations(6) { @statsd.time('foobar') { 1111 } }
     end
 
