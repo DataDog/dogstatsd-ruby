@@ -502,7 +502,18 @@ module Datadog
       # All pipes ('|') in the metadata are removed. Title and Text can keep theirs
       OPTS_KEYS.each do |key, shorthand_key|
         if key != :tags && opts[key]
-          value = remove_pipes(opts[key])
+          # :date_happened is the only key where the value is an Integer
+          if key == :date_happened
+            if opts[key].is_a? Integer
+              value = opts[key]
+            else
+              @logger.warn { "Statsd: Skipping event option #{key}, expected Integer type but got #{opts[key].class}" } if @logger
+              next # Skip this invalid key
+            end
+          # All other keys have String values
+          else
+              value = remove_pipes(opts[key])
+          end
           event_string_data << "|#{shorthand_key}:#{value}"
         end
       end

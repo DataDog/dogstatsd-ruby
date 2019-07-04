@@ -3,6 +3,7 @@ require_relative 'helper'
 require 'allocation_stats' if RUBY_VERSION >= "2.3.0"
 require 'socket'
 require 'stringio'
+require 'time'
 
 SingleCov.covered! file: 'lib/datadog/statsd.rb' if RUBY_VERSION > "2.0"
 
@@ -500,6 +501,21 @@ describe Datadog::Statsd do
     end
   end
 
+  describe "events with logging" do
+    require 'stringio'
+    let(:logger) { Logger.new(log) }
+    let(:log) { StringIO.new }
+    before { @statsd.instance_variable_set(:@logger, logger) }
+
+    it "writes wrong event option types in warning" do
+      logger.level = Logger::WARN
+
+      @statsd.event("title", "text", :date_happened => "blah")
+
+      log.string.must_match "Statsd: Skipping event option date_happened, expected Integer type but got String"
+    end
+  end
+
   describe "stat names" do
     it "should accept anything as stat" do
       @statsd.increment(Object)
@@ -868,6 +884,7 @@ describe Datadog::Statsd do
       title = Faker::Lorem.sentence(_word_count =  rand(3))
       text = Faker::Lorem.sentence(_word_count = rand(3))
       tags = Faker::Lorem.words(rand(1..10))
+      timestamp = Time.parse('01-01-2000').to_i
       tags_joined = tags.join(",")
 
       it "Only title and text" do
@@ -899,6 +916,14 @@ describe Datadog::Statsd do
       it "With unknown priority" do
         @statsd.event(title, text, :priority => 'bizarre')
         socket.recv.must_equal ["#{@statsd.send(:format_event, title, text)}|p:bizarre"]
+      end
+      it "With date_happened" do
+        @statsd.event(title, text, :date_happened => timestamp)
+        socket.recv.must_equal ["#{@statsd.send(:format_event, title, text)}|d:#{timestamp}"]
+      end
+      it "With wrong date_happened" do
+        @statsd.event(title, text, :date_happened => "blah")
+        socket.recv.must_equal ["#{@statsd.send(:format_event, title, text)}"]
       end
       it "With hostname" do
         @statsd.event(title, text, :hostname => 'hostname_test')
