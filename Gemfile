@@ -3,7 +3,7 @@ source 'https://rubygems.org'
 gem 'rake', '10.1.0'
 gem 'rack', '~> 1.6'
 gem 'minitest'
-gem "yard", "~> 0.8.7.3"
+gem "yard", "~> 0.9.20"
 gem 'single_cov'
 
 if RUBY_VERSION >= "2.0.0"
