@@ -501,21 +501,6 @@ describe Datadog::Statsd do
     end
   end
 
-  describe "events with logging" do
-    require 'stringio'
-    let(:logger) { Logger.new(log) }
-    let(:log) { StringIO.new }
-    before { @statsd.instance_variable_set(:@logger, logger) }
-
-    it "writes wrong event option types in warning" do
-      logger.level = Logger::WARN
-
-      @statsd.event("title", "text", :date_happened => "blah")
-
-      log.string.must_match "Statsd: Skipping event option date_happened, expected Integer type but got String"
-    end
-  end
-
   describe "stat names" do
     it "should accept anything as stat" do
       @statsd.increment(Object)
@@ -917,13 +902,13 @@ describe Datadog::Statsd do
         @statsd.event(title, text, :priority => 'bizarre')
         socket.recv.must_equal ["#{@statsd.send(:format_event, title, text)}|p:bizarre"]
       end
-      it "With date_happened" do
+      it "With Integer date_happened" do
         @statsd.event(title, text, :date_happened => timestamp)
         socket.recv.must_equal ["#{@statsd.send(:format_event, title, text)}|d:#{timestamp}"]
       end
-      it "With wrong date_happened" do
-        @statsd.event(title, text, :date_happened => "blah")
-        socket.recv.must_equal ["#{@statsd.send(:format_event, title, text)}"]
+      it "With String date_happened" do
+        @statsd.event(title, text, :date_happened => "#{timestamp}")
+        socket.recv.must_equal ["#{@statsd.send(:format_event, title, text)}|d:#{timestamp}"]
       end
       it "With hostname" do
         @statsd.event(title, text, :hostname => 'hostname_test')

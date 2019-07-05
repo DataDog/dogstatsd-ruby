@@ -426,7 +426,7 @@ module Datadog
     # @param [String] title Event title
     # @param [String] text Event text. Supports newlines (+\n+)
     # @param [Hash] opts the additional data about the event
-    # @option opts [Integer, nil] :date_happened (nil) Assign a timestamp to the event. Default is now when none
+    # @option opts [Integer, String, nil] :date_happened (nil) Assign a timestamp to the event. Default is now when none
     # @option opts [String, nil] :hostname (nil) Assign a hostname to the event.
     # @option opts [String, nil] :aggregation_key (nil) Assign an aggregation key to the event, to group it with some others
     # @option opts [String, nil] :priority ('normal') Can be "normal" or "low"
@@ -503,14 +503,10 @@ module Datadog
       OPTS_KEYS.each do |key, shorthand_key|
         if key != :tags && opts[key]
           # :date_happened is the only key where the value is an Integer
-          if key == :date_happened
-            if opts[key].is_a? Integer
+          # To not break backwards compatibility, we still accept a String
+          if key == :date_happened && opts[key].is_a?(Integer)
               value = opts[key]
-            else
-              @logger.warn { "Statsd: Skipping event option #{key}, expected Integer type but got #{opts[key].class}" } if @logger
-              next # Skip this invalid key
-            end
-          # All other keys have String values
+          # All other keys only have String values
           else
               value = remove_pipes(opts[key])
           end
