@@ -958,6 +958,7 @@ describe Datadog::Statsd do
       name = Faker::Lorem.sentence(_word_count = rand(3))
       status = rand(4)
       hostname = "hostname_test"
+      timestamp = Time.parse('01-01-2000').to_i
       tags = Faker::Lorem.words(rand(1..10))
       tags_joined = tags.join(",")
 
@@ -974,6 +975,16 @@ describe Datadog::Statsd do
       it "sends with with message" do
         @statsd.service_check(name, status, :message => 'testing | m: \n')
         socket.recv.must_equal ["_sc|#{name}|#{status}|m:testing  m\\: \\n"]
+      end
+
+      it "With Integer timestamp" do
+        @statsd.service_check(name, status, :timestamp => timestamp)
+        socket.recv.must_equal ["_sc|#{name}|#{status}|d:#{timestamp}"]
+      end
+
+      it "With String timestamp" do
+        @statsd.service_check(name, status, :timestamp => "#{timestamp}")
+        socket.recv.must_equal ["_sc|#{name}|#{status}|d:#{timestamp}"]
       end
 
       it "sends with with tags" do

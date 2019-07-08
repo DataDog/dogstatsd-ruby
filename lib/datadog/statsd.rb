@@ -407,8 +407,8 @@ module Datadog
     # @param [String] name Service check name
     # @param [String] status Service check status.
     # @param [Hash] opts the additional data about the service check
-      # @option opts [Integer, nil] :timestamp (nil) Assign a timestamp to the event. Default is now when none
-      # @option opts [String, nil] :hostname (nil) Assign a hostname to the event.
+      # @option opts [Integer, String, nil] :timestamp (nil) Assign a timestamp to the service check. Default is now when none
+      # @option opts [String, nil] :hostname (nil) Assign a hostname to the service check.
       # @option opts [Array<String>, nil] :tags (nil) An array of tags
       # @option opts [String, nil] :message (nil) A message to associate with this service check status
     # @example Report a critical service check status
@@ -486,7 +486,11 @@ module Datadog
           escaped_message = escape_service_check_message(message)
           sc_string << "|m:#{escaped_message}"
         else
-          value = remove_pipes(opts[key])
+          if key == :timestamp && opts[key].is_a?(Integer)
+            value = opts[key]
+          else
+            value = remove_pipes(opts[key])
+          end
           sc_string << "|#{shorthand_key}#{value}"
         end
       end
