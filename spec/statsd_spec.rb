@@ -3,6 +3,7 @@ require_relative 'helper'
 require 'allocation_stats' if RUBY_VERSION >= "2.3.0"
 require 'socket'
 require 'stringio'
+require 'time'
 
 SingleCov.covered! file: 'lib/datadog/statsd.rb' if RUBY_VERSION > "2.0"
 
@@ -868,6 +869,7 @@ describe Datadog::Statsd do
       title = Faker::Lorem.sentence(_word_count =  rand(3))
       text = Faker::Lorem.sentence(_word_count = rand(3))
       tags = Faker::Lorem.words(rand(1..10))
+      timestamp = Time.parse('01-01-2000').to_i
       tags_joined = tags.join(",")
 
       it "Only title and text" do
@@ -899,6 +901,14 @@ describe Datadog::Statsd do
       it "With unknown priority" do
         @statsd.event(title, text, :priority => 'bizarre')
         socket.recv.must_equal ["#{@statsd.send(:format_event, title, text)}|p:bizarre"]
+      end
+      it "With Integer date_happened" do
+        @statsd.event(title, text, :date_happened => timestamp)
+        socket.recv.must_equal ["#{@statsd.send(:format_event, title, text)}|d:#{timestamp}"]
+      end
+      it "With String date_happened" do
+        @statsd.event(title, text, :date_happened => "#{timestamp}")
+        socket.recv.must_equal ["#{@statsd.send(:format_event, title, text)}|d:#{timestamp}"]
       end
       it "With hostname" do
         @statsd.event(title, text, :hostname => 'hostname_test')
@@ -948,6 +958,7 @@ describe Datadog::Statsd do
       name = Faker::Lorem.sentence(_word_count = rand(3))
       status = rand(4)
       hostname = "hostname_test"
+      timestamp = Time.parse('01-01-2000').to_i
       tags = Faker::Lorem.words(rand(1..10))
       tags_joined = tags.join(",")
 
@@ -964,6 +975,16 @@ describe Datadog::Statsd do
       it "sends with with message" do
         @statsd.service_check(name, status, :message => 'testing | m: \n')
         socket.recv.must_equal ["_sc|#{name}|#{status}|m:testing  m\\: \\n"]
+      end
+
+      it "With Integer timestamp" do
+        @statsd.service_check(name, status, :timestamp => timestamp)
+        socket.recv.must_equal ["_sc|#{name}|#{status}|d:#{timestamp}"]
+      end
+
+      it "With String timestamp" do
+        @statsd.service_check(name, status, :timestamp => "#{timestamp}")
+        socket.recv.must_equal ["_sc|#{name}|#{status}|d:#{timestamp}"]
       end
 
       it "sends with with tags" do

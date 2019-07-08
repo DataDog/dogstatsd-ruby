@@ -407,8 +407,8 @@ module Datadog
     # @param [String] name Service check name
     # @param [String] status Service check status.
     # @param [Hash] opts the additional data about the service check
-      # @option opts [Integer, nil] :timestamp (nil) Assign a timestamp to the event. Default is now when none
-      # @option opts [String, nil] :hostname (nil) Assign a hostname to the event.
+      # @option opts [Integer, String, nil] :timestamp (nil) Assign a timestamp to the service check. Default is now when none
+      # @option opts [String, nil] :hostname (nil) Assign a hostname to the service check.
       # @option opts [Array<String>, nil] :tags (nil) An array of tags
       # @option opts [String, nil] :message (nil) A message to associate with this service check status
     # @example Report a critical service check status
@@ -426,7 +426,7 @@ module Datadog
     # @param [String] title Event title
     # @param [String] text Event text. Supports newlines (+\n+)
     # @param [Hash] opts the additional data about the event
-    # @option opts [Integer, nil] :date_happened (nil) Assign a timestamp to the event. Default is now when none
+    # @option opts [Integer, String, nil] :date_happened (nil) Assign a timestamp to the event. Default is now when none
     # @option opts [String, nil] :hostname (nil) Assign a hostname to the event.
     # @option opts [String, nil] :aggregation_key (nil) Assign an aggregation key to the event, to group it with some others
     # @option opts [String, nil] :priority ('normal') Can be "normal" or "low"
@@ -486,7 +486,11 @@ module Datadog
           escaped_message = escape_service_check_message(message)
           sc_string << "|m:#{escaped_message}"
         else
-          value = remove_pipes(opts[key])
+          if key == :timestamp && opts[key].is_a?(Integer)
+            value = opts[key]
+          else
+            value = remove_pipes(opts[key])
+          end
           sc_string << "|#{shorthand_key}#{value}"
         end
       end
@@ -502,7 +506,14 @@ module Datadog
       # All pipes ('|') in the metadata are removed. Title and Text can keep theirs
       OPTS_KEYS.each do |key, shorthand_key|
         if key != :tags && opts[key]
-          value = remove_pipes(opts[key])
+          # :date_happened is the only key where the value is an Integer
+          # To not break backwards compatibility, we still accept a String
+          if key == :date_happened && opts[key].is_a?(Integer)
+              value = opts[key]
+          # All other keys only have String values
+          else
+              value = remove_pipes(opts[key])
+          end
           event_string_data << "|#{shorthand_key}:#{value}"
         end
       end
