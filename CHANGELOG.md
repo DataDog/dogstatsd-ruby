@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## 4.4.0 / 2019.07.15
+
+* [BUGFIX] Allow Integer date_happened and timestamp options [#115][]
+* [OTHER] Update yard gem to 0.9.20 [#114][]
+
 ## 4.3.0 / 2019.06.24
 
 * [FEATURE] Allow passing tags as a hash [#107][] by [@jtzemp][]
@@ -201,6 +206,8 @@ Future versions are likely to introduce backward incompatibilities with < Ruby 1
 [#109]: https://github.com/DataDog/dogstatsd-ruby/issues/109
 [#110]: https://github.com/DataDog/dogstatsd-ruby/issues/110
 [#112]: https://github.com/DataDog/dogstatsd-ruby/issues/112
+[#114]: https://github.com/DataDog/dogstatsd-ruby/issues/114
+[#115]: https://github.com/DataDog/dogstatsd-ruby/issues/115
 [@AMekss]: https://github.com/AMekss
 [@abicky]: https://github.com/abicky
 [@adimitrov]: https://github.com/adimitrov
