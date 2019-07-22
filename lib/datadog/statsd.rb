@@ -44,9 +44,10 @@ module Datadog
       rescue StandardError => boom
         # Try once to reconnect if the socket has been closed
         retries ||= 1
-        if retries <= 1 && boom.is_a?(Errno::ENOTCONN) or
-           retries <= 1 && boom.is_a?(Errno::ECONNREFUSED) or
-           retries <= 1 && boom.is_a?(IOError) && boom.message =~ /closed stream/i
+        if retries <= 1 &&
+          (boom.is_a?(Errno::ENOTCONN) or
+           boom.is_a?(Errno::ECONNREFUSED) or
+           boom.is_a?(IOError) && boom.message =~ /closed stream/i)
           retries += 1
           begin
             @socket = connect
