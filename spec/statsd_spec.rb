@@ -622,6 +622,37 @@ describe Datadog::Statsd do
     end
   end
 
+  describe "handling connection refused" do
+    before do
+      @statsd.connection.instance_variable_set(:@logger, Logger.new(@log = StringIO.new))
+    end
+
+    it "tries to reconnect once" do
+      @statsd.connection.expects(:socket).times(2).returns(socket)
+      socket.expects(:send).returns("YEP") # 2nd call
+      socket.expects(:send).raises(Errno::ECONNREFUSED.new("closed stream")) # first call
+
+      @statsd.increment('foobar')
+    end
+
+    it "ignores and logs if it fails to reconnect" do
+      @statsd.connection.expects(:socket).times(2).returns(socket)
+      socket.expects(:send).raises(RuntimeError) # 2nd call
+      socket.expects(:send).raises(Errno::ECONNREFUSED.new) # first call
+
+      assert_nil @statsd.increment('foobar')
+      @log.string.must_include 'Statsd: RuntimeError'
+    end
+
+    it "ignores and logs errors while trying to reconnect" do
+      socket.expects(:send).raises(Errno::ECONNREFUSED.new)
+      @statsd.connection.expects(:connect).raises(SocketError)
+
+      assert_nil @statsd.increment('foobar')
+      @log.string.must_include 'Statsd: SocketError'
+    end
+  end
+
   describe "UDS error handling" do
     before do
       @statsd = Datadog::Statsd.new('localhost', 1234, {:socket_path => '/tmp/socket'})
@@ -1016,7 +1047,7 @@ describe Datadog::Statsd do
       assert_allocations(6) { @statsd.increment('foobar') }
     end
 
-    it "produces low amounts of garbage for timeing" do
+    it "produces low amounts of garbage for timing" do
       assert_allocations(6) { @statsd.time('foobar') { 1111 } }
     end
 
