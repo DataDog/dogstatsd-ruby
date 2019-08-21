@@ -25,14 +25,5 @@ end
 group :test do
   gem 'tins', '~> 1.6.0'
   gem 'mocha'
-  if RUBY_VERSION.start_with?("1.9")
-    gem 'json', '< 2'
-    gem 'public_suffix', '< 1.5'
-    gem 'rdoc', '< 5'
-    gem 'term-ansicolor', '< 1.4'
-    gem 'webmock', '< 2.3'
-    gem 'nokogiri', '< 1.7'
-  else
-    gem 'json'
-  end
+  gem 'json'
 end
