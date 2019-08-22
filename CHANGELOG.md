@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 4.5.0 / 2019.08.22
+
+* [BUGFIX] Handle ECONNREFUSED and typo fix [#113][] by [@redhotpenguin][]
+
 ## 4.4.0 / 2019.07.15
 
 * [BUGFIX] Allow Integer date_happened and timestamp options [#115][]
@@ -206,6 +210,7 @@ Future versions are likely to introduce backward incompatibilities with < Ruby 1
 [#109]: https://github.com/DataDog/dogstatsd-ruby/issues/109
 [#110]: https://github.com/DataDog/dogstatsd-ruby/issues/110
 [#112]: https://github.com/DataDog/dogstatsd-ruby/issues/112
+[#113]: https://github.com/DataDog/dogstatsd-ruby/issues/113
 [#114]: https://github.com/DataDog/dogstatsd-ruby/issues/114
 [#115]: https://github.com/DataDog/dogstatsd-ruby/issues/115
 [@AMekss]: https://github.com/AMekss
@@ -228,6 +233,7 @@ Future versions are likely to introduce backward incompatibilities with < Ruby 1
 [@olefriis]: https://github.com/olefriis
 [@pschambacher]: https://github.com/pschambacher
 [@ramfjord]: https://github.com/ramfjord
+[@redhotpenguin]: https://github.com/redhotpenguin
 [@sensadrome]: https://github.com/sensadrome
 [@sj26]: https://github.com/sj26
 [@sullerandras]: https://github.com/sullerandras
