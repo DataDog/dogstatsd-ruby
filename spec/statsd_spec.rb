@@ -363,6 +363,17 @@ describe Datadog::Statsd do
       end
     end
 
+    describe "with tags" do
+      before { class << @statsd; def rand; 0; end; end } # ensure delivery
+      it "should format the message according to the statsd spec" do
+        stub_time 0
+        @statsd.time('foobar', :sample_rate=>0.5, :tags => ["foo:bar"]) do
+          stub_time 1
+        end
+        socket.recv.must_equal ['foobar:1000|ms|@0.5|#foo:bar']
+      end
+    end
+
     describe "with a sample rate like statsd-ruby" do
       before { class << @statsd; def rand; 0; end; end } # ensure delivery
       it "should format the message according to the statsd spec" do
