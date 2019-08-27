@@ -1064,11 +1064,11 @@ describe Datadog::Statsd do
     before { skip('AllocationStats is not available: skipping.') unless defined?(AllocationStats) }
 
     it "produces low amounts of garbage for simple methods" do
-      assert_allocations(6) { @statsd.increment('foobar') }
+      assert_allocations(5) { @statsd.increment('foobar') }
     end
 
     it "produces low amounts of garbage for timing" do
-      assert_allocations(6) { @statsd.time('foobar') { 1111 } }
+      assert_allocations(5) { @statsd.time('foobar') { 1111 } }
     end
 
     def assert_allocations(count, &block)
