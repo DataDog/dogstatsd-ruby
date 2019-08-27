@@ -372,6 +372,15 @@ describe Datadog::Statsd do
         end
         socket.recv.must_equal ['foobar:1000|ms|@0.5|#foo:bar']
       end
+
+      it "should yield the options for additional tags" do
+        stub_time 0
+        @statsd.time('foobar', :sample_rate=>0.5) do |opts|
+          opts[:tags] = ["foo:bar"]
+          stub_time 1
+        end
+        socket.recv.must_equal ['foobar:1000|ms|@0.5|#foo:bar']
+      end
     end
 
     describe "with a sample rate like statsd-ruby" do

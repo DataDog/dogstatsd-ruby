@@ -384,7 +384,7 @@ module Datadog
     def time(stat, opts=EMPTY_OPTIONS)
       opts = {:sample_rate => opts} if opts.is_a? Numeric
       start = (PROCESS_TIME_SUPPORTED ? Process.clock_gettime(Process::CLOCK_MONOTONIC) : Time.now.to_f)
-      return yield
+      return yield opts
     ensure
       finished = (PROCESS_TIME_SUPPORTED ? Process.clock_gettime(Process::CLOCK_MONOTONIC) : Time.now.to_f)
       timing(stat, ((finished - start) * 1000).round, opts)
