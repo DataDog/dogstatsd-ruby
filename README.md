@@ -28,7 +28,7 @@ require 'datadog/statsd'
 statsd = Datadog::Statsd.new('localhost', 8125)
 ```
 
-Find a list of all the available options for your DogStatsD Client in the [DogStatsD-ruby rubydoc](https://www.rubydoc.info/github/DataDog/dogstatsd-ruby/master/Datadog/Statsd).
+Find a list of all the available options for your DogStatsD Client in the [DogStatsD-ruby rubydoc](https://www.rubydoc.info/github/DataDog/dogstatsd-ruby/master/Datadog/Statsd) or in the [Datadog public DogStatsD documentation](https://docs.datadoghq.com/developers/dogstatsd/?tab=go#client-instantiation-parameters).
 
 ### Origin detection over UDP
 
@@ -43,7 +43,6 @@ env:
         fieldPath: metadata.uid
 ```
 The DogStatsD client attaches an internal tag, `entity_id`. The value of this tag is the content of the `DD_ENTITY_ID` environment variable, which is the pod’s UID.
-
 
 ## Usage
 
