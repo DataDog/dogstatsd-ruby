@@ -46,7 +46,7 @@ The DogStatsD client attaches an internal tag, `entity_id`. The value of this ta
 
 ## Usage
 
-For usage of DogStatsD metrics, the Agent must be [running and available](https://docs.datadoghq.com/developers/dogstatsd/?tab=ruby).
+For usage of DogStatsD metrics, events, and Service Checks the Agent must be [running and available](https://docs.datadoghq.com/developers/dogstatsd/?tab=ruby).
 
 ### Metrics
 
