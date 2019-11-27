@@ -165,6 +165,14 @@ describe Datadog::Statsd do
       end
     end
 
+    describe "with sampling bypassed" do
+      before { class << @statsd; def rand; 1; end; end } # ensure that we wouldn't deliver if we checked
+      it "should include the sample rate but not sample itself" do
+        @statsd.increment('foobar', :sample_rate=>0.5, :bypass_sampling=>true)
+        socket.recv.must_equal ['foobar:1|c|@0.5']
+      end
+    end
+
     describe "with a increment by" do
       it "should increment by the number given" do
         @statsd.increment('foobar', :by=>5)
@@ -191,6 +199,14 @@ describe Datadog::Statsd do
       before { class << @statsd; def rand; 0; end; end } # ensure delivery
       it "should format the message according to the statsd spec" do
         @statsd.decrement('foobar', 0.5)
+        socket.recv.must_equal ['foobar:-1|c|@0.5']
+      end
+    end
+
+    describe "with sampling bypassed" do
+      before { class << @statsd; def rand; 1; end; end } # ensure that we wouldn't deliver if we checked
+      it "should include the sample rate but not sample itself" do
+        @statsd.decrement('foobar', :sample_rate=>0.5, :bypass_sampling=>true)
         socket.recv.must_equal ['foobar:-1|c|@0.5']
       end
     end
@@ -233,6 +249,14 @@ describe Datadog::Statsd do
         socket.recv.must_equal ['begrutten-suffusion:536|g|@0.1']
       end
     end
+
+    describe "with sampling bypassed" do
+      before { class << @statsd; def rand; 1; end; end } # ensure that we wouldn't deliver if we checked
+      it "should include the sample rate but not sample itself" do
+        @statsd.gauge('begrutten-suffusion', 536, :sample_rate=>0.1, :bypass_sampling=>true)
+        socket.recv.must_equal ['begrutten-suffusion:536|g|@0.1']
+      end
+    end
   end
 
   describe "#histogram" do
@@ -248,6 +272,14 @@ describe Datadog::Statsd do
       it "should format the message according to the statsd spec" do
         @statsd.gauge('begrutten-suffusion', 536, :sample_rate=>0.1)
         socket.recv.must_equal ['begrutten-suffusion:536|g|@0.1']
+      end
+    end
+
+    describe "with sampling bypassed" do
+      before { class << @statsd; def rand; 1; end; end } # ensure that we wouldn't deliver if we checked
+      it "should include the sample rate but not sample itself" do
+        @statsd.histogram('ohmy', 536, :sample_rate=>0.1, :bypass_sampling=>true)
+        socket.recv.must_equal ['ohmy:536|h|@0.1']
       end
     end
   end
@@ -273,6 +305,14 @@ describe Datadog::Statsd do
         socket.recv.must_equal ['my.set:536|s|@0.5']
       end
     end
+
+    describe "with sampling bypassed" do
+      before { class << @statsd; def rand; 1; end; end } # ensure that we wouldn't deliver if we checked
+      it "should include the sample rate but not sample itself" do
+        @statsd.set('my.set', 536, :sample_rate=>0.5, :bypass_sampling=>true)
+        socket.recv.must_equal ['my.set:536|s|@0.5']
+      end
+    end
   end
 
   describe "#timing" do
@@ -293,6 +333,14 @@ describe Datadog::Statsd do
       before { class << @statsd; def rand; 0; end; end } # ensure delivery
       it "should format the message according to the statsd spec" do
         @statsd.timing('foobar', 500, 0.5)
+        socket.recv.must_equal ['foobar:500|ms|@0.5']
+      end
+    end
+
+    describe "with sampling bypassed" do
+      before { class << @statsd; def rand; 1; end; end } # ensure that we wouldn't deliver if we checked
+      it "should include the sample rate but not sample itself" do
+        @statsd.timing('foobar', 500, :sample_rate=>0.5, :bypass_sampling=>true)
         socket.recv.must_equal ['foobar:500|ms|@0.5']
       end
     end

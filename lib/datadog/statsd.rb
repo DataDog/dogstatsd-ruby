@@ -271,6 +271,7 @@ module Datadog
     # @param [String] stat stat name
     # @param [Hash] opts the options to create the metric with
     # @option opts [Numeric] :sample_rate sample rate, 1 for always
+    # @option opts [Boolean] :bypass_sampling if true, do not actually sample the data, but still report the sample rate passed in. Use this if you're doing your own sampling
     # @option opts [Array<String>] :tags An array of tags
     # @option opts [Numeric] :by increment value, default 1
     # @see #count
@@ -285,6 +286,7 @@ module Datadog
     # @param [String] stat stat name
     # @param [Hash] opts the options to create the metric with
     # @option opts [Numeric] :sample_rate sample rate, 1 for always
+    # @option opts [Boolean] :bypass_sampling if true, do not actually sample the data, but still report the sample rate passed in. Use this if you're doing your own sampling
     # @option opts [Array<String>] :tags An array of tags
     # @option opts [Numeric] :by decrement value, default 1
     # @see #count
@@ -300,6 +302,7 @@ module Datadog
     # @param [Integer] count count
     # @param [Hash] opts the options to create the metric with
     # @option opts [Numeric] :sample_rate sample rate, 1 for always
+    # @option opts [Boolean] :bypass_sampling if true, do not actually sample the data, but still report the sample rate passed in. Use this if you're doing your own sampling
     # @option opts [Array<String>] :tags An array of tags
     def count(stat, count, opts=EMPTY_OPTIONS)
       opts = {:sample_rate => opts} if opts.is_a? Numeric
@@ -316,6 +319,7 @@ module Datadog
     # @param [Numeric] value gauge value.
     # @param [Hash] opts the options to create the metric with
     # @option opts [Numeric] :sample_rate sample rate, 1 for always
+    # @option opts [Boolean] :bypass_sampling if true, do not actually sample the data, but still report the sample rate passed in. Use this if you're doing your own sampling
     # @option opts [Array<String>] :tags An array of tags
     # @example Report the current user count:
     #   $statsd.gauge('user.count', User.count)
@@ -330,6 +334,7 @@ module Datadog
     # @param [Numeric] value histogram value.
     # @param [Hash] opts the options to create the metric with
     # @option opts [Numeric] :sample_rate sample rate, 1 for always
+    # @option opts [Boolean] :bypass_sampling if true, do not actually sample the data, but still report the sample rate passed in. Use this if you're doing your own sampling
     # @option opts [Array<String>] :tags An array of tags
     # @example Report the current user count:
     #   $statsd.histogram('user.count', User.count)
@@ -346,6 +351,7 @@ module Datadog
     # @param [Numeric] value distribution value.
     # @param [Hash] opts the options to create the metric with
     # @option opts [Numeric] :sample_rate sample rate, 1 for always
+    # @option opts [Boolean] :bypass_sampling if true, do not actually sample the data, but still report the sample rate passed in. Use this if you're doing your own sampling
     # @option opts [Array<String>] :tags An array of tags
     # @example Report the current user count:
     #   $statsd.distribution('user.count', User.count)
@@ -362,6 +368,7 @@ module Datadog
     # @param [Integer] ms timing in milliseconds
     # @param [Hash] opts the options to create the metric with
     # @option opts [Numeric] :sample_rate sample rate, 1 for always
+    # @option opts [Boolean] :bypass_sampling if true, do not actually sample the data, but still report the sample rate passed in. Use this if you're doing your own sampling
     # @option opts [Array<String>] :tags An array of tags
     def timing(stat, ms, opts=EMPTY_OPTIONS)
       opts = {:sample_rate => opts} if opts.is_a? Numeric
@@ -376,6 +383,7 @@ module Datadog
     # @param [String] stat stat name
     # @param [Hash] opts the options to create the metric with
     # @option opts [Numeric] :sample_rate sample rate, 1 for always
+    # @option opts [Boolean] :bypass_sampling if true, do not actually sample the data, but still report the sample rate passed in. Use this if you're doing your own sampling
     # @option opts [Array<String>] :tags An array of tags
     # @yield The operation to be timed
     # @see #timing
@@ -396,6 +404,7 @@ module Datadog
     # @param [Numeric] value set value.
     # @param [Hash] opts the options to create the metric with
     # @option opts [Numeric] :sample_rate sample rate, 1 for always
+    # @option opts [Boolean] :bypass_sampling if true, do not actually sample the data, but still report the sample rate passed in. Use this if you're doing your own sampling
     # @option opts [Array<String>] :tags An array of tags
     # @example Record a unique visitory by id:
     #   $statsd.set('visitors.uniques', User.id)
@@ -564,7 +573,7 @@ module Datadog
 
     def send_stats(stat, delta, type, opts=EMPTY_OPTIONS)
       sample_rate = opts[:sample_rate] || @sample_rate || 1
-      if sample_rate == 1 or rand <= sample_rate
+      if sample_rate == 1 or opts[:bypass_sampling] or rand <= sample_rate
         full_stat = ''.dup
         full_stat << @prefix if @prefix
 
