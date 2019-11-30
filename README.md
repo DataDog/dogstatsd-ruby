@@ -31,7 +31,7 @@ Or if you want to connect over Unix Domain Socket:
 statsd = Datadog::Statsd.new(socket_path: '/path/to/socket/file')
 ```
 
-Find a list of all the available options for your DogStatsD Client in the [DogStatsD-ruby rubydoc](https://www.rubydoc.info/github/DataDog/dogstatsd-ruby/master/Datadog/Statsd) or in the [Datadog public DogStatsD documentation](https://docs.datadoghq.com/developers/dogstatsd/?tab=go#client-instantiation-parameters).
+Find a list of all the available options for your DogStatsD Client in the [DogStatsD-ruby rubydoc](https://www.rubydoc.info/github/DataDog/dogstatsd-ruby/master/Datadog/Statsd) or in the [Datadog public DogStatsD documentation](https://docs.datadoghq.com/developers/dogstatsd/?tab=ruby#client-instantiation-parameters).
 
 ### Origin detection over UDP
 
