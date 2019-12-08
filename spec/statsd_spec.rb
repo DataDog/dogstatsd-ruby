@@ -915,7 +915,15 @@ describe Datadog::Statsd do
       end
       it "Event data string too long > 8KB" do
         long_text = "#{text} " * 200000
-        proc {@statsd.event(title, long_text)}.must_raise RuntimeError
+        @statsd.event(title, long_text)
+        response = socket.recv.first
+        response.must_equal @statsd.send(:format_event, title, long_text)
+        assert_operator response.bytesize, :<=, Datadog::Statsd::MAX_EVENT_SIZE
+        assert_operator response.match(/_e{\d*,(\d*)}.*/).captures.first.to_i, :<, long_text.bytesize
+      end
+      it "Event data string too long > 8KB, truncate: false" do
+        long_text = "#{text} " * 200000
+        proc {@statsd.event(title, long_text, :truncate => false)}.must_raise RuntimeError
       end
       it "With known alert_type" do
         @statsd.event(title, text, :alert_type => 'warning')

@@ -435,6 +435,7 @@ module Datadog
     # @option opts [String, nil] :source_type_name (nil) Assign a source type to the event
     # @option opts [String, nil] :alert_type ('info') Can be "error", "warning", "info" or "success".
     # @option opts [Array<String>] :tags tags to be added to every metric
+    # @option opts [Boolean, true] :truncate truncate events longer than MAX_EVENT_SIZE
     # @example Report an awful event:
     #   $statsd.event('Something terrible happened', 'The end is near if we do nothing', :alert_type=>'warning', :tags=>['end_of_times','urgent'])
     def event(title, text, opts=EMPTY_OPTIONS)
@@ -500,9 +501,11 @@ module Datadog
     end
 
     def format_event(title, text, opts=EMPTY_OPTIONS)
+      formatted_opts_keys = ""
+      formatted_tags = ""
+      truncation_indicator = "…"
       escaped_title = escape_event_content(title)
       escaped_text = escape_event_content(text)
-      event_string_data = "_e{#{escaped_title.bytesize},#{escaped_text.bytesize}}:#{escaped_title}|#{escaped_text}".dup
 
       # We construct the string to be sent by adding '|key:value' parts to it when needed
       # All pipes ('|') in the metadata are removed. Title and Text can keep theirs
@@ -516,17 +519,28 @@ module Datadog
           else
               value = remove_pipes(opts[key])
           end
-          event_string_data << "|#{shorthand_key}:#{value}"
+          formatted_opts_keys += "|#{shorthand_key}:#{value}"
         end
       end
 
       # Tags are joined and added as last part to the string to be sent
       if tags_string = tags_as_string(opts)
-        event_string_data << "|##{tags_string}"
+        formatted_tags += "|##{tags_string}"
       end
 
+      formatted_event_suffix = "#{formatted_opts_keys}#{formatted_tags}"
+      max_text_length = MAX_EVENT_SIZE - format_event_prefix(escaped_title, escaped_text).bytesize - formatted_event_suffix.bytesize - truncation_indicator.bytesize
+
+      formatted_event_text = opts[:truncate] == false ? escaped_text : "#{escaped_text.byteslice(0, max_text_length)}#{truncation_indicator}"
+
+      event_string_data = format_event_prefix(escaped_title, formatted_event_text) + formatted_event_text + formatted_event_suffix
       raise "Event #{title} payload is too big (more that 8KB), event discarded" if event_string_data.bytesize > MAX_EVENT_SIZE
+
       event_string_data
+    end
+
+    def format_event_prefix(title, text)
+      "_e{#{title.bytesize},#{text.bytesize}}:#{title}|"
     end
 
     def tags_as_string(opts)
