@@ -338,9 +338,6 @@ module Datadog
     end
 
     # Sends a value to be tracked as a distribution to the statsd server.
-    # Note: Distributions are a beta feature of Datadog and not generally
-    # available. Distributions must be specifically enabled for your
-    # organization.
     #
     # @param [String] stat stat name.
     # @param [Numeric] value distribution value.
