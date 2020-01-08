@@ -3,6 +3,7 @@ source 'https://rubygems.org'
 gem 'rake', '10.1.0'
 gem 'rack', '~> 1.6'
 gem 'minitest'
+gem 'minitest-matchers'
 gem "yard", "~> 0.9.20"
 gem 'single_cov'
 
