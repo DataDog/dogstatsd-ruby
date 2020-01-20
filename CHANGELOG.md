@@ -2,7 +2,7 @@
 
 [//]: # (comment: Don't forget to update lib/datadog/statsd.rb:DogStatsd::Statsd::VERSION when releasing a new version)
 
-## 4.6.0 / 2020.01.16
+## 4.6.0 / 2020.01.20
 
 * [FEATURE] Adding telemetry to the dogstatsd client [#128][]
 
