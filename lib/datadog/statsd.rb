@@ -258,7 +258,7 @@ datadog.dogstatsd.client.packets_dropped:#{@packets_dropped}|#{COUNTER_TYPE}|##{
     DISTRIBUTION_TYPE = 'd'.freeze
     TIMING_TYPE = 'ms'.freeze
     SET_TYPE = 's'.freeze
-    VERSION = "4.5.0".freeze
+    VERSION = "4.6.0".freeze
 
     # A namespace to prepend to all statsd calls. Defaults to no namespace.
     attr_reader :namespace

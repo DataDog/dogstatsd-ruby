@@ -1,5 +1,11 @@
 # CHANGELOG
 
+[//]: # (comment: Don't forget to update lib/datadog/statsd.rb:DogStatsd::Statsd::VERSION when releasing a new version)
+
+## 4.6.0 / 2020.01.20
+
+* [FEATURE] Adding telemetry to the dogstatsd client [#128][]
+
 ## 4.5.0 / 2019.08.22
 
 * [BUGFIX] Handle ECONNREFUSED and typo fix [#113][] by [@redhotpenguin][]
@@ -213,6 +219,7 @@ Future versions are likely to introduce backward incompatibilities with < Ruby 1
 [#113]: https://github.com/DataDog/dogstatsd-ruby/issues/113
 [#114]: https://github.com/DataDog/dogstatsd-ruby/issues/114
 [#115]: https://github.com/DataDog/dogstatsd-ruby/issues/115
+[#128]: https://github.com/DataDog/dogstatsd-ruby/issues/128
 [@AMekss]: https://github.com/AMekss
 [@abicky]: https://github.com/abicky
 [@adimitrov]: https://github.com/adimitrov
