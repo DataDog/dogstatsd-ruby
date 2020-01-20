@@ -219,7 +219,7 @@ Future versions are likely to introduce backward incompatibilities with < Ruby 1
 [#113]: https://github.com/DataDog/dogstatsd-ruby/issues/113
 [#114]: https://github.com/DataDog/dogstatsd-ruby/issues/114
 [#115]: https://github.com/DataDog/dogstatsd-ruby/issues/115
-[#115]: https://github.com/DataDog/dogstatsd-ruby/issues/128
+[#128]: https://github.com/DataDog/dogstatsd-ruby/issues/128
 [@AMekss]: https://github.com/AMekss
 [@abicky]: https://github.com/abicky
 [@adimitrov]: https://github.com/adimitrov
