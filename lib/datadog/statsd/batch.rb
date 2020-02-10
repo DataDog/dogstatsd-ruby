@@ -12,6 +12,7 @@ module Datadog
 
       def open
         @depth += 1
+
         yield
       ensure
         @depth -= 1
@@ -40,7 +41,7 @@ module Datadog
 
       def flush
         return if @buffer_bytes == 0
-        @connection.write @buffer
+        @connection.write(@buffer)
         reset
       end
 
