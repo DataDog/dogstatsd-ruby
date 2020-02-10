@@ -37,11 +37,11 @@ module Datadog
 
     # Service check options
     SC_OPT_KEYS = {
-      :timestamp  => 'd:'.freeze,
-      :hostname   => 'h:'.freeze,
-      :tags       => '#'.freeze,
-      :message    => 'm:'.freeze,
-    }
+      :timestamp  => 'd:',
+      :hostname   => 'h:',
+      :tags       => '#',
+      :message    => 'm:',
+    }.freeze
 
     OK        = 0
     WARNING   = 1
@@ -51,13 +51,13 @@ module Datadog
     DEFAULT_BUFFER_SIZE = 8 * 1_024
     MAX_EVENT_SIZE = 8 * 1_024
 
-    COUNTER_TYPE = 'c'.freeze
-    GAUGE_TYPE = 'g'.freeze
-    HISTOGRAM_TYPE = 'h'.freeze
-    DISTRIBUTION_TYPE = 'd'.freeze
-    TIMING_TYPE = 'ms'.freeze
-    SET_TYPE = 's'.freeze
-    VERSION = "4.6.0".freeze
+    COUNTER_TYPE = 'c'
+    GAUGE_TYPE = 'g'
+    HISTOGRAM_TYPE = 'h'
+    DISTRIBUTION_TYPE = 'd'
+    TIMING_TYPE = 'ms'
+    SET_TYPE = 's'
+    VERSION = '4.6.0'
 
     # A namespace to prepend to all statsd calls. Defaults to no namespace.
     attr_reader :namespace
@@ -329,14 +329,14 @@ module Datadog
 
     private
 
-    NEW_LINE = "\n".freeze
-    ESC_NEW_LINE = "\\n".freeze
-    COMMA = ",".freeze
-    PIPE = "|".freeze
-    DOT = ".".freeze
-    DOUBLE_COLON = "::".freeze
-    UNDERSCORE = "_".freeze
-    PROCESS_TIME_SUPPORTED = (RUBY_VERSION >= "2.1.0")
+    NEW_LINE = "\n"
+    ESC_NEW_LINE = "\\n"
+    COMMA = ','
+    PIPE = '|'
+    DOT = '.'
+    DOUBLE_COLON = '::'
+    UNDERSCORE = '_'
+    PROCESS_TIME_SUPPORTED = (RUBY_VERSION >= '2.1.0')
     EMPTY_OPTIONS = {}.freeze
 
     private_constant :NEW_LINE, :ESC_NEW_LINE, :COMMA, :PIPE, :DOT,
@@ -428,7 +428,7 @@ module Datadog
     end
 
     def escape_service_check_message(msg)
-      escape_event_content(msg).gsub('m:'.freeze, 'm\:'.freeze)
+      escape_event_content(msg).gsub('m:', 'm\:')
     end
 
     def send_stats(stat, delta, type, opts=EMPTY_OPTIONS)
@@ -441,23 +441,23 @@ module Datadog
         stat = stat.is_a?(String) ? stat.dup : stat.to_s
         # Replace Ruby module scoping with '.' and reserved chars (: | @) with underscores.
         stat.gsub!(DOUBLE_COLON, DOT)
-        stat.tr!(':|@'.freeze, UNDERSCORE)
+        stat.tr!(':|@', UNDERSCORE)
         full_stat << stat
 
-        full_stat << ':'.freeze
+        full_stat << ':'
         full_stat << delta.to_s
         full_stat << PIPE
         full_stat << type
 
         unless sample_rate == 1
           full_stat << PIPE
-          full_stat << '@'.freeze
+          full_stat << '@'
           full_stat << sample_rate.to_s
         end
 
         if tags_string = tags_as_string(opts)
           full_stat << PIPE
-          full_stat << '#'.freeze
+          full_stat << '#'
           full_stat << tags_string
         end
         send_stat(full_stat)
