@@ -75,8 +75,8 @@ describe Datadog::Statsd do
     end
 
     it "defaults host, port, namespace, and tags contains entity id" do
-      stub = Proc.new do |arg|
-        arg == 'DD_ENTITY_ID' ? '04652bb7-19b7-11e9-9cc6-42010a9c016d' : nil
+      stub = Proc.new do |arg, default|
+        arg == 'DD_ENTITY_ID' ? '04652bb7-19b7-11e9-9cc6-42010a9c016d' : default
       end
       ENV.stub :fetch, stub do
         statsd = Datadog::Statsd.new

@@ -7,6 +7,9 @@ module Datadog
     class UDSConnection < Connection
       class BadSocketError < StandardError; end
 
+      # DogStatsd unix socket path
+      attr_reader :socket_path
+
       def initialize(socket_path, logger, telemetry)
         super(telemetry)
         @socket_path = socket_path
