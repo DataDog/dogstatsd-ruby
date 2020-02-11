@@ -1,4 +1,5 @@
 # frozen_string_literal: true
+require 'time'
 
 module Datadog
   class Statsd
@@ -12,9 +13,10 @@ module Datadog
       attr_accessor :packets_dropped
       attr_reader   :estimate_max_size
 
-      def initialize(disabled, tags)
+      def initialize(disabled, tags, flush_interval)
         @disabled = disabled
         @tags = tags
+        @flush_interval = flush_interval
         reset
 
         # estimate_max_size is an estimation or the maximum size of the
@@ -35,6 +37,14 @@ module Datadog
         @bytes_dropped = 0
         @packets_sent = 0
         @packets_dropped = 0
+        @next_flush_time = Time.now.to_i + @flush_interval
+      end
+
+      def flush?
+        if @next_flush_time < Time.now.to_i
+          return true
+        end
+        return false
       end
 
       def flush
