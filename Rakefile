@@ -3,12 +3,12 @@ require 'bundler/gem_tasks'
 require 'rake/testtask'
 require 'yard'
 
-task default: [:spec, :rubocop]
+task default: [:test, :rubocop]
 
-Rake::TestTask.new(:spec) do |spec|
-  spec.loader = :direct
-  spec.pattern = './spec/statsd_spec.rb'
-  spec.verbose = true
+Rake::TestTask.new(:test) do |test|
+  test.loader = :direct
+  test.pattern = './test/statsd_spec.rb'
+  test.verbose = true
 end
 
 namespace :build do
