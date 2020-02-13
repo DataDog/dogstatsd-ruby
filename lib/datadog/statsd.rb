@@ -50,6 +50,8 @@ module Datadog
 
     DEFAULT_BUFFER_SIZE = 8 * 1_024
     MAX_EVENT_SIZE = 8 * 1_024
+    # minimum flush interval for the telemetry in seconds
+    DEFAULT_TELEMETRY_FLUSH_INTERVAL = 10
 
     COUNTER_TYPE = 'c'
     GAUGE_TYPE = 'g'
@@ -94,7 +96,8 @@ module Datadog
       socket_path: nil,
       logger: nil,
       sample_rate: nil,
-      disable_telemetry: false
+      disable_telemetry: false,
+      telemetry_flush_interval: DEFAULT_TELEMETRY_FLUSH_INTERVAL
     )
       unless tags.nil? || tags.is_a?(Array) || tags.is_a?(Hash)
         raise ArgumentError, 'tags must be a Array<String> or a Hash'
@@ -114,7 +117,7 @@ module Datadog
       # init telemetry
       transport_type = socket_path.nil? ? 'udp': 'uds'
       telemetry_tags = (["client:ruby", "client_version:#{VERSION}", "client_transport:#{transport_type}"] + @tags).join(COMMA).freeze
-      @telemetry = Telemetry.new(disable_telemetry, telemetry_tags)
+      @telemetry = Telemetry.new(disable_telemetry, telemetry_tags, telemetry_flush_interval)
 
       if socket_path.nil?
         @connection = UDPConnection.new(host, port, logger, @telemetry)

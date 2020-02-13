@@ -20,7 +20,8 @@ describe Datadog::Statsd do
   let(:socket) { FakeUDPSocket.new }
 
   before do
-    @statsd = Datadog::Statsd.new('localhost', 1234, namespace: namespace, sample_rate: sample_rate)
+    # setting telemetry_flush_interval to -1 to flush the telemetry each time
+    @statsd = Datadog::Statsd.new('localhost', 1234, namespace: namespace, sample_rate: sample_rate, telemetry_flush_interval: -1)
     @statsd.connection.instance_variable_set(:@socket, socket)
   end
 
@@ -308,27 +309,35 @@ describe Datadog::Statsd do
     describe "With actual time testing" do
       before do
         stub_time 0 # Freezing time to prevent random test failures
+        statsd = Datadog::Statsd.new('localhost', 1234, disable_telemetry: true)
+        statsd.connection.instance_variable_set(:@socket, socket)
       end
 
       it "should format the message according to the statsd spec" do
-        @statsd.time('foobar') do
+        statsd = Datadog::Statsd.new('localhost', 1234, disable_telemetry: true)
+        statsd.connection.instance_variable_set(:@socket, socket)
+        statsd.time('foobar') do
           stub_time 1
         end
-        _(socket.recv[0]).must equal_with_telemetry 'foobar:1000|ms'
+        _(socket.recv[0]).must_equal 'foobar:1000|ms'
       end
 
       it "should still time if block is failing" do
+        statsd = Datadog::Statsd.new('localhost', 1234, disable_telemetry: true)
+        statsd.connection.instance_variable_set(:@socket, socket)
         assert_raises StandardError do
-          @statsd.time('foobar') do
+          statsd.time('foobar') do
             stub_time 1
             raise StandardError, 'This is failing'
           end
         end
-        _(socket.recv[0]).must equal_with_telemetry 'foobar:1000|ms'
+        _(socket.recv[0]).must_equal 'foobar:1000|ms'
       end
 
       def helper_time_return
-        @statsd.time('foobar') do
+        statsd = Datadog::Statsd.new('localhost', 1234, disable_telemetry: true)
+        statsd.connection.instance_variable_set(:@socket, socket)
+        statsd.time('foobar') do
           stub_time 1
           return
         end
@@ -336,7 +345,7 @@ describe Datadog::Statsd do
 
       it "should still time if block `return`s" do
         helper_time_return
-        _(socket.recv[0]).must equal_with_telemetry 'foobar:1000|ms'
+        _(socket.recv[0]).must_equal 'foobar:1000|ms'
       end
     end
 
@@ -353,30 +362,39 @@ describe Datadog::Statsd do
 
     it "can run without PROCESS_TIME_SUPPORTED" do
       stub_const :PROCESS_TIME_SUPPORTED, false do
-        result = @statsd.time('foobar') { 'test' }
+        statsd = Datadog::Statsd.new('localhost', 1234, disable_telemetry: true)
+        statsd.connection.instance_variable_set(:@socket, socket)
+
+        result = statsd.time('foobar') { 'test' }
         _(result).must_equal 'test'
       end
     end
 
     describe "with a sample rate" do
-      before { class << @statsd; def rand; 0; end; end } # ensure delivery
+      statsd = Datadog::Statsd.new('localhost', 1234, disable_telemetry: true)
+      before { class << statsd; def rand; 0; end; end } # ensure delivery
       it "should format the message according to the statsd spec" do
+        statsd.connection.instance_variable_set(:@socket, socket)
+
         stub_time 0
-        @statsd.time('foobar', :sample_rate=>0.5) do
+        statsd.time('foobar', :sample_rate=>0.5) do
           stub_time 1
         end
-        _(socket.recv[0]).must equal_with_telemetry 'foobar:1000|ms|@0.5'
+        _(socket.recv[0]).must_equal 'foobar:1000|ms|@0.5'
       end
     end
 
     describe "with a sample rate like statsd-ruby" do
-      before { class << @statsd; def rand; 0; end; end } # ensure delivery
+      statsd = Datadog::Statsd.new('localhost', 1234, disable_telemetry: true)
+      before { class << statsd; def rand; 0; end; end } # ensure delivery
       it "should format the message according to the statsd spec" do
+        statsd.connection.instance_variable_set(:@socket, socket)
+
         stub_time 0
-        @statsd.time('foobar', 0.5) do
+        statsd.time('foobar', 0.5) do
           stub_time 1
         end
-        _(socket.recv[0]).must equal_with_telemetry 'foobar:1000|ms|@0.5'
+        _(socket.recv[0]).must_equal 'foobar:1000|ms|@0.5'
       end
     end
   end
@@ -1064,6 +1082,7 @@ describe Datadog::Statsd do
 
   describe "telemetry" do
     it "should not be sent when disabled" do
+      # setting telemetry_flush_interval to -1 to flush the telemetry each time
       statsd = Datadog::Statsd.new('localhost', 1234, disable_telemetry: true)
       statsd.connection.instance_variable_set(:@socket, socket)
 
@@ -1072,11 +1091,18 @@ describe Datadog::Statsd do
     end
 
     it "should send by default" do
-      statsd = Datadog::Statsd.new('localhost', 1234)
+      # setting telemetry_flush_interval to 1 to flush the telemetry with at leas 1s gap between each flush
+      statsd = Datadog::Statsd.new('localhost', 1234, telemetry_flush_interval: 1)
+      # 1s flush interval
       statsd.connection.instance_variable_set(:@socket, socket)
 
       statsd.count("test", 21)
-      _(socket.recv[0]).must equal_with_telemetry "test:21|c"
+      _(socket.recv[0]).must_equal "test:21|c"
+
+      sleep(2)
+
+      statsd.count("test", 22)
+      _(socket.recv[0]).must equal_with_telemetry("test:22|c", metrics: 2, packets_sent: 1, bytes_sent: 9)
     end
 
     it "should handle all data type" do
@@ -1129,7 +1155,8 @@ describe Datadog::Statsd do
       s = FakeUDPSocket.new
       s.error_on_send "some error"
 
-      statsd = Datadog::Statsd.new('localhost', 1234)
+      # setting telemetry_flush_interval to -1 to flush the telemetry each time
+      statsd = Datadog::Statsd.new('localhost', 1234, telemetry_flush_interval: -1)
       statsd.connection.instance_variable_set(:@socket, s)
 
       statsd.gauge("test", 21)
@@ -1158,18 +1185,31 @@ describe Datadog::Statsd do
     before { skip('AllocationStats is not available: skipping.') unless defined?(AllocationStats) }
 
     it "produces low amounts of garbage for simple methods" do
-      assert_allocations(15) { @statsd.increment('foobar') }
+      if RUBY_VERSION.start_with?("2.3.")
+        assert_allocations(19) { @statsd.increment('foobar') }
+      else
+        assert_allocations(17) { @statsd.increment('foobar') }
+      end
     end
 
     it "produces low amounts of garbage for timing" do
-      assert_allocations(15) { @statsd.time('foobar') { 1111 } }
+      if RUBY_VERSION.start_with?("2.3.")
+        assert_allocations(19) { @statsd.increment('foobar') }
+      else
+        assert_allocations(17) { @statsd.increment('foobar') }
+      end
     end
 
     it "produces low amounts of garbage for simple methods without telemetry" do
       statsd = Datadog::Statsd.new('localhost', 1234, namespace: namespace, sample_rate: sample_rate, disable_telemetry: true)
       statsd.connection.instance_variable_set(:@socket, socket)
-      assert_allocations(7) { statsd.increment('foobar') }
-      assert_allocations(7) { statsd.time('foobar') { 1111 } }
+      if RUBY_VERSION.start_with?("2.3.")
+        assert_allocations(8) { statsd.increment('foobar') }
+        assert_allocations(8) { statsd.time('foobar') { 1111 } }
+      else
+        assert_allocations(7) { statsd.increment('foobar') }
+        assert_allocations(7) { statsd.time('foobar') { 1111 } }
+      end
     end
 
     def assert_allocations(count, &block)

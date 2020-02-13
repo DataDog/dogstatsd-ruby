@@ -12,12 +12,19 @@ module Datadog
         @socket && @socket.close
       end
 
-      def write(message)
-        logger.debug { "Statsd: #{message}" } if logger
-        payload = message + telemetry.flush
+      def write(payload)
+        logger.debug { "Statsd: #{payload}" } if logger
+        flush_telemetry = @telemetry.flush?
+        if flush_telemetry
+          payload += @telemetry.flush()
+        end
+
         send_message(payload)
 
-        telemetry.reset
+        if flush_telemetry
+          @telemetry.reset
+        end
+
         telemetry.bytes_sent += payload.length
         telemetry.packets_sent += 1
       rescue StandardError => boom
