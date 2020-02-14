@@ -9,7 +9,7 @@
 
 ## 4.6.0 / 2020.01.20
 
-* [FEATURE] Adding telemetry to the dogstatsd client [#128][] by [@hush-hushu][]
+* [FEATURE] Adding telemetry to the dogstatsd client [#128][] by [@hush-hush][]
 
 ## 4.5.0 / 2019.08.22
 
