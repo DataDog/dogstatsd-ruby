@@ -59,7 +59,7 @@ module Datadog
     DISTRIBUTION_TYPE = 'd'
     TIMING_TYPE = 'ms'
     SET_TYPE = 's'
-    VERSION = '4.6.0'
+    VERSION = '4.7.0'
 
     # A namespace to prepend to all statsd calls. Defaults to no namespace.
     attr_reader :namespace
