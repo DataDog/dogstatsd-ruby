@@ -2,9 +2,14 @@
 
 [//]: # (comment: Don't forget to update lib/datadog/statsd.rb:DogStatsd::Statsd::VERSION when releasing a new version)
 
+## 4.7.0 / 2020.02.14
+
+* [FEATURE] Add configurable flush interval for the telemetry [#132][] by [@hush-hush][]
+* [OTHER] Code structure and tests improvements [#131][] by [@kbogtob][]
+
 ## 4.6.0 / 2020.01.20
 
-* [FEATURE] Adding telemetry to the dogstatsd client [#128][]
+* [FEATURE] Adding telemetry to the dogstatsd client [#128][] by [@hush-hushu][]
 
 ## 4.5.0 / 2019.08.22
 
@@ -220,6 +225,8 @@ Future versions are likely to introduce backward incompatibilities with < Ruby 1
 [#114]: https://github.com/DataDog/dogstatsd-ruby/issues/114
 [#115]: https://github.com/DataDog/dogstatsd-ruby/issues/115
 [#128]: https://github.com/DataDog/dogstatsd-ruby/issues/128
+[#131]: https://github.com/DataDog/dogstatsd-ruby/issues/131
+[#132]: https://github.com/DataDog/dogstatsd-ruby/issues/132
 [@AMekss]: https://github.com/AMekss
 [@abicky]: https://github.com/abicky
 [@adimitrov]: https://github.com/adimitrov
@@ -232,9 +239,11 @@ Future versions are likely to introduce backward incompatibilities with < Ruby 1
 [@fimmtiu]: https://github.com/fimmtiu
 [@gleseur]: https://github.com/gleseur
 [@grosser]: https://github.com/grosser
+[@hush-hush]: https://github.com/hush-hush
 [@jacobbednarz]: https://github.com/jacobbednarz
 [@janester]: https://github.com/janester
 [@jtzemp]: https://github.com/jtzemp
+[@kbogtob]: https://github.com/kbogtob
 [@misterbyrne]: https://github.com/misterbyrne
 [@nelhage]: https://github.com/nelhage
 [@olefriis]: https://github.com/olefriis
