@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 require 'socket'
 
+require_relative 'statsd/version'
 require_relative 'statsd/telemetry'
 require_relative 'statsd/udp_connection'
 require_relative 'statsd/uds_connection'
@@ -59,7 +60,6 @@ module Datadog
     DISTRIBUTION_TYPE = 'd'
     TIMING_TYPE = 'ms'
     SET_TYPE = 's'
-    VERSION = '4.7.0'
 
     # A namespace to prepend to all statsd calls. Defaults to no namespace.
     attr_reader :namespace

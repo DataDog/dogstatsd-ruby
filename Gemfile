@@ -17,6 +17,8 @@ end
 
 group :development do
   gem 'faker'
+  gem 'rspec'
+  gem 'rspec-its'
 end
 
 group :test do
