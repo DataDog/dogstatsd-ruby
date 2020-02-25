@@ -19,6 +19,7 @@ group :development do
   gem 'faker'
   gem 'rspec'
   gem 'rspec-its'
+  gem 'timecop'
   gem 'byebug'
 end
 

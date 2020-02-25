@@ -3,8 +3,13 @@ require 'datadog/statsd'
 require 'rspec'
 require 'rspec/its'
 require 'byebug'
+require 'timecop'
+require 'stringio'
+require 'logger'
 
 Dir[File.join(File.dirname(__FILE__), '/support/**/*.rb')].each { |f| require f }
+Dir[File.join(File.dirname(__FILE__), '/matchers/**/*.rb')].each { |f| require f }
+Dir[File.join(File.dirname(__FILE__), '/shared/**/*.rb')].each { |f| require f }
 
 RSpec.configure do |config|
   config.expect_with :rspec do |expectations|
