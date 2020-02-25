@@ -604,4 +604,183 @@ describe Datadog::Statsd do
       end
     end
   end
+
+  describe '#event' do
+    let(:namespace) { nil }
+    let(:sample_rate) { nil }
+    let(:tags) { nil }
+    let(:title) { 'this is a title' }
+    let(:text) { 'this is a longer text' }
+    let(:timestamp) do
+      Time.parse('01-01-2000').to_i
+    end
+
+    it_behaves_like 'a taggable method', '_e{15,21}:this is a title|this is a longer text', metrics: 0, events: 1 do
+      let(:basic_action) do
+        subject.event(title, text, tags: action_tags)
+      end
+    end
+
+    it 'sends events with title and text' do
+      subject.event(title, text)
+      expect(socket.recv[0]).to eq_with_telemetry('_e{15,21}:this is a title|this is a longer text', metrics: 0, events: 1)
+    end
+
+    context 'when having line breaks in text or title' do
+      let(:title) { "this is a\ntitle" }
+      let(:text) { "this is a longer\ntext" }
+
+      it 'sends events with title and text' do
+        subject.event(title, text)
+        expect(socket.recv[0]).to eq_with_telemetry('_e{16,22}:this is a\ntitle|this is a longer\ntext', metrics: 0, events: 1)
+      end
+    end
+
+    context 'when the event data string too long > 8KB' do
+      let(:text) { "this is a longer\ntext" * 200_000 }
+
+      it 'raises an error' do
+        expect do
+          subject.event(title, text)
+        end.to raise_error(RuntimeError, /payload is too big/)
+      end
+    end
+
+    context 'with a known alert type' do
+      it 'sends events with title and text along with a tag for the alert type' do
+        subject.event(title, text, alert_type: 'warning')
+
+        expect(socket.recv[0]).to eq_with_telemetry('_e{15,21}:this is a title|this is a longer text|t:warning', metrics: 0, events: 1)
+      end
+    end
+
+    context 'with an unknown alert type' do
+      it 'sends events with title and text along with a tag for the alert type' do
+        subject.event(title, text, alert_type: 'yolo')
+
+        expect(socket.recv[0]).to eq_with_telemetry('_e{15,21}:this is a title|this is a longer text|t:yolo', metrics: 0, events: 1)
+      end
+    end
+
+    context 'with a known priority' do
+      it 'sends events with title and text along with a tag for the priority' do
+        subject.event(title, text, priority: 'low')
+
+        expect(socket.recv[0]).to eq_with_telemetry('_e{15,21}:this is a title|this is a longer text|p:low', metrics: 0, events: 1)
+      end
+    end
+
+    context 'with an unknown priority' do
+      it 'sends events with title and text along with a tag for the priority' do
+        subject.event(title, text, priority: 'yolo')
+
+        expect(socket.recv[0]).to eq_with_telemetry('_e{15,21}:this is a title|this is a longer text|p:yolo', metrics: 0, events: 1)
+      end
+    end
+
+    context 'with a timestamp event date' do
+      it 'sends events with title and text along with a date timestamp' do
+        subject.event(title, text, date_happened: timestamp)
+
+        expect(socket.recv[0]).to eq_with_telemetry("_e{15,21}:this is a title|this is a longer text|d:#{timestamp}", metrics: 0, events: 1)
+      end
+    end
+
+    context 'with a string event date' do
+      it 'sends events with title and text along with a date timestamp' do
+        subject.event(title, text, date_happened: timestamp.to_s)
+
+        expect(socket.recv[0]).to eq_with_telemetry("_e{15,21}:this is a title|this is a longer text|d:#{timestamp}", metrics: 0, events: 1)
+      end
+    end
+
+    context 'with a hostname' do
+      it 'sends events with title and text along with a hostname' do
+        subject.event(title, text, hostname: 'chihiro')
+
+        expect(socket.recv[0]).to eq_with_telemetry("_e{15,21}:this is a title|this is a longer text|h:chihiro", metrics: 0, events: 1)
+      end
+    end
+
+    context 'with an aggregation key' do
+      it 'sends events with title and text along with the aggregation key' do
+        subject.event(title, text, aggregation_key: 'key 1')
+
+        expect(socket.recv[0]).to eq_with_telemetry("_e{15,21}:this is a title|this is a longer text|k:key 1", metrics: 0, events: 1)
+      end
+    end
+
+    context 'with an source type name' do
+      it 'sends events with title and text along with the source type name' do
+        subject.event(title, text, source_type_name: 'source 1')
+
+        expect(socket.recv[0]).to eq_with_telemetry("_e{15,21}:this is a title|this is a longer text|s:source 1", metrics: 0, events: 1)
+      end
+    end
+
+    context 'with several parameters (hostname, alert_type, priority, source)' do
+      it 'sends events with title and text along with all the parameters' do
+        subject.event(title, text, hostname: 'myhost', alert_type: 'warning', priority: 'low', source_type_name: 'source')
+
+        expect(socket.recv[0]).to eq_with_telemetry("_e{15,21}:this is a title|this is a longer text|h:myhost|p:low|s:source|t:warning", metrics: 0, events: 1)
+      end
+    end
+  end
+
+  describe '#service_check' do
+    let(:namespace) { nil }
+    let(:sample_rate) { nil }
+    let(:tags) { nil }
+    let(:name) { 'windmill' }
+    let(:status) { 'grinding' }
+    let(:timestamp) do
+      Time.parse('01-01-2000').to_i
+    end
+
+    it_behaves_like 'a taggable method', '_sc|windmill|grinding', metrics: 0, service_checks: 1 do
+      let(:basic_action) do
+        subject.service_check(name, status, tags: action_tags)
+      end
+    end
+
+    it 'sends service check with name and status' do
+      subject.service_check(name, status)
+      expect(socket.recv[0]).to eq_with_telemetry('_sc|windmill|grinding', metrics: 0, service_checks: 1)
+    end
+
+    context 'with hostname' do
+      it 'sends service check with name and status along with hostname' do
+        subject.service_check(name, status, hostname: 'amsterdam')
+        expect(socket.recv[0]).to eq_with_telemetry('_sc|windmill|grinding|h:amsterdam', metrics: 0, service_checks: 1)
+      end
+    end
+
+    context 'with message' do
+      it 'sends service check with name and status along with message' do
+        subject.service_check(name, status, message: 'the wind is rising')
+        expect(socket.recv[0]).to eq_with_telemetry('_sc|windmill|grinding|m:the wind is rising', metrics: 0, service_checks: 1)
+      end
+    end
+
+    context 'with integer timestamp' do
+      it 'sends service check with name and status along with timestamp' do
+        subject.service_check(name, status, timestamp: timestamp)
+        expect(socket.recv[0]).to eq_with_telemetry("_sc|windmill|grinding|d:#{timestamp}", metrics: 0, service_checks: 1)
+      end
+    end
+
+    context 'with string timestamp' do
+      it 'sends service check with name and status along with timestamp' do
+        subject.service_check(name, status, timestamp: timestamp.to_s)
+        expect(socket.recv[0]).to eq_with_telemetry("_sc|windmill|grinding|d:#{timestamp}", metrics: 0, service_checks: 1)
+      end
+    end
+
+    context 'with several parameters (hostname, message, timestamp)' do
+      it 'sends service check with name and status along with all parameters' do
+        subject.service_check(name, status, hostanme: 'amsterdam', message: 'the wind is rising', timestamp: timestamp.to_s)
+        expect(socket.recv[0]).to eq_with_telemetry("_sc|windmill|grinding|d:#{timestamp}|m:the wind is rising", metrics: 0, service_checks: 1)
+      end
+    end
+  end
 end
