@@ -783,4 +783,104 @@ describe Datadog::Statsd do
       end
     end
   end
+
+  describe '#batch' do
+    let(:namespace) { nil }
+    let(:sample_rate) { nil }
+    let(:tags) { nil }
+
+    it 'does not not send anything when the buffer is empty' do
+      subject.batch { }
+
+      expect(socket.recv).to be_nil
+    end
+
+    it 'sends single samples in one packet' do
+      subject.batch do |s|
+        s.increment('mycounter')
+      end
+
+      expect(socket.recv[0]).to eq_with_telemetry 'mycounter:1|c'
+    end
+
+    it 'sends multiple samples in one packet' do
+      subject.batch do |s|
+        s.increment('mycounter')
+        s.decrement('myothercounter')
+      end
+
+      expect(socket.recv[0]).to eq_with_telemetry("mycounter:1|c\nmyothercounter:-1|c", metrics: 2)
+    end
+
+    it 'default back to single metric packet after the block' do
+      subject.batch do |s|
+        s.gauge('mygauge', 10)
+        s.gauge('myothergauge', 20)
+      end
+      subject.increment('mycounter')
+      subject.increment('myothercounter')
+
+      expect(socket.recv[0]).to eq_with_telemetry("mygauge:10|g\nmyothergauge:20|g", metrics: 2)
+      expect(socket.recv[0]).to eq_with_telemetry('mycounter:1|c', bytes_sent: 702, packets_sent: 1)
+      expect(socket.recv[0]).to eq_with_telemetry('myothercounter:1|c', bytes_sent: 687, packets_sent: 1)
+    end
+
+    # HACK: this test breaks encapsulation
+    it 'flushes when the buffer gets too big', pending: true do
+      expected_message = 'mycounter:1|c'
+      previous_payload_length = 0
+
+      subject.batch do |s|
+        # increment a counter to fill the buffer and trigger buffer flush
+        buffer_size = Datadog::Statsd::DEFAULT_BUFFER_SIZE - subject.send(:telemetry).estimate_max_size - 1
+
+        number_of_messages_to_fill_the_buffer = buffer_size / (expected_message.bytesize + 1)
+        theoretical_reply = Array.new(number_of_messages_to_fill_the_buffer) { expected_message }
+
+        (number_of_messages_to_fill_the_buffer + 1).times do
+          s.increment('mycounter')
+        end
+
+        equal_expected = equal_with_telemetry(theoretical_reply.join("\n"), metrics: number_of_messages_to_fill_the_buffer+1)
+        expect(socket.recv[0]).to eq_with_telemetry(theoretical_reply.join("\n"), metrics: number_of_messages_to_fill_the_buffer+1)
+      end
+
+      # When the block finishes, the remaining buffer is flushed.
+      #
+      # We increment the telemetry metrics count when we receive it, not when
+      # flush. This means that the last metric (who filled the buffer and triggered a
+      # flush) increment the telemetry but was not sent. Then once the 'do' block
+      # finishes we flush the buffer with a telemtry of 0 metrics being received.
+      expect(socket.recv[0]).to eq_with_telemetry(expected_message, metrics: 0, bytes_sent: 9999999, packets_sent: 1)
+    end
+
+    it 'batches nested batch blocks' do
+      subject.batch do
+        subject.increment('level-1')
+        subject.batch do
+          subject.increment('level-2')
+        end
+        subject.increment('level-1-again')
+      end
+      # all three should be sent in a single batch when the outer block finishes
+      expect(socket.recv[0]).to eq_with_telemetry("level-1:1|c\nlevel-2:1|c\nlevel-1-again:1|c", metrics: 3)
+      # we should revert back to sending single metric packets
+      subject.increment('outside')
+      expect(socket.recv[0]).to eq_with_telemetry('outside:1|c', bytes_sent: 713, packets_sent: 1)
+    end
+  end
+
+  describe '#close' do
+    before do
+      # do some writing so the socket is opened
+      subject.increment('lol')
+    end
+
+    it 'closes the socket' do
+      expect(socket).to receive(:close)
+
+      subject.close
+    end
+  end
+
 end

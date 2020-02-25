@@ -27,4 +27,7 @@ class FakeUDPSocket
 
   def connect(*args)
   end
+
+  def close
+  end
 end
