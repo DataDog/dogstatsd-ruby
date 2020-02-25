@@ -6,6 +6,8 @@ require 'byebug'
 require 'timecop'
 require 'stringio'
 require 'logger'
+require 'faker'
+require 'allocation_stats' if RUBY_VERSION >= '2.3.0'
 
 Dir[File.join(File.dirname(__FILE__), '/support/**/*.rb')].each { |f| require f }
 Dir[File.join(File.dirname(__FILE__), '/matchers/**/*.rb')].each { |f| require f }
