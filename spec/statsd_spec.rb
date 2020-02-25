@@ -826,13 +826,19 @@ describe Datadog::Statsd do
     end
 
     # HACK: this test breaks encapsulation
-    it 'flushes when the buffer gets too big', pending: true do
+    before do
+      def subject.telemetry
+        @telemetry
+      end
+    end
+
+    it 'flushes when the buffer gets too big' do
       expected_message = 'mycounter:1|c'
       previous_payload_length = 0
 
       subject.batch do |s|
         # increment a counter to fill the buffer and trigger buffer flush
-        buffer_size = Datadog::Statsd::DEFAULT_BUFFER_SIZE - subject.send(:telemetry).estimate_max_size - 1
+        buffer_size = Datadog::Statsd::DEFAULT_BUFFER_SIZE - subject.telemetry.estimate_max_size - 1
 
         number_of_messages_to_fill_the_buffer = buffer_size / (expected_message.bytesize + 1)
         theoretical_reply = Array.new(number_of_messages_to_fill_the_buffer) { expected_message }
@@ -841,7 +847,6 @@ describe Datadog::Statsd do
           s.increment('mycounter')
         end
 
-        equal_expected = equal_with_telemetry(theoretical_reply.join("\n"), metrics: number_of_messages_to_fill_the_buffer+1)
         expect(socket.recv[0]).to eq_with_telemetry(theoretical_reply.join("\n"), metrics: number_of_messages_to_fill_the_buffer+1)
       end
 
@@ -851,7 +856,7 @@ describe Datadog::Statsd do
       # flush. This means that the last metric (who filled the buffer and triggered a
       # flush) increment the telemetry but was not sent. Then once the 'do' block
       # finishes we flush the buffer with a telemtry of 0 metrics being received.
-      expect(socket.recv[0]).to eq_with_telemetry(expected_message, metrics: 0, bytes_sent: 9999999, packets_sent: 1)
+      expect(socket.recv[0]).to eq_with_telemetry(expected_message, metrics: 0, bytes_sent: 8121, packets_sent: 1)
     end
 
     it 'batches nested batch blocks' do
@@ -883,4 +888,448 @@ describe Datadog::Statsd do
     end
   end
 
+  # TODO: This specs will have to move to another integration test dedicated to telemetry
+  describe 'telemetry' do
+    let(:namespace) { nil }
+    let(:sample_rate) { nil }
+    let(:tags) { nil }
+
+    context 'when disabling telemetry' do
+      subject do
+        described_class.new('localhost', 1234,
+          namespace: namespace,
+          sample_rate: sample_rate,
+          tags: tags,
+          logger: logger,
+          disable_telemetry: true,
+        )
+      end
+
+      it 'does not send any telemetry' do
+        subject.count("test", 21)
+
+        expect(socket.recv[0]).to eq 'test:21|c'
+      end
+    end
+
+    it 'is enabled by default' do
+      subject.count('test', 21)
+
+      expect(socket.recv[0]).to eq_with_telemetry 'test:21|c'
+    end
+
+    context 'when flusing only every 2 seconds' do
+      before do
+        Timecop.freeze(DateTime.new(2020, 2, 22, 12, 12, 12))
+        subject
+      end
+
+      after do
+        Timecop.return
+      end
+
+      subject do
+        described_class.new('localhost', 1234,
+          namespace: namespace,
+          sample_rate: sample_rate,
+          tags: tags,
+          logger: logger,
+          telemetry_flush_interval: 2,
+        )
+      end
+
+      it 'does not send telemetry before the delay' do
+        Timecop.freeze(DateTime.new(2020, 2, 22, 12, 12, 13))
+
+        subject.count('test', 21)
+
+        expect(socket.recv[0]).to eq 'test:21|c'
+      end
+
+      it 'sends telemetry after the delay' do
+        Timecop.freeze(DateTime.new(2020, 2, 22, 12, 12, 15))
+
+        subject.count('test', 21)
+
+        expect(socket.recv[0]).to eq_with_telemetry 'test:21|c'
+      end
+    end
+
+    it 'handles all data type' do
+      subject.increment('test', 1)
+      expect(socket.recv[0]).to eq_with_telemetry('test:1|c', metrics: 1, packets_sent: 0, bytes_sent: 0)
+
+      subject.decrement('test', 1)
+      expect(socket.recv[0]).to eq_with_telemetry('test:-1|c', metrics: 1, packets_sent: 1, bytes_sent: 680)
+
+      subject.count('test', 21)
+      expect(socket.recv[0]).to eq_with_telemetry('test:21|c', metrics: 1, packets_sent: 1, bytes_sent: 683)
+
+      subject.gauge('test', 21)
+      expect(socket.recv[0]).to eq_with_telemetry('test:21|g', metrics: 1, packets_sent: 1, bytes_sent: 683)
+
+      subject.histogram('test', 21)
+      expect(socket.recv[0]).to eq_with_telemetry('test:21|h', metrics: 1, packets_sent: 1, bytes_sent: 683)
+
+      subject.timing('test', 21)
+      expect(socket.recv[0]).to eq_with_telemetry('test:21|ms', metrics: 1, packets_sent: 1, bytes_sent: 683)
+
+      subject.set('test', 21)
+      expect(socket.recv[0]).to eq_with_telemetry('test:21|s', metrics: 1, packets_sent: 1, bytes_sent: 684)
+
+      subject.service_check('sc', 0)
+      expect(socket.recv[0]).to eq_with_telemetry('_sc|sc|0', metrics: 0, service_checks: 1, packets_sent: 1, bytes_sent: 683)
+
+      subject.event('ev', 'text')
+      expect(socket.recv[0]).to eq_with_telemetry('_e{2,4}:ev|text', metrics: 0, events: 1, packets_sent: 1, bytes_sent: 682)
+    end
+
+    context 'when batching' do
+      # HACK: this test breaks encapsulation
+      before do
+        def subject.telemetry
+          @telemetry
+        end
+      end
+
+      it 'handles all data types' do
+        subject.batch do |s|
+          s.increment('test', 1)
+          s.decrement('test', 1)
+          s.count('test', 21)
+          s.gauge('test', 21)
+          s.histogram('test', 21)
+          s.timing('test', 21)
+          s.set('test', 21)
+          s.service_check('sc', 0)
+          s.event('ev', 'text')
+        end
+
+        expect(socket.recv[0]).to eq_with_telemetry("test:1|c\ntest:-1|c\ntest:21|c\ntest:21|g\ntest:21|h\ntest:21|ms\ntest:21|s\n_sc|sc|0\n_e{2,4}:ev|text",
+          metrics: 7,
+          service_checks: 1,
+          events: 1
+        )
+
+        expect(subject.telemetry.flush).to eq_with_telemetry('', metrics: 0, service_checks: 0, events: 0, packets_sent: 1, bytes_sent: 766)
+      end
+    end
+
+    context 'when some data is dropped' do
+      let(:socket) do
+        FakeUDPSocket.new.tap do |s|
+          s.error_on_send('some error')
+        end
+      end
+
+      # HACK: this test breaks encapsulation
+      before do
+        def subject.telemetry
+          @telemetry
+        end
+      end
+
+      it 'handles dropped data' do
+        subject.gauge('test', 21)
+        expect(subject.telemetry.flush).to eq_with_telemetry('', metrics: 1, service_checks: 0, events: 0, packets_dropped: 1, bytes_dropped: 681)
+        subject.gauge('test', 21)
+        expect(subject.telemetry.flush).to eq_with_telemetry('', metrics: 2, service_checks: 0, events: 0, packets_dropped: 2, bytes_dropped: 1364)
+
+        #disable network failure
+        socket.error_on_send(nil)
+
+        subject.gauge('test', 21)
+        expect(socket.recv[0]).to eq_with_telemetry('test:21|g', metrics: 3, service_checks: 0, events: 0, packets_dropped: 2, bytes_dropped: 1364)
+
+        expect(subject.telemetry.flush).to eq_with_telemetry('', metrics: 0, service_checks: 0, events: 0, packets_sent: 1, bytes_sent: 684)
+      end
+    end
+  end
+
+  # TODO: This specs will have to move to another class (a responsibility that we will have to separate)
+  describe 'Stat names' do
+    let(:namespace) { nil }
+    let(:sample_rate) { nil }
+    let(:tags) { nil }
+
+    it 'accepts any object with #to_s as a stat name' do
+      o = double('a stat', to_s: 'yolo')
+
+      subject.increment(o)
+
+      expect(socket.recv[0]).to eq_with_telemetry('yolo:1|c')
+    end
+
+    it 'accepts a class name as a stat name' do
+      subject.increment(Object)
+
+      expect(socket.recv[0]).to eq_with_telemetry('Object:1|c')
+    end
+
+    it 'replaces Ruby constants delimeter with graphite package name' do
+      class Datadog::Statsd::SomeClass; end
+      subject.increment(Datadog::Statsd::SomeClass)
+
+      expect(socket.recv[0]).to eq_with_telemetry 'Datadog.Statsd.SomeClass:1|c'
+    end
+
+    it 'replaces statsd reserved chars in the stat name' do
+      subject.increment('ray@hostname.blah|blah.blah:blah')
+      expect(socket.recv[0]).to eq_with_telemetry 'ray_hostname.blah_blah.blah_blah:1|c'
+    end
+
+    it 'works with frozen strings' do
+      subject.increment('some-stat'.freeze)
+
+      expect(socket.recv[0]).to eq_with_telemetry('some-stat:1|c')
+    end
+  end
+
+  # TODO: This specs will have to move to another class (a responsibility that we will have to separate)
+  describe 'Tag names' do
+    let(:namespace) { nil }
+    let(:sample_rate) { nil }
+    let(:tags) { nil }
+
+    it 'replaces reserved chars for tags' do
+      subject.increment('stat', tags: ['name:foo,bar|foo'])
+      expect(socket.recv[0]).to eq_with_telemetry 'stat:1|c|#name:foobarfoo'
+    end
+
+    it 'handles the cases when some tags are frozen strings' do
+      subject.increment('stat', tags: ['first_tag'.freeze, 'second_tag'])
+    end
+
+    it 'converts all values to strings' do
+      tag = double('a tag', to_s: 'yolo')
+
+      subject.increment('stat', tags: [tag])
+      expect(socket.recv[0]).to eq_with_telemetry 'stat:1|c|#yolo'
+    end
+  end
+
+  # TODO: This specs will have to move to another class (a responsibility that we will have to separate)
+  describe 'handling socket errors' do
+    let(:namespace) { nil }
+    let(:sample_rate) { nil }
+    let(:tags) { nil }
+
+    before do
+      allow(socket).to receive(:send).and_raise(SocketError)
+    end
+
+    it 'ignores socket errors' do
+      expect(subject.increment('foobar')).to be_nil
+    end
+
+    it 'logs socket errors' do
+      subject.increment('foobar')
+      expect(log.string).to match 'Statsd: SocketError'
+    end
+
+    context 'when there is no loggers' do
+      let(:logger) { nil }
+
+      it 'does not fail' do
+        subject.increment('foobar')
+      end
+    end
+  end
+
+  # TODO: This specs will have to move to another class (a responsibility that we will have to separate)
+  # HACK: those tests are breaking encapsulation
+  describe 'handling closed sockets', pending: true do
+    it 'tries to reconnect once' do
+      @statsd.connection.expects(:socket).times(2).returns(socket)
+      socket.expects(:send).returns('YEP') # 2nd call
+      socket.expects(:send).raises(IOError.new('closed stream')) # first call
+
+      @statsd.increment('foobar')
+    end
+
+    it 'ignores and logs if it fails to reconnect' do
+      @statsd.connection.expects(:socket).times(2).returns(socket)
+      socket.expects(:send).raises(RuntimeError) # 2nd call
+      socket.expects(:send).raises(IOError.new('closed stream')) # first call
+
+      assert_nil @statsd.increment('foobar')
+      _(@log.string).must_include 'Statsd: RuntimeError'
+    end
+
+    it 'ignores and logs errors while trying to reconnect' do
+      socket.expects(:send).raises(IOError.new('closed stream'))
+      @statsd.connection.expects(:connect).raises(SocketError)
+
+      assert_nil @statsd.increment('foobar')
+      _(@log.string).must_include 'Statsd: SocketError'
+    end
+  end
+
+  # TODO: This specs will have to move to another class (a responsibility that we will have to separate)
+  # HACK: those tests are breaking encapsulation
+  describe 'handling not connected socket', pending: true do
+    it 'tries to reconnect once' do
+      @statsd.connection.expects(:socket).times(2).returns(socket)
+      socket.expects(:send).returns('YEP') # 2nd call
+      socket.expects(:send).raises(Errno::ENOTCONN.new('closed stream')) # first call
+
+      @statsd.increment('foobar')
+    end
+
+    it 'ignores and logs if it fails to reconnect' do
+      @statsd.connection.expects(:socket).times(2).returns(socket)
+      socket.expects(:send).raises(RuntimeError) # 2nd call
+      socket.expects(:send).raises(Errno::ENOTCONN.new) # first call
+
+      assert_nil @statsd.increment('foobar')
+      _(@log.string).must_include 'Statsd: RuntimeError'
+    end
+
+    it 'ignores and logs errors while trying to reconnect' do
+      socket.expects(:send).raises(Errno::ENOTCONN.new)
+      @statsd.connection.expects(:connect).raises(SocketError)
+
+      assert_nil @statsd.increment('foobar')
+      _(@log.string).must_include 'Statsd: SocketError'
+    end
+  end
+
+  # TODO: This specs will have to move to another class (a responsibility that we will have to separate)
+  # HACK: those tests are breaking encapsulation
+  describe 'handling connection refused', pending: true do
+    it 'tries to reconnect once' do
+      @statsd.connection.expects(:socket).times(2).returns(socket)
+      socket.expects(:send).returns('YEP') # 2nd call
+      socket.expects(:send).raises(Errno::ECONNREFUSED.new('closed stream')) # first call
+
+      @statsd.increment('foobar')
+    end
+
+    it 'ignores and logs if it fails to reconnect' do
+      @statsd.connection.expects(:socket).times(2).returns(socket)
+      socket.expects(:send).raises(RuntimeError) # 2nd call
+      socket.expects(:send).raises(Errno::ECONNREFUSED.new) # first call
+
+      assert_nil @statsd.increment('foobar')
+      _(@log.string).must_include 'Statsd: RuntimeError'
+    end
+
+    it 'ignores and logs errors while trying to reconnect' do
+      socket.expects(:send).raises(Errno::ECONNREFUSED.new)
+      @statsd.connection.expects(:connect).raises(SocketError)
+
+      assert_nil @statsd.increment('foobar')
+      _(@log.string).must_include 'Statsd: SocketError'
+    end
+  end
+
+  # TODO: This specs will have to move to another class (a responsibility that we will have to separate)
+  # HACK: those tests are breaking encapsulation
+  describe 'UDS error handling', pending: true do
+    subject do
+      described_class.new('localhost', 1234,
+        socket_path: '/tmp/socket',
+        disable_telemetry: true
+      )
+    end
+
+    describe 'when socket throws connection reset error' do
+      before do
+        @fake_socket = Minitest::Mock.new
+        @fake_socket.expect(:connect, true) { true }
+        @fake_socket.expect :sendmsg_nonblock, true, ['foo:1|c']
+        @fake_socket.expect(:sendmsg_nonblock, true) { raise Errno::ECONNRESET }
+
+        @fake_socket2 = Minitest::Mock.new
+        @fake_socket2.expect(:connect, true) { true }
+        @fake_socket2.expect :sendmsg_nonblock, true, ['bar:1|c']
+      end
+
+      it 'should ignore message and try reconnect on next call' do
+        Socket.stub(:new, @fake_socket) do
+          @statsd.increment('foo')
+        end
+        @statsd.increment('baz')
+        Socket.stub(:new, @fake_socket2) do
+          @statsd.increment('bar')
+        end
+        @fake_socket.verify
+        @fake_socket2.verify
+      end
+    end
+
+    describe 'when socket throws connection refused error' do
+      before do
+        @fake_socket = Minitest::Mock.new
+        @fake_socket.expect(:connect, true) { true }
+        @fake_socket.expect :sendmsg_nonblock, true, ['foo:1|c']
+        @fake_socket.expect(:sendmsg_nonblock, true) { raise Errno::ECONNREFUSED }
+
+        @fake_socket2 = Minitest::Mock.new
+        @fake_socket2.expect(:connect, true) { true }
+        @fake_socket2.expect :sendmsg_nonblock, true, ['bar:1|c']
+      end
+
+      it 'should ignore message and try reconnect on next call' do
+        Socket.stub(:new, @fake_socket) do
+          @statsd.increment('foo')
+        end
+        @statsd.increment('baz')
+        Socket.stub(:new, @fake_socket2) do
+          @statsd.increment('bar')
+        end
+        @fake_socket.verify
+        @fake_socket2.verify
+      end
+    end
+
+    describe 'when socket throws file not found error' do
+      before do
+        @fake_socket = Minitest::Mock.new
+        @fake_socket.expect(:connect, true) { true }
+        @fake_socket.expect :sendmsg_nonblock, true, ['foo:1|c']
+        @fake_socket.expect(:sendmsg_nonblock, true) { raise Errno::ENOENT }
+
+        @fake_socket2 = Minitest::Mock.new
+        @fake_socket2.expect(:connect, true) { true }
+        @fake_socket2.expect :sendmsg_nonblock, true, ['bar:1|c']
+      end
+
+      it 'should ignore message and try reconnect on next call' do
+        Socket.stub(:new, @fake_socket) do
+          @statsd.increment('foo')
+        end
+        @statsd.increment('baz')
+        Socket.stub(:new, @fake_socket2) do
+          @statsd.increment('bar')
+        end
+        @fake_socket.verify
+        @fake_socket2.verify
+      end
+    end
+
+    describe 'when socket is full' do
+      before do
+        @fake_socket = Minitest::Mock.new
+        @fake_socket.expect(:connect, true) { true }
+        @fake_socket.expect :sendmsg_nonblock, true, ['foo:1|c']
+        @fake_socket.expect(:sendmsg_nonblock, true) { raise IO::EAGAINWaitWritable }
+        @fake_socket.expect :sendmsg_nonblock, true, ['bar:1|c']
+
+        @fake_socket2 = Minitest::Mock.new
+      end
+
+      it 'should ignore message but does not reconnect on next call' do
+        Socket.stub(:new, @fake_socket) do
+          @statsd.increment('foo')
+        end
+        @statsd.increment('baz')
+        Socket.stub(:new, @fake_socket2) do
+          @statsd.increment('bar')
+        end
+        @fake_socket.verify
+        @fake_socket2.verify
+      end
+    end
+  end
 end

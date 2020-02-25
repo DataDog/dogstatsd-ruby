@@ -3,7 +3,8 @@ require 'rspec/expectations'
 RSpec::Matchers.define :eq_with_telemetry do |expected, telemetry_options|
   telemetry_options ||= {}
 
-  def text_with_telemetry(text, metrics: 1, events: 0, service_checks: 0, bytes_sent: 0, bytes_dropped:0, packets_sent: 0, packets_dropped: 0, transport: 'udp')
+  # Appends the telemetry metrics to the metrics string passed as 'text'
+  def add_telemetry(text, metrics: 1, events: 0, service_checks: 0, bytes_sent: 0, bytes_dropped:0, packets_sent: 0, packets_dropped: 0, transport: 'udp')
     [
       text,
       "datadog.dogstatsd.client.metrics:#{metrics}|c|#client:ruby,client_version:#{Datadog::Statsd::VERSION},client_transport:#{transport}",
@@ -17,7 +18,7 @@ RSpec::Matchers.define :eq_with_telemetry do |expected, telemetry_options|
   end
 
   match do |actual|
-    actual == text_with_telemetry(expected, **telemetry_options)
+    actual == add_telemetry(expected, **telemetry_options)
   end
 
   failure_message do |actual|
