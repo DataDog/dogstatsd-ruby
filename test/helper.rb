@@ -81,4 +81,7 @@ class FakeUDPSocket
   def error_on_send(err)
     @error_on_send = err
   end
+
+  def connect(*args)
+  end
 end

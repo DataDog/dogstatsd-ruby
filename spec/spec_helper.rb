@@ -2,6 +2,9 @@ require 'datadog/statsd'
 
 require 'rspec'
 require 'rspec/its'
+require 'byebug'
+
+Dir[File.join(File.dirname(__FILE__), '/support/**/*.rb')].each { |f| require f }
 
 RSpec.configure do |config|
   config.expect_with :rspec do |expectations|
