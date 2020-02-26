@@ -28,6 +28,9 @@ module Datadog
         socket.sendmsg_nonblock(message)
       rescue Errno::ECONNREFUSED, Errno::ECONNRESET, Errno::ENOENT => e
         @socket = nil
+        # TODO: FIXME: This error should be considered as a retryable error in the
+        # Connection class. An even better solution would be to make BadSocketError inherit
+        # from a specific retryable error class in the Connection class.
         raise BadSocketError, "#{e.class}: #{e}"
       end
     end
