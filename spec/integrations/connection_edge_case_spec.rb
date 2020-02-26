@@ -427,6 +427,10 @@ describe 'Connection edge cases test' do
 
     context 'when the socket is full (drop strategy)' do
       before do
+        skip if RUBY_VERSION < '2.3.0'
+      end
+
+      before do
         allow(fake_socket)
           .to receive(:sendmsg_nonblock)
           .and_raise(IO::EAGAINWaitWritable)

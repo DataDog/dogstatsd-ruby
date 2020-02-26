@@ -195,9 +195,11 @@ describe Datadog::Statsd do
     it 'ensures the statsd instance is closed' do
       expect(fake_statsd).to receive(:close)
 
+      # rubocop:disable Lint/RescueWithoutErrorClass
       described_class.open do
         raise 'stop'
       end rescue nil
+      # rubocop:enable Lint/RescueWithoutErrorClass
     end
   end
 
@@ -498,7 +500,7 @@ describe Datadog::Statsd do
 
     before do
       Timecop.freeze(before_date)
-      allow(Process).to receive(:clock_gettime).and_return(0, 1)
+      allow(Process).to receive(:clock_gettime).and_return(0, 1) if Datadog::Statsd::PROCESS_TIME_SUPPORTED
     end
 
     it_behaves_like 'a metrics method', 'foobar:1000|ms' do
@@ -519,10 +521,12 @@ describe Datadog::Statsd do
       end
 
       it 'ensures the timing is sent' do
+        # rubocop:disable Lint/RescueWithoutErrorClass
         subject.time('foobar') do
           Timecop.travel(after_date)
           raise 'stop'
         end rescue nil
+        # rubocop:enable Lint/RescueWithoutErrorClass
 
         expect(socket.recv[0]).to eq_with_telemetry 'foobar:1000|ms'
       end
@@ -834,7 +838,6 @@ describe Datadog::Statsd do
 
     it 'flushes when the buffer gets too big' do
       expected_message = 'mycounter:1|c'
-      previous_payload_length = 0
 
       subject.batch do |s|
         # increment a counter to fill the buffer and trigger buffer flush

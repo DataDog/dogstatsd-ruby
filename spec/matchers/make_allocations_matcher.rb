@@ -12,7 +12,7 @@ RSpec::Matchers.define :make_allocations do |expected|
     @allocations == expected
   end
 
-  failure_message do |actual|
+  failure_message do |_|
     "expected that block would make #{expected} allocations but made #{@allocations}"
   end
 end

@@ -36,16 +36,26 @@ describe 'Allocations and garbage collection' do
     subject.increment('foobar')
   end
 
+  let(:expected_allocations) do
+    if RUBY_VERSION < '2.4.0'
+      22
+    elsif RUBY_VERSION >= '2.4.0' && RUBY_VERSION < '2.5.0'
+      19
+    else
+      18
+    end
+  end
+
   it 'produces low amounts of garbage for increment' do
     expect do
       subject.increment('foobar')
-    end.to make_allocations(18)
+    end.to make_allocations(expected_allocations)
   end
 
   it 'produces low amounts of garbage for timing' do
     expect do
       subject.time('foobar') { 1111 }
-    end.to make_allocations(18)
+    end.to make_allocations(expected_allocations)
   end
 
   context 'without telemetry' do
@@ -59,16 +69,26 @@ describe 'Allocations and garbage collection' do
       )
     end
 
+    let(:expected_allocations) do
+      if RUBY_VERSION < '2.4.0'
+        11
+      elsif RUBY_VERSION >= '2.4.0' && RUBY_VERSION < '2.5.0'
+        9
+      else
+        8
+      end
+    end
+
     it 'produces even lower amounts of garbage for increment' do
       expect do
         subject.increment('foobar')
-      end.to make_allocations(8)
+      end.to make_allocations(expected_allocations)
     end
 
     it 'produces even lower amounts of garbage for time' do
       expect do
         subject.time('foobar') { 1111 }
-      end.to make_allocations(8)
+      end.to make_allocations(expected_allocations)
     end
   end
 end

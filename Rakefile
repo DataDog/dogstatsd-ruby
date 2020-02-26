@@ -3,12 +3,14 @@ require 'bundler/gem_tasks'
 require 'rake/testtask'
 require 'yard'
 
-task default: [:test, :rubocop]
+task default: [:spec, :rubocop]
 
-Rake::TestTask.new(:test) do |test|
-  test.loader = :direct
-  test.pattern = './test/statsd_spec.rb'
-  test.verbose = true
+begin
+  require 'rspec/core/rake_task'
+  RSpec::Core::RakeTask.new(:spec)
+  # rubocop:disable Lint/HandleExceptions
+rescue LoadError
+  # rubocop:enable Lint/HandleExceptions
 end
 
 namespace :build do
@@ -16,5 +18,5 @@ namespace :build do
 end
 
 task :rubocop do
-  sh "rubocop"
+  sh 'rubocop'
 end
