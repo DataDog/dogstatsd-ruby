@@ -19,15 +19,22 @@ class TelemetryMatcher
 
   attr_accessor :text
 
-  def initialize(text, metrics, events, service_checks, bytes_sent, bytes_dropped, packets_sent, packets_dropped, transport)
-    telemetry = ["datadog.dogstatsd.client.metrics:#{metrics}|c|#client:ruby,client_version:#{Datadog::Statsd::VERSION},client_transport:#{transport}",
-                 "datadog.dogstatsd.client.events:#{events}|c|#client:ruby,client_version:#{Datadog::Statsd::VERSION},client_transport:#{transport}",
-                 "datadog.dogstatsd.client.service_checks:#{service_checks}|c|#client:ruby,client_version:#{Datadog::Statsd::VERSION},client_transport:#{transport}",
-                 "datadog.dogstatsd.client.bytes_sent:#{bytes_sent}|c|#client:ruby,client_version:#{Datadog::Statsd::VERSION},client_transport:#{transport}",
-                 "datadog.dogstatsd.client.bytes_dropped:#{bytes_dropped}|c|#client:ruby,client_version:#{Datadog::Statsd::VERSION},client_transport:#{transport}",
-                 "datadog.dogstatsd.client.packets_sent:#{packets_sent}|c|#client:ruby,client_version:#{Datadog::Statsd::VERSION},client_transport:#{transport}",
-                 "datadog.dogstatsd.client.packets_dropped:#{packets_dropped}|c|#client:ruby,client_version:#{Datadog::Statsd::VERSION},client_transport:#{transport}",
-    ].join("\n")
+  def initialize(text, metrics, events, service_checks, bytes_sent, bytes_dropped, packets_sent, packets_dropped, transport, tags)
+    tags_string = tags.join(",") if tags
+    telemetry_arr = [
+      "datadog.dogstatsd.client.metrics:#{metrics}|c|#client:ruby,client_version:#{Datadog::Statsd::VERSION},client_transport:#{transport}",
+      "datadog.dogstatsd.client.events:#{events}|c|#client:ruby,client_version:#{Datadog::Statsd::VERSION},client_transport:#{transport}",
+      "datadog.dogstatsd.client.service_checks:#{service_checks}|c|#client:ruby,client_version:#{Datadog::Statsd::VERSION},client_transport:#{transport}",
+      "datadog.dogstatsd.client.bytes_sent:#{bytes_sent}|c|#client:ruby,client_version:#{Datadog::Statsd::VERSION},client_transport:#{transport}",
+      "datadog.dogstatsd.client.bytes_dropped:#{bytes_dropped}|c|#client:ruby,client_version:#{Datadog::Statsd::VERSION},client_transport:#{transport}",
+      "datadog.dogstatsd.client.packets_sent:#{packets_sent}|c|#client:ruby,client_version:#{Datadog::Statsd::VERSION},client_transport:#{transport}",
+      "datadog.dogstatsd.client.packets_dropped:#{packets_dropped}|c|#client:ruby,client_version:#{Datadog::Statsd::VERSION},client_transport:#{transport}",
+    ]
+    telemetry =
+      telemetry_arr
+        .map { |s| [s, tags_string].compact.join(",") }
+        .join("\n")
+
     @text = "#{text}\n#{telemetry}"
     @last_compare = ''
   end
@@ -50,8 +57,8 @@ got:
   end
 end
 
-def equal_with_telemetry(text, metrics: 1, events: 0, service_checks: 0, bytes_sent: 0, bytes_dropped:0, packets_sent: 0, packets_dropped: 0, transport: "udp")
-  TelemetryMatcher.new(text, metrics, events, service_checks, bytes_sent, bytes_dropped, packets_sent, packets_dropped, transport)
+def equal_with_telemetry(text, metrics: 1, events: 0, service_checks: 0, bytes_sent: 0, bytes_dropped:0, packets_sent: 0, packets_dropped: 0, transport: "udp", tags: nil)
+  TelemetryMatcher.new(text, metrics, events, service_checks, bytes_sent, bytes_dropped, packets_sent, packets_dropped, transport, tags)
 end
 MiniTest::Unit::TestCase.register_matcher :equal_with_telemetry, :equal_with_telemetry
 

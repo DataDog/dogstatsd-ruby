@@ -17,11 +17,12 @@ describe Datadog::Statsd do
 
   let(:namespace) { nil }
   let(:sample_rate) { nil }
+  let(:tags) { nil }
   let(:socket) { FakeUDPSocket.new }
 
   before do
     # setting telemetry_flush_interval to -1 to flush the telemetry each time
-    @statsd = Datadog::Statsd.new('localhost', 1234, namespace: namespace, sample_rate: sample_rate, telemetry_flush_interval: -1)
+    @statsd = Datadog::Statsd.new('localhost', 1234, namespace: namespace, sample_rate: sample_rate, tags: tags, telemetry_flush_interval: -1)
     @statsd.connection.instance_variable_set(:@socket, socket)
   end
 
@@ -1037,8 +1038,8 @@ describe Datadog::Statsd do
       status = rand(4)
       hostname = "hostname_test"
       timestamp = Time.parse('01-01-2000').to_i
-      tags = Faker::Lorem.words(rand(1..10))
-      tags_joined = tags.join(",")
+      explicit_tags = Faker::Lorem.words(rand(1..10))
+      explicit_tags_joined = explicit_tags.join(",")
 
       it "sends with only name and status" do
         @statsd.service_check(name, status)
@@ -1066,16 +1067,26 @@ describe Datadog::Statsd do
       end
 
       it "sends with with tags" do
-        @statsd.service_check(name, status, :tags => tags)
-        _(socket.recv[0]).must equal_with_telemetry("_sc|#{name}|#{status}|##{tags_joined}", metrics: 0, service_checks: 1)
+        @statsd.service_check(name, status, :tags => explicit_tags)
+        _(socket.recv[0]).must equal_with_telemetry("_sc|#{name}|#{status}|##{explicit_tags_joined}", metrics: 0, service_checks: 1)
       end
 
       it "sends with with hostname, message, and tags" do
         @statsd.service_check(
           name, status,
-          :message => 'testing | m: \n', :hostname => 'hostname_test', :tags => tags
+          :message => 'testing | m: \n', :hostname => 'hostname_test', :tags => explicit_tags
         )
-        _(socket.recv[0]).must equal_with_telemetry("_sc|#{name}|#{status}|h:#{hostname}|##{tags_joined}|m:testing  m\\: \\n", metrics: 0, service_checks: 1)
+        _(socket.recv[0]).must equal_with_telemetry("_sc|#{name}|#{status}|h:#{hostname}|##{explicit_tags_joined}|m:testing  m\\: \\n", metrics: 0, service_checks: 1)
+      end
+
+      describe "with implicit tags" do
+        let(:tags) { Faker::Lorem.words(rand(1..10)) }
+        let(:tags_joined) { tags.join(",") }
+
+        it "sends with with tags" do
+          @statsd.service_check(name, status)
+          _(socket.recv[0]).must equal_with_telemetry("_sc|#{name}|#{status}|##{tags_joined}", metrics: 0, service_checks: 1, tags: tags)
+        end
       end
     end
   end

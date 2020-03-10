@@ -366,7 +366,7 @@ module Datadog
       sc_string = "_sc|#{name}|#{status}".dup
 
       SC_OPT_KEYS.each do |key, shorthand_key|
-        next unless opts[key]
+        next if key != :tags && opts[key].nil?
 
         if key == :tags
           if tags_string = tags_as_string(opts)
