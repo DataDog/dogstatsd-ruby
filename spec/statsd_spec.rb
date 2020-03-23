@@ -1,919 +1,856 @@
-# frozen_string_literal: true
-require_relative 'helper'
-require 'allocation_stats' if RUBY_VERSION >= "2.3.0"
-require 'socket'
-require 'stringio'
-require 'time'
-
-SingleCov.covered! file: 'lib/datadog/statsd.rb' if RUBY_VERSION > "2.0"
+require 'spec_helper'
 
 describe Datadog::Statsd do
-  class Datadog::Statsd
-    # we need to stub this
-    attr_accessor :socket
-    # we need to be able to access this
-    attr_accessor :telemetry
-  end
-
-  let(:namespace) { nil }
-  let(:sample_rate) { nil }
   let(:socket) { FakeUDPSocket.new }
 
-  before do
-    # setting telemetry_flush_interval to -1 to flush the telemetry each time
-    @statsd = Datadog::Statsd.new('localhost', 1234, namespace: namespace, sample_rate: sample_rate, telemetry_flush_interval: -1)
-    @statsd.connection.instance_variable_set(:@socket, socket)
+  subject do
+    described_class.new('localhost', 1234,
+      namespace: namespace,
+      sample_rate: sample_rate,
+      tags: tags,
+      logger: logger,
+      telemetry_flush_interval: -1,
+    )
   end
 
-  describe "VERSION" do
-    it "has a version" do
-      _(Datadog::Statsd::VERSION).must_match(/^\d+\.\d+\.\d+/)
-    end
-  end
-
-  describe "#initialize" do
-    it "sets the host and port" do
-      _(@statsd.connection.host).must_equal 'localhost'
-      _(@statsd.connection.port).must_equal 1234
-    end
-
-    it "uses env vars host and port when nil is given" do
-      stub = Proc.new do |arg|
-        arg == 'DD_AGENT_HOST' ? 'myhost' : '1234'
-      end
-      ENV.stub :fetch, stub do
-        @statsd = Datadog::Statsd.new(nil, nil, {})
-        _(@statsd.connection.host).must_equal 'myhost'
-        _(@statsd.connection.port).must_equal '1234'
-      end
-    end
-
-    it "uses default host and port when nil is given to allow only passing options" do
-      @statsd = Datadog::Statsd.new(nil, nil, {})
-      _(@statsd.connection.host).must_equal '127.0.0.1'
-      _(@statsd.connection.port).must_equal 8125
-    end
-
-    it "creates a UDPSocket when nothing is given" do
-      statsd = Datadog::Statsd.new
-      _(statsd.connection.send(:socket)).must_be_instance_of(UDPSocket)
-    end
-
-    it "create a Socket when socket_path is given" do
-      # the socket may not exist when creating the Statsd object
-      statsd = Datadog::Statsd.new('localhost', 1234, {socket_path: '/tmp/socket'})
-      assert_raises Errno::ENOENT do
-        statsd.connection.send(:socket)
-      end
-    end
-
-    it "defaults host, port, namespace, and tags" do
-      statsd = Datadog::Statsd.new
-      _(statsd.connection.host).must_equal '127.0.0.1'
-      _(statsd.connection.port).must_equal 8125
-      assert_nil statsd.namespace
-      _(statsd.tags).must_equal []
-    end
-
-    it "defaults host, port, namespace, and tags contains entity id" do
-      stub = Proc.new do |arg, default|
-        arg == 'DD_ENTITY_ID' ? '04652bb7-19b7-11e9-9cc6-42010a9c016d' : default
-      end
-      ENV.stub :fetch, stub do
-        statsd = Datadog::Statsd.new
-        _(statsd.connection.host).must_equal '127.0.0.1'
-        _(statsd.connection.port).must_equal 8125
-        assert_nil statsd.namespace
-        _(statsd.tags).must_equal ['dd.internal.entity_id:04652bb7-19b7-11e9-9cc6-42010a9c016d']
-      end
-    end
-
-    it 'sets host, port, namespace, and tags' do
-      statsd = Datadog::Statsd.new '1.3.3.7', 8126, :tags => %w(global), :namespace => 'space'
-      _(statsd.connection.host).must_equal '1.3.3.7'
-      _(statsd.connection.port).must_equal 8126
-      _(statsd.namespace).must_equal 'space'
-      _(statsd.instance_variable_get('@prefix')).must_equal 'space.'
-      _(statsd.tags).must_equal ['global']
-    end
-
-    it 'sets host, port, namespace, and tags and get entity id from inv var' do
-      stub = Proc.new do |arg|
-        arg == 'DD_ENTITY_ID' ? '04652bb7-19b7-11e9-9cc6-42010a9c016d' : nil
-      end
-      ENV.stub :fetch, stub do
-        statsd = Datadog::Statsd.new '1.3.3.7', 8126, :tags => %w(global), :namespace => 'space'
-        _(statsd.connection.host).must_equal '1.3.3.7'
-        _(statsd.connection.port).must_equal 8126
-        _(statsd.namespace).must_equal 'space'
-        _(statsd.instance_variable_get('@prefix')).must_equal 'space.'
-        _(statsd.tags).must_equal ['global', 'dd.internal.entity_id:04652bb7-19b7-11e9-9cc6-42010a9c016d']
-      end
-    end
-
-    it 'fails on invalid tags' do
-      assert_raises ArgumentError do
-        Datadog::Statsd.new nil, nil, :tags => 'global'
-      end
-    end
-
-    it "fails on unknown options" do
-      assert_raises ArgumentError do
-        Datadog::Statsd.new nil, nil, :foo => 'bar'
-      end
-    end
-
-    it "accepts tags as a hash" do
-      statsd = Datadog::Statsd.new '1.3.3.7', 8126, :tags => {one: "one", two: "two"}, :namespace => 'space'
-      _(statsd.tags).must_equal ['one:one', 'two:two']
-    end
-  end
-
-  describe "#open" do
-    it "sends and then closes" do
-      instance = nil
-      Datadog::Statsd.open('1.2.3.4', 1234) do |s|
-        instance = s
-        _(s.connection.host).must_equal '1.2.3.4'
-        s.increment 'foo'
-        s.connection.expects(:close)
-      end
-      _(instance.class).must_equal Datadog::Statsd
-    end
-
-    it "does not fail closing when nothing was sent" do
-      Datadog::Statsd.open('1.2.3.4', 1234) {}
-    end
-  end
-
-  describe "#increment" do
-    it "formats the message according to the statsd spec" do
-      @statsd.increment('foobar')
-      _(socket.recv[0]).must equal_with_telemetry 'foobar:1|c'
-    end
-
-    describe "with a sample rate" do
-      before { class << @statsd; def rand; 0; end; end } # ensure delivery
-      it "should format the message according to the statsd spec" do
-        @statsd.increment('foobar', :sample_rate=>0.5)
-        _(socket.recv[0]).must equal_with_telemetry 'foobar:1|c|@0.5'
-      end
-    end
-
-    describe "with a sample rate like statsd-ruby" do
-      before { class << @statsd; def rand; 0; end; end } # ensure delivery
-      it "should format the message according to the statsd spec" do
-        @statsd.increment('foobar', 0.5)
-        _(socket.recv[0]).must equal_with_telemetry 'foobar:1|c|@0.5'
-      end
-    end
-
-    describe "with a increment by" do
-      it "should increment by the number given" do
-        @statsd.increment('foobar', :by=>5)
-        _(socket.recv[0]).must equal_with_telemetry 'foobar:5|c'
-      end
-    end
-  end
-
-  describe "#decrement" do
-    it "should format the message according to the statsd spec" do
-      @statsd.decrement('foobar')
-      _(socket.recv[0]).must equal_with_telemetry 'foobar:-1|c'
-    end
-
-    describe "with a sample rate" do
-      before { class << @statsd; def rand; 0; end; end } # ensure delivery
-      it "should format the message according to the statsd spec" do
-        @statsd.decrement('foobar', :sample_rate => 0.5)
-        _(socket.recv[0]).must equal_with_telemetry 'foobar:-1|c|@0.5'
-      end
-    end
-
-    describe "with a sample rate like statsd-ruby" do
-      before { class << @statsd; def rand; 0; end; end } # ensure delivery
-      it "should format the message according to the statsd spec" do
-        @statsd.decrement('foobar', 0.5)
-        _(socket.recv[0]).must equal_with_telemetry 'foobar:-1|c|@0.5'
-      end
-    end
-
-    describe "with a decrement by" do
-      it "should decrement by the number given" do
-        @statsd.decrement('foobar', :by=>5)
-        _(socket.recv[0]).must equal_with_telemetry 'foobar:-5|c'
-      end
-    end
-  end
-
-  describe "#count" do
-    it "can set sample rate as 2nd argument" do
-      @statsd.expects(:send_stats).with("foobar", 123, "c", sample_rate: 0.1)
-      @statsd.count('foobar', 123, 0.1)
-    end
-  end
-
-  describe "#gauge" do
-    it "should send a message with a 'g' type, per the nearby fork" do
-      @statsd.gauge('begrutten-suffusion', 536)
-      _(socket.recv[0]).must equal_with_telemetry 'begrutten-suffusion:536|g'
-
-      @statsd.telemetry.reset
-      @statsd.gauge('begrutten-suffusion', -107.3)
-      _(socket.recv[0]).must equal_with_telemetry 'begrutten-suffusion:-107.3|g'
-    end
-
-    describe "with a sample rate" do
-      before { class << @statsd; def rand; 0; end; end } # ensure delivery
-      it "should format the message according to the statsd spec" do
-        @statsd.gauge('begrutten-suffusion', 536, :sample_rate=>0.1)
-        _(socket.recv[0]).must equal_with_telemetry 'begrutten-suffusion:536|g|@0.1'
-      end
-    end
-
-    describe "with a sample rate like statsd-ruby" do
-      before { class << @statsd; def rand; 0; end; end } # ensure delivery
-      it "should format the message according to the statsd spec" do
-        @statsd.gauge('begrutten-suffusion', 536, 0.1)
-        _(socket.recv[0]).must equal_with_telemetry 'begrutten-suffusion:536|g|@0.1'
-      end
-    end
-  end
-
-  describe "#histogram" do
-    it "should send a message with a 'h' type, per the nearby fork" do
-      @statsd.histogram('ohmy', 536)
-      _(socket.recv[0]).must equal_with_telemetry 'ohmy:536|h'
-
-      @statsd.telemetry.reset
-      @statsd.histogram('ohmy', -107.3)
-      _(socket.recv[0]).must equal_with_telemetry 'ohmy:-107.3|h'
-    end
-
-    describe "with a sample rate" do
-      before { class << @statsd; def rand; 0; end; end } # ensure delivery
-      it "should format the message according to the statsd spec" do
-        @statsd.gauge('begrutten-suffusion', 536, :sample_rate=>0.1)
-        _(socket.recv[0]).must equal_with_telemetry 'begrutten-suffusion:536|g|@0.1'
-      end
-    end
-  end
-
-  describe "#set" do
-    it "should send a message with a 's' type, per the nearby fork" do
-      @statsd.set('my.set', 536)
-      _(socket.recv[0]).must equal_with_telemetry 'my.set:536|s'
-    end
-
-    describe "with a sample rate" do
-      before { class << @statsd; def rand; 0; end; end } # ensure delivery
-      it "should send a message with a 's' type, per the nearby fork" do
-        @statsd.set('my.set', 536, :sample_rate=>0.5)
-        _(socket.recv[0]).must equal_with_telemetry 'my.set:536|s|@0.5'
-      end
-    end
-
-    describe "with a sample rate like statsd-ruby" do
-      before { class << @statsd; def rand; 0; end; end } # ensure delivery
-      it "should send a message with a 's' type, per the nearby fork" do
-        @statsd.set('my.set', 536, 0.5)
-        _(socket.recv[0]).must equal_with_telemetry 'my.set:536|s|@0.5'
-      end
-    end
-  end
-
-  describe "#timing" do
-    it "should format the message according to the statsd spec" do
-      @statsd.timing('foobar', 500)
-      _(socket.recv[0]).must equal_with_telemetry 'foobar:500|ms'
-    end
-
-    describe "with a sample rate" do
-      before { class << @statsd; def rand; 0; end; end } # ensure delivery
-      it "should format the message according to the statsd spec" do
-        @statsd.timing('foobar', 500, :sample_rate=>0.5)
-        _(socket.recv[0]).must equal_with_telemetry 'foobar:500|ms|@0.5'
-      end
-    end
-
-    describe "with a sample rate like statsd-ruby" do
-      before { class << @statsd; def rand; 0; end; end } # ensure delivery
-      it "should format the message according to the statsd spec" do
-        @statsd.timing('foobar', 500, 0.5)
-        _(socket.recv[0]).must equal_with_telemetry 'foobar:500|ms|@0.5'
-      end
-    end
-  end
-
-  describe "#time" do
-    describe "With actual time testing" do
-      before do
-        stub_time 0 # Freezing time to prevent random test failures
-        statsd = Datadog::Statsd.new('localhost', 1234, disable_telemetry: true)
-        statsd.connection.instance_variable_set(:@socket, socket)
-      end
-
-      it "should format the message according to the statsd spec" do
-        statsd = Datadog::Statsd.new('localhost', 1234, disable_telemetry: true)
-        statsd.connection.instance_variable_set(:@socket, socket)
-        statsd.time('foobar') do
-          stub_time 1
-        end
-        _(socket.recv[0]).must_equal 'foobar:1000|ms'
-      end
-
-      it "should still time if block is failing" do
-        statsd = Datadog::Statsd.new('localhost', 1234, disable_telemetry: true)
-        statsd.connection.instance_variable_set(:@socket, socket)
-        assert_raises StandardError do
-          statsd.time('foobar') do
-            stub_time 1
-            raise StandardError, 'This is failing'
-          end
-        end
-        _(socket.recv[0]).must_equal 'foobar:1000|ms'
-      end
-
-      def helper_time_return
-        statsd = Datadog::Statsd.new('localhost', 1234, disable_telemetry: true)
-        statsd.connection.instance_variable_set(:@socket, socket)
-        statsd.time('foobar') do
-          stub_time 1
-          return
-        end
-      end
-
-      it "should still time if block `return`s" do
-        helper_time_return
-        _(socket.recv[0]).must_equal 'foobar:1000|ms'
-      end
-    end
-
-    it "should return the result of the block" do
-      result = @statsd.time('foobar') { 'test' }
-      _(result).must_equal 'test'
-    end
-
-    it "should reraise the error if block is failing" do
-      assert_raises StandardError do
-        @statsd.time('foobar') { raise StandardError, 'This is failing' }
-      end
-    end
-
-    it "can run without PROCESS_TIME_SUPPORTED" do
-      stub_const :PROCESS_TIME_SUPPORTED, false do
-        statsd = Datadog::Statsd.new('localhost', 1234, disable_telemetry: true)
-        statsd.connection.instance_variable_set(:@socket, socket)
-
-        result = statsd.time('foobar') { 'test' }
-        _(result).must_equal 'test'
-      end
-    end
-
-    describe "with a sample rate" do
-      statsd = Datadog::Statsd.new('localhost', 1234, disable_telemetry: true)
-      before { class << statsd; def rand; 0; end; end } # ensure delivery
-      it "should format the message according to the statsd spec" do
-        statsd.connection.instance_variable_set(:@socket, socket)
-
-        stub_time 0
-        statsd.time('foobar', :sample_rate=>0.5) do
-          stub_time 1
-        end
-        _(socket.recv[0]).must_equal 'foobar:1000|ms|@0.5'
-      end
-    end
-
-    describe "with a sample rate like statsd-ruby" do
-      statsd = Datadog::Statsd.new('localhost', 1234, disable_telemetry: true)
-      before { class << statsd; def rand; 0; end; end } # ensure delivery
-      it "should format the message according to the statsd spec" do
-        statsd.connection.instance_variable_set(:@socket, socket)
-
-        stub_time 0
-        statsd.time('foobar', 0.5) do
-          stub_time 1
-        end
-        _(socket.recv[0]).must_equal 'foobar:1000|ms|@0.5'
-      end
-    end
-  end
-
-  describe "#sampled" do
-    describe "local setting" do
-      describe "when the sample rate is 1" do
-        before { class << @statsd; def rand; raise end; end }
-        it "should send" do
-          @statsd.timing('foobar', 500, :sample_rate=>1)
-          _(socket.recv[0]).must equal_with_telemetry 'foobar:500|ms'
-        end
-      end
-
-      describe "when the sample rate is greater than a random value [0,1]" do
-        before { class << @statsd; def rand; 0; end; end } # ensure delivery
-        it "should send" do
-          @statsd.timing('foobar', 500, :sample_rate=>0.5)
-          _(socket.recv[0]).must equal_with_telemetry 'foobar:500|ms|@0.5'
-        end
-      end
-
-      describe "when the sample rate is less than a random value [0,1]" do
-        before { class << @statsd; def rand; 1; end; end } # ensure no delivery
-        it "should not send" do
-          assert_nil @statsd.timing('foobar', 500, :sample_rate=>0.5)
-        end
-      end
-
-      describe "when the sample rate is equal to a random value [0,1]" do
-        before { class << @statsd; def rand; 0.5; end; end } # ensure delivery
-        it "should send" do
-          @statsd.timing('foobar', 500, :sample_rate=>0.5)
-          _(socket.recv[0]).must equal_with_telemetry 'foobar:500|ms|@0.5'
-        end
-      end
-    end
-
-    describe "global setting" do
-      describe "when the sample rate is 1" do
-        let(:sample_rate) { 1 }
-        before { class << @statsd; def rand; raise end; end }
-        it "should send" do
-          @statsd.timing('foobar', 500)
-          _(socket.recv[0]).must equal_with_telemetry 'foobar:500|ms'
-        end
-      end
-
-      describe "when the sample rate is greater than a random value [0,1]" do
-        let(:sample_rate) { 0.5 }
-        before { class << @statsd; def rand; 0; end; end } # ensure delivery
-        it "should send" do
-          @statsd.timing('foobar', 500)
-          _(socket.recv[0]).must equal_with_telemetry 'foobar:500|ms|@0.5'
-        end
-      end
-
-      describe "when the sample rate is less than a random value [0,1]" do
-        let(:sample_rate) { 0.5 }
-        before { class << @statsd; def rand; 1; end; end } # ensure no delivery
-        it "should not send" do
-          assert_nil @statsd.timing('foobar', 500)
-        end
-      end
-
-      describe "when the sample rate is equal to a random value [0,1]" do
-        let(:sample_rate) { 0.5 }
-        before { class << @statsd; def rand; 0.5; end; end } # ensure delivery
-        it "should send" do
-          @statsd.timing('foobar', 500)
-          _(socket.recv[0]).must equal_with_telemetry 'foobar:500|ms|@0.5'
-        end
-      end
-    end
-  end
-
-  describe "#distribution" do
-    it "send a message with d type" do
-      @statsd.distribution('begrutten-suffusion', 536)
-      _(socket.recv[0]).must equal_with_telemetry 'begrutten-suffusion:536|d'
-    end
-  end
-
-  describe "with namespace" do
-    let(:namespace) { 'service' }
-
-    it "should add namespace to increment" do
-      @statsd.increment('foobar')
-      _(socket.recv[0]).must equal_with_telemetry 'service.foobar:1|c'
-    end
-
-    it "should add namespace to decrement" do
-      @statsd.decrement('foobar')
-      _(socket.recv[0]).must equal_with_telemetry 'service.foobar:-1|c'
-    end
-
-    it "should add namespace to timing" do
-      @statsd.timing('foobar', 500)
-      _(socket.recv[0]).must equal_with_telemetry 'service.foobar:500|ms'
-    end
-
-    it "should add namespace to gauge" do
-      @statsd.gauge('foobar', 500)
-      _(socket.recv[0]).must equal_with_telemetry 'service.foobar:500|g'
-    end
-  end
-
-  describe "with logging" do
-    require 'stringio'
-    let(:logger) { Logger.new(log) }
-    let(:log) { StringIO.new }
-    before { @statsd.connection.instance_variable_set(:@logger, logger) }
-
-    it "writes to the log in debug" do
-      logger.level = Logger::DEBUG
-
-      @statsd.increment('foobar')
-
-      _(log.string).must_match "Statsd: foobar:1|c"
-    end
-
-    it "does not write to the log unless debug" do
+  let(:namespace) { 'sample_ns' }
+  let(:sample_rate) { nil }
+  let(:tags) { %w[abc def] }
+  let(:logger) do
+    Logger.new(log).tap do |logger|
       logger.level = Logger::INFO
-
-      @statsd.increment('foobar')
-
-      _(log.string).must_be_empty
     end
   end
+  let(:log) { StringIO.new }
 
-  describe "stat names" do
-    it "should accept anything as stat" do
-      @statsd.increment(Object)
-    end
-
-    it "should replace ruby constant delimeter with graphite package name" do
-      class Datadog::Statsd::SomeClass; end
-      @statsd.increment(Datadog::Statsd::SomeClass, :sample_rate=>1)
-
-      _(socket.recv[0]).must equal_with_telemetry 'Datadog.Statsd.SomeClass:1|c'
-    end
-
-    it "should replace statsd reserved chars in the stat name" do
-      @statsd.increment('ray@hostname.blah|blah.blah:blah')
-      _(socket.recv[0]).must equal_with_telemetry 'ray_hostname.blah_blah.blah_blah:1|c'
-    end
-
-    it "should handle frozen strings" do
-      @statsd.increment("some-stat".freeze)
-    end
+  before do
+    allow(Socket).to receive(:new).and_return(socket)
+    allow(UDPSocket).to receive(:new).and_return(socket)
   end
 
-  describe "tag names" do
-    it "replaces reserved chars for tags" do
-      @statsd.increment('stat', tags: ["name:foo,bar|foo"])
-      _(socket.recv[0]).must equal_with_telemetry 'stat:1|c|#name:foobarfoo'
+  describe '#initialize' do
+    context 'when using provided values' do
+      it 'sets the host correctly' do
+        expect(subject.connection.host).to eq 'localhost'
+      end
+
+      it 'sets the port correctly' do
+        expect(subject.connection.port).to eq 1234
+      end
+
+      it 'sets the namespace' do
+        expect(subject.namespace).to eq 'sample_ns'
+      end
+
+      it 'sets the right tags' do
+        expect(subject.tags).to eq %w[abc def]
+      end
+
+      context 'when using tags in a hash' do
+        let(:tags) do
+          {
+            one: 'one',
+            two: 'two',
+          }
+        end
+
+        it 'sets the right tags' do
+          expect(subject.tags).to eq %w[one:one two:two]
+        end
+      end
     end
 
-    it "handles the cases when some tags are frozen strings" do
-      @statsd.increment('stat', tags: ["first_tag".freeze, "second_tag"])
-    end
+    context 'when using environment variables' do
+      subject do
+        described_class.new(
+          namespace: namespace,
+          sample_rate: sample_rate,
+          tags: %w[abc def]
+        )
+      end
 
-    it "converts all values to strings" do
-      @statsd.increment('stat', tags: [:sample_tag])
-      _(socket.recv[0]).must equal_with_telemetry 'stat:1|c|#sample_tag'
-    end
-  end
-
-  describe "handling socket errors" do
-    before do
-      @statsd.connection.instance_variable_set(:@logger, Logger.new(@log = StringIO.new))
-      socket.instance_eval { def send(*) raise SocketError end }
-    end
-
-    it "should ignore socket errors" do
-      assert_nil @statsd.increment('foobar')
-    end
-
-    it "should log socket errors" do
-      @statsd.increment('foobar')
-      _(@log.string).must_match 'Statsd: SocketError'
-    end
-
-    it "works without a logger" do
-      @statsd.instance_variable_set(:@logger, nil)
-      @statsd.increment('foobar')
-    end
-  end
-
-  describe "handling closed socket" do
-    before do
-      @statsd.connection.instance_variable_set(:@logger, Logger.new(@log = StringIO.new))
-    end
-
-    it "tries to reconnect once" do
-      @statsd.connection.expects(:socket).times(2).returns(socket)
-      socket.expects(:send).returns("YEP") # 2nd call
-      socket.expects(:send).raises(IOError.new("closed stream")) # first call
-
-      @statsd.increment('foobar')
-    end
-
-    it "ignores and logs if it fails to reconnect" do
-      @statsd.connection.expects(:socket).times(2).returns(socket)
-      socket.expects(:send).raises(RuntimeError) # 2nd call
-      socket.expects(:send).raises(IOError.new("closed stream")) # first call
-
-      assert_nil @statsd.increment('foobar')
-      _(@log.string).must_include 'Statsd: RuntimeError'
-    end
-
-    it "ignores and logs errors while trying to reconnect" do
-      socket.expects(:send).raises(IOError.new("closed stream"))
-      @statsd.connection.expects(:connect).raises(SocketError)
-
-      assert_nil @statsd.increment('foobar')
-      _(@log.string).must_include 'Statsd: SocketError'
-    end
-  end
-
-  describe "handling not connected socket" do
-    before do
-      @statsd.connection.instance_variable_set(:@logger, Logger.new(@log = StringIO.new))
-    end
-
-    it "tries to reconnect once" do
-      @statsd.connection.expects(:socket).times(2).returns(socket)
-      socket.expects(:send).returns("YEP") # 2nd call
-      socket.expects(:send).raises(Errno::ENOTCONN.new("closed stream")) # first call
-
-      @statsd.increment('foobar')
-    end
-
-    it "ignores and logs if it fails to reconnect" do
-      @statsd.connection.expects(:socket).times(2).returns(socket)
-      socket.expects(:send).raises(RuntimeError) # 2nd call
-      socket.expects(:send).raises(Errno::ENOTCONN.new) # first call
-
-      assert_nil @statsd.increment('foobar')
-      _(@log.string).must_include 'Statsd: RuntimeError'
-    end
-
-    it "ignores and logs errors while trying to reconnect" do
-      socket.expects(:send).raises(Errno::ENOTCONN.new)
-      @statsd.connection.expects(:connect).raises(SocketError)
-
-      assert_nil @statsd.increment('foobar')
-      _(@log.string).must_include 'Statsd: SocketError'
-    end
-  end
-
-  describe "handling connection refused" do
-    before do
-      @statsd.connection.instance_variable_set(:@logger, Logger.new(@log = StringIO.new))
-    end
-
-    it "tries to reconnect once" do
-      @statsd.connection.expects(:socket).times(2).returns(socket)
-      socket.expects(:send).returns("YEP") # 2nd call
-      socket.expects(:send).raises(Errno::ECONNREFUSED.new("closed stream")) # first call
-
-      @statsd.increment('foobar')
-    end
-
-    it "ignores and logs if it fails to reconnect" do
-      @statsd.connection.expects(:socket).times(2).returns(socket)
-      socket.expects(:send).raises(RuntimeError) # 2nd call
-      socket.expects(:send).raises(Errno::ECONNREFUSED.new) # first call
-
-      assert_nil @statsd.increment('foobar')
-      _(@log.string).must_include 'Statsd: RuntimeError'
-    end
-
-    it "ignores and logs errors while trying to reconnect" do
-      socket.expects(:send).raises(Errno::ECONNREFUSED.new)
-      @statsd.connection.expects(:connect).raises(SocketError)
-
-      assert_nil @statsd.increment('foobar')
-      _(@log.string).must_include 'Statsd: SocketError'
-    end
-  end
-
-  describe "UDS error handling" do
-    before do
-      @statsd = Datadog::Statsd.new('localhost', 1234, socket_path: '/tmp/socket', disable_telemetry: true)
-    end
-
-    describe "when socket throws connection reset error" do
       before do
-        @fake_socket = Minitest::Mock.new
-        @fake_socket.expect(:connect, true) { true }
-        @fake_socket.expect :sendmsg_nonblock, true, ['foo:1|c']
-        @fake_socket.expect(:sendmsg_nonblock, true) { raise Errno::ECONNRESET }
-
-        @fake_socket2 = Minitest::Mock.new
-        @fake_socket2.expect(:connect, true) { true }
-        @fake_socket2.expect :sendmsg_nonblock, true, ['bar:1|c']
+        allow(ENV).to receive(:fetch).and_call_original
+        allow(ENV).to receive(:fetch).with('DD_AGENT_HOST', anything).and_return('myhost')
+        allow(ENV).to receive(:fetch).with('DD_DOGSTATSD_PORT', anything).and_return(4321)
+        allow(ENV).to receive(:fetch).with('DD_ENTITY_ID', anything).and_return('04652bb7-19b7-11e9-9cc6-42010a9c016d')
       end
 
-      it "should ignore message and try reconnect on next call" do
-        Socket.stub(:new, @fake_socket) do
-          @statsd.increment('foo')
-        end
-        @statsd.increment('baz')
-        Socket.stub(:new, @fake_socket2) do
-          @statsd.increment('bar')
-        end
-        @fake_socket.verify
-        @fake_socket2.verify
-      end
-    end
-
-    describe "when socket throws connection refused error" do
-      before do
-        @fake_socket = Minitest::Mock.new
-        @fake_socket.expect(:connect, true) { true }
-        @fake_socket.expect :sendmsg_nonblock, true, ['foo:1|c']
-        @fake_socket.expect(:sendmsg_nonblock, true) { raise Errno::ECONNREFUSED }
-
-        @fake_socket2 = Minitest::Mock.new
-        @fake_socket2.expect(:connect, true) { true }
-        @fake_socket2.expect :sendmsg_nonblock, true, ['bar:1|c']
+      it 'sets the host using the env var DD_AGENT_HOST' do
+        expect(subject.connection.host).to eq 'myhost'
       end
 
-      it "should ignore message and try reconnect on next call" do
-        Socket.stub(:new, @fake_socket) do
-          @statsd.increment('foo')
-        end
-        @statsd.increment('baz')
-        Socket.stub(:new, @fake_socket2) do
-          @statsd.increment('bar')
-        end
-        @fake_socket.verify
-        @fake_socket2.verify
+      it 'sets the port using the env var DD_DOGSTATSD_PORT' do
+        expect(subject.connection.port).to eq 4321
+      end
+
+      it 'sets the entity tag using ' do
+        expect(subject.tags).to eq [
+          'abc',
+          'def',
+          'dd.internal.entity_id:04652bb7-19b7-11e9-9cc6-42010a9c016d'
+        ]
       end
     end
 
-    describe "when socket throws file not found error" do
-      before do
-        @fake_socket = Minitest::Mock.new
-        @fake_socket.expect(:connect, true) { true }
-        @fake_socket.expect :sendmsg_nonblock, true, ['foo:1|c']
-        @fake_socket.expect(:sendmsg_nonblock, true) { raise Errno::ENOENT }
-
-        @fake_socket2 = Minitest::Mock.new
-        @fake_socket2.expect(:connect, true) { true }
-        @fake_socket2.expect :sendmsg_nonblock, true, ['bar:1|c']
+    context 'when using default values' do
+      subject do
+        described_class.new
       end
 
-      it "should ignore message and try reconnect on next call" do
-        Socket.stub(:new, @fake_socket) do
-          @statsd.increment('foo')
-        end
-        @statsd.increment('baz')
-        Socket.stub(:new, @fake_socket2) do
-          @statsd.increment('bar')
-        end
-        @fake_socket.verify
-        @fake_socket2.verify
+      it 'sets the host to default values' do
+        expect(subject.connection.host).to eq '127.0.0.1'
+      end
+
+      it 'sets the port to default values' do
+        expect(subject.connection.port).to eq 8125
+      end
+
+      it 'sets no namespace' do
+        expect(subject.namespace).to be_nil
+      end
+
+      it 'sets no tags' do
+        expect(subject.tags).to be_empty
       end
     end
 
-    describe "when socket is full" do
-      before do
-        @fake_socket = Minitest::Mock.new
-        @fake_socket.expect(:connect, true) { true }
-        @fake_socket.expect :sendmsg_nonblock, true, ['foo:1|c']
-        @fake_socket.expect(:sendmsg_nonblock, true) { raise IO::EAGAINWaitWritable }
-        @fake_socket.expect :sendmsg_nonblock, true, ['bar:1|c']
-
-        @fake_socket2 = Minitest::Mock.new
+    context 'when testing connection type' do
+      let(:fake_socket) do
+        FakeUDPSocket.new
       end
 
-      it "should ignore message but does not reconnect on next call" do
-        Socket.stub(:new, @fake_socket) do
-          @statsd.increment('foo')
+      context 'when using a host and a port' do
+        before do
+          allow(UDPSocket).to receive(:new).and_return(fake_socket)
         end
-        @statsd.increment('baz')
-        Socket.stub(:new, @fake_socket2) do
-          @statsd.increment('bar')
+
+        it 'uses an UDP socket' do
+          expect(subject.connection.send(:socket)).to be fake_socket
         end
-        @fake_socket.verify
-        @fake_socket2.verify
+      end
+
+      context 'when using a socket_path' do
+        subject do
+          described_class.new(
+            namespace: namespace,
+            sample_rate: sample_rate,
+            socket_path: '/tmp/socket'
+          )
+        end
+
+        before do
+          allow(Socket).to receive(:new).and_call_original
+        end
+
+        it 'uses an UDS socket' do
+          expect do
+            subject.connection.send(:socket)
+          end.to raise_error(Errno::ENOENT, /No such file or directory - connect\(2\)/)
+        end
       end
     end
   end
 
-  describe "tagged" do
-    describe "tags as an array of strings" do
-      it "gauges support tags" do
-        @statsd.gauge("gauge", 1, :tags=>%w(country:usa state:ny))
-        _(socket.recv[0]).must equal_with_telemetry 'gauge:1|g|#country:usa,state:ny'
-      end
-
-      it "counters support tags" do
-        @statsd.increment("c", :tags=>%w(country:usa other))
-        _(socket.recv[0]).must equal_with_telemetry 'c:1|c|#country:usa,other'
-
-        @statsd.telemetry.reset
-        @statsd.decrement("c", :tags=>%w(country:china))
-        _(socket.recv[0]).must equal_with_telemetry 'c:-1|c|#country:china'
-
-        @statsd.telemetry.reset
-        @statsd.count("c", 100, :tags=>%w(country:finland))
-        _(socket.recv[0]).must equal_with_telemetry 'c:100|c|#country:finland'
-      end
-
-      it "timing support tags" do
-        @statsd.timing("t", 200, :tags=>%w(country:canada other))
-        _(socket.recv[0]).must equal_with_telemetry 't:200|ms|#country:canada,other'
-
-        @statsd.time('foobar', :tags => ["123"]) { sleep(0.001); 'test' }
-      end
-
-      it "global tags setter" do
-        @statsd.instance_variable_set(:@tags, %w(country:usa other))
-        @statsd.increment("c")
-        _(socket.recv[0]).must equal_with_telemetry 'c:1|c|#country:usa,other'
-      end
-
-      it "global tags setter and regular tags" do
-        @statsd.instance_variable_set(:@tags, %w(country:usa other))
-        @statsd.increment("c", :tags=>%w(somethingelse))
-        _(socket.recv[0]).must equal_with_telemetry 'c:1|c|#country:usa,other,somethingelse'
-      end
+  describe '#open' do
+    before do
+      allow(described_class)
+        .to receive(:new)
+        .and_return(fake_statsd)
     end
 
-    describe "tags as hashes" do
-      it "gauges support tags" do
-        @statsd.gauge("gauge", 1, :tags =>{ country: 'usa', state: 'ny' })
-        _(socket.recv[0]).must equal_with_telemetry 'gauge:1|g|#country:usa,state:ny'
-      end
+    let(:fake_statsd) do
+      instance_double(described_class, close: true)
+    end
 
-      it "counters support tags" do
-        @statsd.increment("c", :tags => { country: 'usa', other: nil })
-        _(socket.recv[0]).must equal_with_telemetry 'c:1|c|#country:usa,other'
+    it 'builds an instance of statsd correctly' do
+      expect(described_class)
+        .to receive(:new)
+        .with('localhost', 1234,
+          namespace: namespace,
+          sample_rate: sample_rate,
+          tags: tags,
+        )
 
-        @statsd.telemetry.reset
-        @statsd.decrement("c", :tags => { country: 'china' })
-        _(socket.recv[0]).must equal_with_telemetry 'c:-1|c|#country:china'
+      described_class.open('localhost', 1234,
+        namespace: namespace,
+        sample_rate: sample_rate,
+        tags: tags,
+      ) {}
+    end
 
-        @statsd.telemetry.reset
-        @statsd.count("c", 100, :tags => { country: 'finland' })
-        _(socket.recv[0]).must equal_with_telemetry 'c:100|c|#country:finland'
-      end
+    it 'yields the statsd instance' do
+      expect do |block|
+        described_class.open(&block)
+      end.to yield_with_args(fake_statsd)
+    end
 
-      it "timing support tags" do
-        @statsd.timing("t", 200, :tags => { country: 'canada', other: nil })
-        _(socket.recv[0]).must equal_with_telemetry 't:200|ms|#country:canada,other'
+    it 'closes the statsd instance' do
+      expect(fake_statsd).to receive(:close)
 
-        @statsd.time('foobar', :tags => ["123"]) { sleep(0.001); 'test' }
-      end
+      described_class.open {}
+    end
 
-      it "global tags setter and regular tags" do
-        @statsd.instance_variable_set(:@tags, %w(country:usa other))
-        @statsd.increment("c", :tags=> { something: 'else'})
-        _(socket.recv[0]).must equal_with_telemetry 'c:1|c|#country:usa,other,something:else'
-      end
 
+    it 'ensures the statsd instance is closed' do
+      expect(fake_statsd).to receive(:close)
+
+      # rubocop:disable Lint/RescueWithoutErrorClass
+      described_class.open do
+        raise 'stop'
+      end rescue nil
+      # rubocop:enable Lint/RescueWithoutErrorClass
     end
   end
 
-  describe "batched" do
-    it "should not send anything when the buffer is empty" do
-      @statsd.batch { }
-      assert_nil socket.recv
-    end
+  describe '#increment' do
+    let(:namespace) { nil }
+    let(:sample_rate) { nil }
+    let(:tags) { nil }
 
-    it "should allow to send single sample in one packet" do
-      @statsd.batch do |s|
-        s.increment("mycounter")
+    it_behaves_like 'a metrics method', 'foobar:1|c' do
+      let(:basic_action) do
+        subject.increment('foobar', tags: action_tags)
       end
-      _(socket.recv[0]).must equal_with_telemetry 'mycounter:1|c'
     end
 
-    it "should allow to send multiple sample in one packet" do
-      @statsd.batch do |s|
-        s.increment("mycounter")
-        s.decrement("myothercounter")
+    it 'sends the increment' do
+      subject.increment('foobar')
+
+      expect(socket.recv[0]).to eq_with_telemetry('foobar:1|c')
+    end
+
+    context 'with a sample rate' do
+      before do
+        allow(subject).to receive(:rand).and_return(0)
       end
-      _(socket.recv[0]).must equal_with_telemetry("mycounter:1|c\nmyothercounter:-1|c", metrics: 2)
-    end
 
-    it "should default back to single metric packet after the block" do
-      @statsd.batch do |s|
-        s.gauge("mygauge", 10)
-        s.gauge("myothergauge", 20)
+      it 'formats the message according to the statsd spec' do
+        subject.increment('foobar', sample_rate: 0.5)
+        expect(socket.recv[0]).to eq_with_telemetry 'foobar:1|c|@0.5'
       end
-      @statsd.increment("mycounter")
-      @statsd.increment("myothercounter")
-
-      equal_expected = equal_with_telemetry("mygauge:10|g\nmyothergauge:20|g", metrics: 2)
-      _(socket.recv[0]).must equal_expected
-
-      equal_expected = equal_with_telemetry('mycounter:1|c', bytes_sent: equal_expected.length, packets_sent: 1)
-      _(socket.recv[0]).must equal_expected
-
-      equal_expected = equal_with_telemetry('myothercounter:1|c', bytes_sent: equal_expected.length, packets_sent: 1)
-      _(socket.recv[0]).must equal_expected
     end
 
-    it "should flush when the buffer gets too big" do
+    context 'with a sample rate like statsd-ruby' do
+      before do
+        allow(subject).to receive(:rand).and_return(0)
+      end
+
+      it 'sends the increment with the sample rate' do
+        subject.increment('foobar', 0.5)
+        expect(socket.recv[0]).to eq_with_telemetry 'foobar:1|c|@0.5'
+      end
+    end
+
+    context 'with a increment by' do
+      it 'increments by the number given' do
+        subject.increment('foobar', by: 5)
+        expect(socket.recv[0]).to eq_with_telemetry 'foobar:5|c'
+      end
+    end
+  end
+
+  describe '#decrement' do
+    let(:namespace) { nil }
+    let(:sample_rate) { nil }
+    let(:tags) { nil }
+
+    it_behaves_like 'a metrics method', 'foobar:-1|c' do
+      let(:basic_action) do
+        subject.decrement('foobar', tags: action_tags)
+      end
+    end
+
+    it 'sends the decrement' do
+      subject.decrement('foobar')
+      expect(socket.recv[0]).to eq_with_telemetry 'foobar:-1|c'
+    end
+
+    context 'with a sample rate' do
+      before do
+        allow(subject).to receive(:rand).and_return(0)
+      end
+
+      it 'sends the decrement with the sample rate' do
+        subject.decrement('foobar', sample_rate: 0.5)
+        expect(socket.recv[0]).to eq_with_telemetry 'foobar:-1|c|@0.5'
+      end
+    end
+
+    context 'with a sample rate like statsd-ruby' do
+      before do
+        allow(subject).to receive(:rand).and_return(0)
+      end
+
+      it 'sends the decrement with the sample rate' do
+        subject.decrement('foobar', 0.5)
+        expect(socket.recv[0]).to eq_with_telemetry 'foobar:-1|c|@0.5'
+      end
+    end
+
+    context 'with a decrement by' do
+      it 'decrements by the number given' do
+        subject.decrement('foobar', by: 5)
+        expect(socket.recv[0]).to eq_with_telemetry 'foobar:-5|c'
+      end
+    end
+  end
+
+  describe '#count' do
+    let(:namespace) { nil }
+    let(:sample_rate) { nil }
+    let(:tags) { nil }
+
+    it_behaves_like 'a metrics method', 'foobar:123|c' do
+      let(:basic_action) do
+        subject.count('foobar', 123, tags: action_tags)
+      end
+    end
+
+    it 'sends the count' do
+      subject.count('foobar', 123)
+      expect(socket.recv[0]).to eq_with_telemetry 'foobar:123|c'
+    end
+
+    context 'with a sample rate like statsd-ruby' do
+      before do
+        allow(subject).to receive(:rand).and_return(0)
+      end
+
+      it 'sends the count with sample rate' do
+        subject.count('foobar', 123, 0.1)
+        expect(socket.recv[0]).to eq_with_telemetry 'foobar:123|c|@0.1'
+      end
+    end
+  end
+
+  describe '#gauge' do
+    let(:namespace) { nil }
+    let(:sample_rate) { nil }
+    let(:tags) { nil }
+
+    it_behaves_like 'a metrics method', 'begrutten-suffusion:536|g' do
+      let(:basic_action) do
+        subject.gauge('begrutten-suffusion', 536, tags: action_tags)
+      end
+    end
+
+    it 'sends the gauge' do
+      subject.gauge('begrutten-suffusion', 536)
+      expect(socket.recv[0]).to eq_with_telemetry 'begrutten-suffusion:536|g'
+    end
+
+    it 'sends the gauge with sequential values' do
+      subject.gauge('begrutten-suffusion', 536)
+      expect(socket.recv[0]).to eq_with_telemetry 'begrutten-suffusion:536|g'
+
+      subject.gauge('begrutten-suffusion', -107.3)
+      expect(socket.recv[0]).to eq_with_telemetry 'begrutten-suffusion:-107.3|g', bytes_sent: 697, packets_sent: 1
+    end
+
+    context 'with a sample rate' do
+      before do
+        allow(subject).to receive(:rand).and_return(0)
+      end
+
+      it 'sends the gauge with the sample rate' do
+        subject.gauge('begrutten-suffusion', 536, sample_rate: 0.1)
+        expect(socket.recv[0]).to eq_with_telemetry 'begrutten-suffusion:536|g|@0.1'
+      end
+    end
+
+    describe 'with a sample rate like statsd-ruby' do
+      before do
+        allow(subject).to receive(:rand).and_return(0)
+      end
+
+      it 'formats the message according to the statsd spec' do
+        subject.gauge('begrutten-suffusion', 536, 0.1)
+        expect(socket.recv[0]).to eq_with_telemetry 'begrutten-suffusion:536|g|@0.1'
+      end
+    end
+  end
+
+  describe '#histogram' do
+    let(:namespace) { nil }
+    let(:sample_rate) { nil }
+    let(:tags) { nil }
+
+    it_behaves_like 'a metrics method', 'ohmy:536|h' do
+      let(:basic_action) do
+        subject.histogram('ohmy', 536, tags: action_tags)
+      end
+    end
+
+    it 'sends the histogram' do
+      subject.histogram('ohmy', 536)
+      expect(socket.recv[0]).to eq_with_telemetry 'ohmy:536|h'
+    end
+
+    it 'sends the histogram with sequential values' do
+      subject.histogram('ohmy', 536)
+      expect(socket.recv[0]).to eq_with_telemetry 'ohmy:536|h'
+
+      subject.histogram('ohmy', -107.3)
+      expect(socket.recv[0]).to eq_with_telemetry 'ohmy:-107.3|h', bytes_sent: 682, packets_sent: 1
+    end
+
+    context 'with a sample rate' do
+      before do
+        allow(subject).to receive(:rand).and_return(0)
+      end
+
+      it 'sends the histogram with the sample rate' do
+        subject.gauge('begrutten-suffusion', 536, sample_rate: 0.1)
+        expect(socket.recv[0]).to eq_with_telemetry 'begrutten-suffusion:536|g|@0.1'
+      end
+    end
+  end
+
+  describe '#set' do
+    let(:namespace) { nil }
+    let(:sample_rate) { nil }
+    let(:tags) { nil }
+
+    it_behaves_like 'a metrics method', 'myset:536|s' do
+      let(:basic_action) do
+        subject.set('myset', 536, tags: action_tags)
+      end
+    end
+
+    it 'sends the set' do
+      subject.set('my.set', 536)
+      expect(socket.recv[0]).to eq_with_telemetry 'my.set:536|s'
+    end
+
+    context 'with a sample rate' do
+      before do
+        allow(subject).to receive(:rand).and_return(0)
+      end
+
+      it 'sends the set with the sample rate' do
+        subject.set('my.set', 536, sample_rate: 0.5)
+        expect(socket.recv[0]).to eq_with_telemetry 'my.set:536|s|@0.5'
+      end
+    end
+
+    context 'with a sample rate like statsd-ruby' do
+      before do
+        allow(subject).to receive(:rand).and_return(0)
+      end
+
+      it 'sends the set with the sample rate' do
+        subject.set('my.set', 536, 0.5)
+        expect(socket.recv[0]).to eq_with_telemetry 'my.set:536|s|@0.5'
+      end
+    end
+  end
+
+  describe '#timing' do
+    let(:namespace) { nil }
+    let(:sample_rate) { nil }
+    let(:tags) { nil }
+
+    it_behaves_like 'a metrics method', 'foobar:500|ms' do
+      let(:basic_action) do
+        subject.timing('foobar', 500, tags: action_tags)
+      end
+    end
+
+    it 'sends the timing' do
+      subject.timing('foobar', 500)
+      expect(socket.recv[0]).to eq_with_telemetry 'foobar:500|ms'
+    end
+
+    context 'with a sample rate' do
+      before do
+        allow(subject).to receive(:rand).and_return(0)
+      end
+
+      it 'sends the timing with the sample rate' do
+        subject.timing('foobar', 500, sample_rate: 0.5)
+        expect(socket.recv[0]).to eq_with_telemetry 'foobar:500|ms|@0.5'
+      end
+    end
+
+    context 'with a sample rate like statsd-ruby' do
+      before do
+        allow(subject).to receive(:rand).and_return(0)
+      end
+
+      it 'sends the timing with the sample rate' do
+        subject.timing('foobar', 500, 0.5)
+        expect(socket.recv[0]).to eq_with_telemetry 'foobar:500|ms|@0.5'
+      end
+    end
+  end
+
+  describe '#time' do
+    let(:namespace) { nil }
+    let(:sample_rate) { nil }
+    let(:tags) { nil }
+
+    let(:before_date) do
+      DateTime.new(2020, 2, 25, 12, 12, 12)
+    end
+
+    let(:after_date) do
+      DateTime.new(2020, 2, 25, 12, 12, 13)
+    end
+
+    before do
+      Timecop.freeze(before_date)
+      allow(Process).to receive(:clock_gettime).and_return(0, 1) if Datadog::Statsd::PROCESS_TIME_SUPPORTED
+    end
+
+    it_behaves_like 'a metrics method', 'foobar:1000|ms' do
+      let(:basic_action) do
+        subject.time('foobar', tags: action_tags) do
+          Timecop.travel(after_date)
+        end
+      end
+    end
+
+    context 'when actually testing time' do
+      it 'sends the timing' do
+        subject.time('foobar') do
+          Timecop.travel(after_date)
+        end
+
+        expect(socket.recv[0]).to eq_with_telemetry 'foobar:1000|ms'
+      end
+
+      it 'ensures the timing is sent' do
+        # rubocop:disable Lint/RescueWithoutErrorClass
+        subject.time('foobar') do
+          Timecop.travel(after_date)
+          raise 'stop'
+        end rescue nil
+        # rubocop:enable Lint/RescueWithoutErrorClass
+
+        expect(socket.recv[0]).to eq_with_telemetry 'foobar:1000|ms'
+      end
+    end
+
+    it 'returns the result of the block' do
+      expect(subject.time('foobar') { 'test' }).to eq 'test'
+    end
+
+    it 'does not catch errors if block is failing' do
+      expect do
+        subject.time('foobar') do
+          raise 'yolo'
+        end
+      end.to raise_error(StandardError, 'yolo')
+    end
+
+    it 'can run without "PROCESS_TIME_SUPPORTED"' do
+      stub_const('PROCESS_TIME_SUPPORTED', false)
+
+      expect do
+        subject.time('foobar') {}
+      end.not_to raise_error
+    end
+
+    context 'with a sample rate' do
+      before do
+        allow(subject).to receive(:rand).and_return(0)
+      end
+
+      it 'sends the timing with the sample rate' do
+        subject.time('foobar', sample_rate: 0.5) do
+          Timecop.travel(after_date)
+        end
+
+        expect(socket.recv[0]).to eq_with_telemetry 'foobar:1000|ms|@0.5'
+      end
+    end
+
+    context 'with a sample rate like statsd-ruby' do
+      before do
+        allow(subject).to receive(:rand).and_return(0)
+      end
+
+      it 'sends the timing with the sample rate' do
+        subject.time('foobar', 0.5) do
+          Timecop.travel(after_date)
+        end
+
+        expect(socket.recv[0]).to eq_with_telemetry 'foobar:1000|ms|@0.5'
+      end
+    end
+  end
+
+  describe '#distribution' do
+    let(:namespace) { nil }
+    let(:sample_rate) { nil }
+    let(:tags) { nil }
+
+    it_behaves_like 'a metrics method', 'begrutten-suffusion:536|d' do
+      let(:basic_action) do
+        subject.distribution('begrutten-suffusion', 536, tags: action_tags)
+      end
+    end
+
+    it 'sends the distribution' do
+      subject.distribution('begrutten-suffusion', 536)
+      expect(socket.recv[0]).to eq_with_telemetry 'begrutten-suffusion:536|d'
+    end
+
+    context 'with a sample rate' do
+      before do
+        allow(subject).to receive(:rand).and_return(0)
+      end
+
+      it 'sends the set with the sample rate' do
+        subject.distribution('begrutten-suffusion', 536, sample_rate: 0.5)
+        expect(socket.recv[0]).to eq_with_telemetry 'begrutten-suffusion:536|d|@0.5'
+      end
+    end
+  end
+
+  describe '#event' do
+    let(:namespace) { nil }
+    let(:sample_rate) { nil }
+    let(:tags) { nil }
+    let(:title) { 'this is a title' }
+    let(:text) { 'this is a longer text' }
+    let(:timestamp) do
+      Time.parse('01-01-2000').to_i
+    end
+
+    it_behaves_like 'a taggable method', '_e{15,21}:this is a title|this is a longer text', metrics: 0, events: 1 do
+      let(:basic_action) do
+        subject.event(title, text, tags: action_tags)
+      end
+    end
+
+    it 'sends events with title and text' do
+      subject.event(title, text)
+      expect(socket.recv[0]).to eq_with_telemetry('_e{15,21}:this is a title|this is a longer text', metrics: 0, events: 1)
+    end
+
+    context 'when having line breaks in text or title' do
+      let(:title) { "this is a\ntitle" }
+      let(:text) { "this is a longer\ntext" }
+
+      it 'sends events with title and text' do
+        subject.event(title, text)
+        expect(socket.recv[0]).to eq_with_telemetry('_e{16,22}:this is a\ntitle|this is a longer\ntext', metrics: 0, events: 1)
+      end
+    end
+
+    context 'when the event data string too long > 8KB' do
+      let(:text) { "this is a longer\ntext" * 200_000 }
+
+      it 'raises an error' do
+        expect do
+          subject.event(title, text)
+        end.to raise_error(RuntimeError, /payload is too big/)
+      end
+    end
+
+    context 'with a known alert type' do
+      it 'sends events with title and text along with a tag for the alert type' do
+        subject.event(title, text, alert_type: 'warning')
+
+        expect(socket.recv[0]).to eq_with_telemetry('_e{15,21}:this is a title|this is a longer text|t:warning', metrics: 0, events: 1)
+      end
+    end
+
+    context 'with an unknown alert type' do
+      it 'sends events with title and text along with a tag for the alert type' do
+        subject.event(title, text, alert_type: 'yolo')
+
+        expect(socket.recv[0]).to eq_with_telemetry('_e{15,21}:this is a title|this is a longer text|t:yolo', metrics: 0, events: 1)
+      end
+    end
+
+    context 'with a known priority' do
+      it 'sends events with title and text along with a tag for the priority' do
+        subject.event(title, text, priority: 'low')
+
+        expect(socket.recv[0]).to eq_with_telemetry('_e{15,21}:this is a title|this is a longer text|p:low', metrics: 0, events: 1)
+      end
+    end
+
+    context 'with an unknown priority' do
+      it 'sends events with title and text along with a tag for the priority' do
+        subject.event(title, text, priority: 'yolo')
+
+        expect(socket.recv[0]).to eq_with_telemetry('_e{15,21}:this is a title|this is a longer text|p:yolo', metrics: 0, events: 1)
+      end
+    end
+
+    context 'with a timestamp event date' do
+      it 'sends events with title and text along with a date timestamp' do
+        subject.event(title, text, date_happened: timestamp)
+
+        expect(socket.recv[0]).to eq_with_telemetry("_e{15,21}:this is a title|this is a longer text|d:#{timestamp}", metrics: 0, events: 1)
+      end
+    end
+
+    context 'with a string event date' do
+      it 'sends events with title and text along with a date timestamp' do
+        subject.event(title, text, date_happened: timestamp.to_s)
+
+        expect(socket.recv[0]).to eq_with_telemetry("_e{15,21}:this is a title|this is a longer text|d:#{timestamp}", metrics: 0, events: 1)
+      end
+    end
+
+    context 'with a hostname' do
+      it 'sends events with title and text along with a hostname' do
+        subject.event(title, text, hostname: 'chihiro')
+
+        expect(socket.recv[0]).to eq_with_telemetry("_e{15,21}:this is a title|this is a longer text|h:chihiro", metrics: 0, events: 1)
+      end
+    end
+
+    context 'with an aggregation key' do
+      it 'sends events with title and text along with the aggregation key' do
+        subject.event(title, text, aggregation_key: 'key 1')
+
+        expect(socket.recv[0]).to eq_with_telemetry("_e{15,21}:this is a title|this is a longer text|k:key 1", metrics: 0, events: 1)
+      end
+    end
+
+    context 'with an source type name' do
+      it 'sends events with title and text along with the source type name' do
+        subject.event(title, text, source_type_name: 'source 1')
+
+        expect(socket.recv[0]).to eq_with_telemetry("_e{15,21}:this is a title|this is a longer text|s:source 1", metrics: 0, events: 1)
+      end
+    end
+
+    context 'with several parameters (hostname, alert_type, priority, source)' do
+      it 'sends events with title and text along with all the parameters' do
+        subject.event(title, text, hostname: 'myhost', alert_type: 'warning', priority: 'low', source_type_name: 'source')
+
+        expect(socket.recv[0]).to eq_with_telemetry("_e{15,21}:this is a title|this is a longer text|h:myhost|p:low|s:source|t:warning", metrics: 0, events: 1)
+      end
+    end
+  end
+
+  describe '#service_check' do
+    let(:namespace) { nil }
+    let(:sample_rate) { nil }
+    let(:tags) { nil }
+    let(:name) { 'windmill' }
+    let(:status) { 'grinding' }
+    let(:timestamp) do
+      Time.parse('01-01-2000').to_i
+    end
+
+    it_behaves_like 'a taggable method', '_sc|windmill|grinding', metrics: 0, service_checks: 1 do
+      let(:basic_action) do
+        subject.service_check(name, status, tags: action_tags)
+      end
+    end
+
+    it 'sends service check with name and status' do
+      subject.service_check(name, status)
+      expect(socket.recv[0]).to eq_with_telemetry('_sc|windmill|grinding', metrics: 0, service_checks: 1)
+    end
+
+    context 'with hostname' do
+      it 'sends service check with name and status along with hostname' do
+        subject.service_check(name, status, hostname: 'amsterdam')
+        expect(socket.recv[0]).to eq_with_telemetry('_sc|windmill|grinding|h:amsterdam', metrics: 0, service_checks: 1)
+      end
+    end
+
+    context 'with message' do
+      it 'sends service check with name and status along with message' do
+        subject.service_check(name, status, message: 'the wind is rising')
+        expect(socket.recv[0]).to eq_with_telemetry('_sc|windmill|grinding|m:the wind is rising', metrics: 0, service_checks: 1)
+      end
+    end
+
+    context 'with integer timestamp' do
+      it 'sends service check with name and status along with timestamp' do
+        subject.service_check(name, status, timestamp: timestamp)
+        expect(socket.recv[0]).to eq_with_telemetry("_sc|windmill|grinding|d:#{timestamp}", metrics: 0, service_checks: 1)
+      end
+    end
+
+    context 'with string timestamp' do
+      it 'sends service check with name and status along with timestamp' do
+        subject.service_check(name, status, timestamp: timestamp.to_s)
+        expect(socket.recv[0]).to eq_with_telemetry("_sc|windmill|grinding|d:#{timestamp}", metrics: 0, service_checks: 1)
+      end
+    end
+
+    context 'with several parameters (hostname, message, timestamp)' do
+      it 'sends service check with name and status along with all parameters' do
+        subject.service_check(name, status, hostanme: 'amsterdam', message: 'the wind is rising', timestamp: timestamp.to_s)
+        expect(socket.recv[0]).to eq_with_telemetry("_sc|windmill|grinding|d:#{timestamp}|m:the wind is rising", metrics: 0, service_checks: 1)
+      end
+    end
+  end
+
+  describe '#batch' do
+    let(:namespace) { nil }
+    let(:sample_rate) { nil }
+    let(:tags) { nil }
+
+    it 'does not not send anything when the buffer is empty' do
+      subject.batch { }
+
+      expect(socket.recv).to be_nil
+    end
+
+    it 'sends single samples in one packet' do
+      subject.batch do |s|
+        s.increment('mycounter')
+      end
+
+      expect(socket.recv[0]).to eq_with_telemetry 'mycounter:1|c'
+    end
+
+    it 'sends multiple samples in one packet' do
+      subject.batch do |s|
+        s.increment('mycounter')
+        s.decrement('myothercounter')
+      end
+
+      expect(socket.recv[0]).to eq_with_telemetry("mycounter:1|c\nmyothercounter:-1|c", metrics: 2)
+    end
+
+    it 'default back to single metric packet after the block' do
+      subject.batch do |s|
+        s.gauge('mygauge', 10)
+        s.gauge('myothergauge', 20)
+      end
+      subject.increment('mycounter')
+      subject.increment('myothercounter')
+
+      expect(socket.recv[0]).to eq_with_telemetry("mygauge:10|g\nmyothergauge:20|g", metrics: 2)
+      expect(socket.recv[0]).to eq_with_telemetry('mycounter:1|c', bytes_sent: 702, packets_sent: 1)
+      expect(socket.recv[0]).to eq_with_telemetry('myothercounter:1|c', bytes_sent: 687, packets_sent: 1)
+    end
+
+    # HACK: this test breaks encapsulation
+    before do
+      def subject.telemetry
+        @telemetry
+      end
+    end
+
+    it 'flushes when the buffer gets too big' do
       expected_message = 'mycounter:1|c'
-      previous_payload_length = 0
 
-      @statsd.batch do |s|
+      subject.batch do |s|
         # increment a counter to fill the buffer and trigger buffer flush
-        buffer_size = Datadog::Statsd::DEFAULT_BUFFER_SIZE - @statsd.telemetry.estimate_max_size() - 1
+        buffer_size = Datadog::Statsd::DEFAULT_BUFFER_SIZE - subject.telemetry.estimate_max_size - 1
 
         number_of_messages_to_fill_the_buffer = buffer_size / (expected_message.bytesize + 1)
         theoretical_reply = Array.new(number_of_messages_to_fill_the_buffer) { expected_message }
 
         (number_of_messages_to_fill_the_buffer + 1).times do
-          s.increment("mycounter")
+          s.increment('mycounter')
         end
 
-        equal_expected = equal_with_telemetry(theoretical_reply.join("\n"), metrics: number_of_messages_to_fill_the_buffer+1)
-        _(socket.recv[0]).must equal_expected
-        previous_payload_length = equal_expected.length
+        expect(socket.recv[0]).to eq_with_telemetry(theoretical_reply.join("\n"), metrics: number_of_messages_to_fill_the_buffer+1)
       end
 
       # When the block finishes, the remaining buffer is flushed.
@@ -922,337 +859,255 @@ describe Datadog::Statsd do
       # flush. This means that the last metric (who filled the buffer and triggered a
       # flush) increment the telemetry but was not sent. Then once the 'do' block
       # finishes we flush the buffer with a telemtry of 0 metrics being received.
-      _(socket.recv[0]).must equal_with_telemetry(expected_message, metrics: 0, bytes_sent: previous_payload_length, packets_sent: 1)
+      expect(socket.recv[0]).to eq_with_telemetry(expected_message, metrics: 0, bytes_sent: 8121, packets_sent: 1)
     end
 
-    it "should batch nested batch blocks" do
-      @statsd.batch do
-        @statsd.increment("level-1")
-        @statsd.batch do
-          @statsd.increment("level-2")
+    it 'batches nested batch blocks' do
+      subject.batch do
+        subject.increment('level-1')
+        subject.batch do
+          subject.increment('level-2')
         end
-        @statsd.increment("level-1-again")
+        subject.increment('level-1-again')
       end
       # all three should be sent in a single batch when the outer block finishes
-      equal_expected = equal_with_telemetry("level-1:1|c\nlevel-2:1|c\nlevel-1-again:1|c", metrics: 3)
-      _(socket.recv[0]).must equal_expected
+      expect(socket.recv[0]).to eq_with_telemetry("level-1:1|c\nlevel-2:1|c\nlevel-1-again:1|c", metrics: 3)
       # we should revert back to sending single metric packets
-      @statsd.increment("outside")
-      _(socket.recv[0]).must equal_with_telemetry("outside:1|c", bytes_sent: equal_expected.length, packets_sent: 1)
+      subject.increment('outside')
+      expect(socket.recv[0]).to eq_with_telemetry('outside:1|c', bytes_sent: 713, packets_sent: 1)
     end
   end
 
-  describe "#event" do
-    10.times do
-      title = Faker::Lorem.sentence(_word_count =  rand(3))
-      text = Faker::Lorem.sentence(_word_count = rand(3))
-      tags = Faker::Lorem.words(rand(1..10))
-      timestamp = Time.parse('01-01-2000').to_i
-      tags_joined = tags.join(",")
+  describe '#close' do
+    before do
+      # do some writing so the socket is opened
+      subject.increment('lol')
+    end
 
-      it "Only title and text" do
-        @statsd.event(title, text)
-        _(socket.recv[0]).must equal_with_telemetry(@statsd.send(:format_event, title, text), metrics: 0, events: 1)
-      end
-      it "With line break in Text and title" do
-        title_break_line = "#{title} \n second line"
-        text_break_line = "#{text} \n second line"
-        @statsd.event(title_break_line, text_break_line)
-        _(socket.recv[0]).must equal_with_telemetry(@statsd.send(:format_event, title_break_line, text_break_line), metrics: 0, events: 1)
-      end
-      it "Event data string too long > 8KB" do
-        long_text = "#{text} " * 200000
-        _(proc {@statsd.event(title, long_text)}).must_raise RuntimeError
-      end
-      it "With known alert_type" do
-        @statsd.event(title, text, :alert_type => 'warning')
-        _(socket.recv[0]).must equal_with_telemetry("#{@statsd.send(:format_event, title, text)}|t:warning", metrics: 0, events: 1)
-      end
-      it "With unknown alert_type" do
-        @statsd.event(title, text, :alert_type => 'bizarre')
-        _(socket.recv[0]).must equal_with_telemetry("#{@statsd.send(:format_event, title, text)}|t:bizarre", metrics: 0, events: 1)
-      end
-      it "With known priority" do
-        @statsd.event(title, text, :priority => 'low')
-        _(socket.recv[0]).must equal_with_telemetry("#{@statsd.send(:format_event, title, text)}|p:low", metrics: 0, events: 1)
-      end
-      it "With unknown priority" do
-        @statsd.event(title, text, :priority => 'bizarre')
-        _(socket.recv[0]).must equal_with_telemetry("#{@statsd.send(:format_event, title, text)}|p:bizarre", metrics: 0, events: 1)
-      end
-      it "With Integer date_happened" do
-        @statsd.event(title, text, :date_happened => timestamp)
-        _(socket.recv[0]).must equal_with_telemetry("#{@statsd.send(:format_event, title, text)}|d:#{timestamp}", metrics: 0, events: 1)
-      end
-      it "With String date_happened" do
-        @statsd.event(title, text, :date_happened => "#{timestamp}")
-        _(socket.recv[0]).must equal_with_telemetry("#{@statsd.send(:format_event, title, text)}|d:#{timestamp}", metrics: 0, events: 1)
-      end
-      it "With hostname" do
-        @statsd.event(title, text, :hostname => 'hostname_test')
-        _(socket.recv[0]).must equal_with_telemetry("#{@statsd.send(:format_event, title, text)}|h:hostname_test", metrics: 0, events: 1)
-      end
-      it "With aggregation_key" do
-        @statsd.event(title, text, :aggregation_key => 'aggkey 1')
-        _(socket.recv[0]).must equal_with_telemetry("#{@statsd.send(:format_event, title, text)}|k:aggkey 1", metrics: 0, events: 1)
-      end
-      it "With source_type_name" do
-        @statsd.event(title, text, :source_type_name => 'source 1')
-        _(socket.recv[0]).must equal_with_telemetry("#{@statsd.send(:format_event, title, text)}|s:source 1", metrics: 0, events: 1)
-      end
-      it "With several tags" do
-        @statsd.event(title, text, :tags => tags)
-        _(socket.recv[0]).must equal_with_telemetry("#{@statsd.send(:format_event, title, text)}|##{tags_joined}", metrics: 0, events: 1)
-      end
-      it "Takes into account the common tags" do
-        basic_result = @statsd.send(:format_event, title, text)
-        common_tag = 'common'
-        @statsd.instance_variable_set :@tags, [common_tag]
-        @statsd.event(title, text)
-        _(socket.recv[0]).must equal_with_telemetry("#{basic_result}|##{common_tag}", metrics: 0, events: 1)
-      end
-      it "combines common and specific tags" do
-        basic_result = @statsd.send(:format_event, title, text)
-        common_tag = 'common'
-        @statsd.instance_variable_set :@tags, [common_tag]
-        @statsd.event(title, text, :tags => tags)
-        _(socket.recv[0]).must equal_with_telemetry("#{basic_result}|##{common_tag},#{tags_joined}", metrics: 0, events: 1)
-      end
-      it "With alert_type, priority, hostname, several tags" do
-        @statsd.event(title, text, :alert_type => 'warning', :priority => 'low', :hostname => 'hostname_test', :tags => tags)
-        opts = {
-          :alert_type => 'warning',
-          :priority => 'low',
-          :hostname => 'hostname_test',
-          :tags => tags
-        }
-        _(socket.recv[0]).must equal_with_telemetry("#{@statsd.send(:format_event, title, text, opts)}", metrics: 0, events: 1)
-      end
+    it 'closes the socket' do
+      expect(socket).to receive(:close)
+
+      subject.close
     end
   end
 
-  describe "#service_check" do
-    10.times do
-      name = Faker::Lorem.sentence(_word_count = rand(3))
-      status = rand(4)
-      hostname = "hostname_test"
-      timestamp = Time.parse('01-01-2000').to_i
-      tags = Faker::Lorem.words(rand(1..10))
-      tags_joined = tags.join(",")
+  # TODO: This specs will have to move to another integration test dedicated to telemetry
+  describe 'telemetry' do
+    let(:namespace) { nil }
+    let(:sample_rate) { nil }
+    let(:tags) { nil }
 
-      it "sends with only name and status" do
-        @statsd.service_check(name, status)
-        _(socket.recv[0]).must equal_with_telemetry(@statsd.send(:format_service_check, name, status), metrics: 0, service_checks: 1)
-      end
-
-      it "sends with with hostname" do
-        @statsd.service_check(name, status, :hostname => hostname)
-        _(socket.recv[0]).must equal_with_telemetry("_sc|#{name}|#{status}|h:#{hostname}", metrics: 0, service_checks: 1)
-      end
-
-      it "sends with with message" do
-        @statsd.service_check(name, status, :message => 'testing | m: \n')
-        _(socket.recv[0]).must equal_with_telemetry("_sc|#{name}|#{status}|m:testing  m\\: \\n", metrics: 0, service_checks: 1)
-      end
-
-      it "With Integer timestamp" do
-        @statsd.service_check(name, status, :timestamp => timestamp)
-        _(socket.recv[0]).must equal_with_telemetry("_sc|#{name}|#{status}|d:#{timestamp}", metrics: 0, service_checks: 1)
-      end
-
-      it "With String timestamp" do
-        @statsd.service_check(name, status, :timestamp => "#{timestamp}")
-        _(socket.recv[0]).must equal_with_telemetry("_sc|#{name}|#{status}|d:#{timestamp}", metrics: 0, service_checks: 1)
-      end
-
-      it "sends with with tags" do
-        @statsd.service_check(name, status, :tags => tags)
-        _(socket.recv[0]).must equal_with_telemetry("_sc|#{name}|#{status}|##{tags_joined}", metrics: 0, service_checks: 1)
-      end
-
-      it "sends with with hostname, message, and tags" do
-        @statsd.service_check(
-          name, status,
-          :message => 'testing | m: \n', :hostname => 'hostname_test', :tags => tags
+    context 'when disabling telemetry' do
+      subject do
+        described_class.new('localhost', 1234,
+          namespace: namespace,
+          sample_rate: sample_rate,
+          tags: tags,
+          logger: logger,
+          disable_telemetry: true,
         )
-        _(socket.recv[0]).must equal_with_telemetry("_sc|#{name}|#{status}|h:#{hostname}|##{tags_joined}|m:testing  m\\: \\n", metrics: 0, service_checks: 1)
+      end
+
+      it 'does not send any telemetry' do
+        subject.count("test", 21)
+
+        expect(socket.recv[0]).to eq 'test:21|c'
+      end
+    end
+
+    it 'is enabled by default' do
+      subject.count('test', 21)
+
+      expect(socket.recv[0]).to eq_with_telemetry 'test:21|c'
+    end
+
+    context 'when flusing only every 2 seconds' do
+      before do
+        Timecop.freeze(DateTime.new(2020, 2, 22, 12, 12, 12))
+        subject
+      end
+
+      after do
+        Timecop.return
+      end
+
+      subject do
+        described_class.new('localhost', 1234,
+          namespace: namespace,
+          sample_rate: sample_rate,
+          tags: tags,
+          logger: logger,
+          telemetry_flush_interval: 2,
+        )
+      end
+
+      it 'does not send telemetry before the delay' do
+        Timecop.freeze(DateTime.new(2020, 2, 22, 12, 12, 13))
+
+        subject.count('test', 21)
+
+        expect(socket.recv[0]).to eq 'test:21|c'
+      end
+
+      it 'sends telemetry after the delay' do
+        Timecop.freeze(DateTime.new(2020, 2, 22, 12, 12, 15))
+
+        subject.count('test', 21)
+
+        expect(socket.recv[0]).to eq_with_telemetry 'test:21|c'
+      end
+    end
+
+    it 'handles all data type' do
+      subject.increment('test', 1)
+      expect(socket.recv[0]).to eq_with_telemetry('test:1|c', metrics: 1, packets_sent: 0, bytes_sent: 0)
+
+      subject.decrement('test', 1)
+      expect(socket.recv[0]).to eq_with_telemetry('test:-1|c', metrics: 1, packets_sent: 1, bytes_sent: 680)
+
+      subject.count('test', 21)
+      expect(socket.recv[0]).to eq_with_telemetry('test:21|c', metrics: 1, packets_sent: 1, bytes_sent: 683)
+
+      subject.gauge('test', 21)
+      expect(socket.recv[0]).to eq_with_telemetry('test:21|g', metrics: 1, packets_sent: 1, bytes_sent: 683)
+
+      subject.histogram('test', 21)
+      expect(socket.recv[0]).to eq_with_telemetry('test:21|h', metrics: 1, packets_sent: 1, bytes_sent: 683)
+
+      subject.timing('test', 21)
+      expect(socket.recv[0]).to eq_with_telemetry('test:21|ms', metrics: 1, packets_sent: 1, bytes_sent: 683)
+
+      subject.set('test', 21)
+      expect(socket.recv[0]).to eq_with_telemetry('test:21|s', metrics: 1, packets_sent: 1, bytes_sent: 684)
+
+      subject.service_check('sc', 0)
+      expect(socket.recv[0]).to eq_with_telemetry('_sc|sc|0', metrics: 0, service_checks: 1, packets_sent: 1, bytes_sent: 683)
+
+      subject.event('ev', 'text')
+      expect(socket.recv[0]).to eq_with_telemetry('_e{2,4}:ev|text', metrics: 0, events: 1, packets_sent: 1, bytes_sent: 682)
+    end
+
+    context 'when batching' do
+      # HACK: this test breaks encapsulation
+      before do
+        def subject.telemetry
+          @telemetry
+        end
+      end
+
+      it 'handles all data types' do
+        subject.batch do |s|
+          s.increment('test', 1)
+          s.decrement('test', 1)
+          s.count('test', 21)
+          s.gauge('test', 21)
+          s.histogram('test', 21)
+          s.timing('test', 21)
+          s.set('test', 21)
+          s.service_check('sc', 0)
+          s.event('ev', 'text')
+        end
+
+        expect(socket.recv[0]).to eq_with_telemetry("test:1|c\ntest:-1|c\ntest:21|c\ntest:21|g\ntest:21|h\ntest:21|ms\ntest:21|s\n_sc|sc|0\n_e{2,4}:ev|text",
+          metrics: 7,
+          service_checks: 1,
+          events: 1
+        )
+
+        expect(subject.telemetry.flush).to eq_with_telemetry('', metrics: 0, service_checks: 0, events: 0, packets_sent: 1, bytes_sent: 766)
+      end
+    end
+
+    context 'when some data is dropped' do
+      let(:socket) do
+        FakeUDPSocket.new.tap do |s|
+          s.error_on_send('some error')
+        end
+      end
+
+      # HACK: this test breaks encapsulation
+      before do
+        def subject.telemetry
+          @telemetry
+        end
+      end
+
+      it 'handles dropped data' do
+        subject.gauge('test', 21)
+        expect(subject.telemetry.flush).to eq_with_telemetry('', metrics: 1, service_checks: 0, events: 0, packets_dropped: 1, bytes_dropped: 681)
+        subject.gauge('test', 21)
+        expect(subject.telemetry.flush).to eq_with_telemetry('', metrics: 2, service_checks: 0, events: 0, packets_dropped: 2, bytes_dropped: 1364)
+
+        #disable network failure
+        socket.error_on_send(nil)
+
+        subject.gauge('test', 21)
+        expect(socket.recv[0]).to eq_with_telemetry('test:21|g', metrics: 3, service_checks: 0, events: 0, packets_dropped: 2, bytes_dropped: 1364)
+
+        expect(subject.telemetry.flush).to eq_with_telemetry('', metrics: 0, service_checks: 0, events: 0, packets_sent: 1, bytes_sent: 684)
       end
     end
   end
 
-  describe "telemetry" do
-    it "should not be sent when disabled" do
-      # setting telemetry_flush_interval to -1 to flush the telemetry each time
-      statsd = Datadog::Statsd.new('localhost', 1234, disable_telemetry: true)
-      statsd.connection.instance_variable_set(:@socket, socket)
+  # TODO: This specs will have to move to another class (a responsibility that we will have to separate)
+  describe 'Stat names' do
+    let(:namespace) { nil }
+    let(:sample_rate) { nil }
+    let(:tags) { nil }
 
-      statsd.count("test", 21)
-      _(socket.recv[0]).must_equal "test:21|c"
+    it 'accepts any object with #to_s as a stat name' do
+      o = double('a stat', to_s: 'yolo')
+
+      subject.increment(o)
+
+      expect(socket.recv[0]).to eq_with_telemetry('yolo:1|c')
     end
 
-    it "should send by default" do
-      # setting telemetry_flush_interval to 1 to flush the telemetry with at leas 1s gap between each flush
-      statsd = Datadog::Statsd.new('localhost', 1234, telemetry_flush_interval: 1)
-      # 1s flush interval
-      statsd.connection.instance_variable_set(:@socket, socket)
+    it 'accepts a class name as a stat name' do
+      subject.increment(Object)
 
-      statsd.count("test", 21)
-      _(socket.recv[0]).must_equal "test:21|c"
-
-      sleep(2)
-
-      statsd.count("test", 22)
-      _(socket.recv[0]).must equal_with_telemetry("test:22|c", metrics: 2, packets_sent: 1, bytes_sent: 9)
+      expect(socket.recv[0]).to eq_with_telemetry('Object:1|c')
     end
 
-    it "should handle all data type" do
-      @statsd.increment("test", 1)
-      _(socket.recv[0]).must equal_with_telemetry("test:1|c", metrics: 1, packets_sent: 0, bytes_sent: 0)
+    it 'replaces Ruby constants delimeter with graphite package name' do
+      class Datadog::Statsd::SomeClass; end
+      subject.increment(Datadog::Statsd::SomeClass)
 
-      @statsd.decrement("test", 1)
-      _(socket.recv[0]).must equal_with_telemetry("test:-1|c", metrics: 1, packets_sent: 1, bytes_sent: 680)
-
-      @statsd.count("test", 21)
-      _(socket.recv[0]).must equal_with_telemetry("test:21|c", metrics: 1, packets_sent: 1, bytes_sent: 683)
-
-      @statsd.gauge("test", 21)
-      _(socket.recv[0]).must equal_with_telemetry("test:21|g", metrics: 1, packets_sent: 1, bytes_sent: 683)
-
-      @statsd.histogram("test", 21)
-      _(socket.recv[0]).must equal_with_telemetry("test:21|h", metrics: 1, packets_sent: 1, bytes_sent: 683)
-
-      @statsd.timing("test", 21)
-      _(socket.recv[0]).must equal_with_telemetry("test:21|ms", metrics: 1, packets_sent: 1, bytes_sent: 683)
-
-      @statsd.set("test", 21)
-      _(socket.recv[0]).must equal_with_telemetry("test:21|s", metrics: 1, packets_sent: 1, bytes_sent: 684)
-
-      @statsd.service_check("sc", 0)
-      _(socket.recv[0]).must equal_with_telemetry("_sc|sc|0", metrics: 0, service_checks: 1, packets_sent: 1, bytes_sent: 683)
-
-      @statsd.event("ev", "text")
-      _(socket.recv[0]).must equal_with_telemetry("_e{2,4}:ev|text", metrics: 0, events: 1, packets_sent: 1, bytes_sent: 682)
+      expect(socket.recv[0]).to eq_with_telemetry 'Datadog.Statsd.SomeClass:1|c'
     end
 
-    it "should handle all data type when batched" do
-      @statsd.batch do |s|
-        s.increment("test", 1)
-        s.decrement("test", 1)
-        s.count("test", 21)
-        s.gauge("test", 21)
-        s.histogram("test", 21)
-        s.timing("test", 21)
-        s.set("test", 21)
-        s.service_check("sc", 0)
-        s.event("ev", "text")
-      end
-
-      _(socket.recv[0]).must equal_with_telemetry("test:1|c\ntest:-1|c\ntest:21|c\ntest:21|g\ntest:21|h\ntest:21|ms\ntest:21|s\n_sc|sc|0\n_e{2,4}:ev|text", metrics: 7, service_checks: 1, events: 1)
-      _(@statsd.telemetry.flush()).must equal_with_telemetry("", metrics: 0, service_checks: 0, events: 0, packets_sent: 1, bytes_sent: 766)
+    it 'replaces statsd reserved chars in the stat name' do
+      subject.increment('ray@hostname.blah|blah.blah:blah')
+      expect(socket.recv[0]).to eq_with_telemetry 'ray_hostname.blah_blah.blah_blah:1|c'
     end
 
-    it "should handle dropped data" do
-      s = FakeUDPSocket.new
-      s.error_on_send "some error"
+    it 'works with frozen strings' do
+      subject.increment('some-stat'.freeze)
 
-      # setting telemetry_flush_interval to -1 to flush the telemetry each time
-      statsd = Datadog::Statsd.new('localhost', 1234, telemetry_flush_interval: -1)
-      statsd.connection.instance_variable_set(:@socket, s)
-
-      statsd.gauge("test", 21)
-      _(statsd.telemetry.flush()).must equal_with_telemetry("", metrics: 1, service_checks: 0, events: 0, packets_dropped: 1, bytes_dropped: 681)
-      statsd.gauge("test", 21)
-      _(statsd.telemetry.flush()).must equal_with_telemetry("", metrics: 2, service_checks: 0, events: 0, packets_dropped: 2, bytes_dropped: 1364)
-
-      #disable network failure
-      s.error_on_send nil
-
-      statsd.gauge("test", 21)
-      _(s.recv[0]).must equal_with_telemetry("test:21|g", metrics: 3, service_checks: 0, events: 0, packets_dropped: 2, bytes_dropped: 1364)
-
-      _(statsd.telemetry.flush()).must equal_with_telemetry("", metrics: 0, service_checks: 0, events: 0, packets_sent: 1, bytes_sent: 684)
+      expect(socket.recv[0]).to eq_with_telemetry('some-stat:1|c')
     end
   end
 
-  describe "#close" do
-    it "closes the socket" do
-      socket.expects(:close)
-      @statsd.close
-    end
-  end
+  # TODO: This specs will have to move to another class (a responsibility that we will have to separate)
+  describe 'Tag names' do
+    let(:namespace) { nil }
+    let(:sample_rate) { nil }
+    let(:tags) { nil }
 
-  describe "GC" do
-    before { skip('AllocationStats is not available: skipping.') unless defined?(AllocationStats) }
-
-    it "produces low amounts of garbage for simple methods" do
-      if RUBY_VERSION.start_with?("2.3.")
-        assert_allocations(19) { @statsd.increment('foobar') }
-      else
-        assert_allocations(17) { @statsd.increment('foobar') }
-      end
+    it 'replaces reserved chars for tags' do
+      subject.increment('stat', tags: ['name:foo,bar|foo'])
+      expect(socket.recv[0]).to eq_with_telemetry 'stat:1|c|#name:foobarfoo'
     end
 
-    it "produces low amounts of garbage for timing" do
-      if RUBY_VERSION.start_with?("2.3.")
-        assert_allocations(19) { @statsd.increment('foobar') }
-      else
-        assert_allocations(17) { @statsd.increment('foobar') }
-      end
+    it 'handles the cases when some tags are frozen strings' do
+      subject.increment('stat', tags: ['first_tag'.freeze, 'second_tag'])
     end
 
-    it "produces low amounts of garbage for simple methods without telemetry" do
-      statsd = Datadog::Statsd.new('localhost', 1234, namespace: namespace, sample_rate: sample_rate, disable_telemetry: true)
-      statsd.connection.instance_variable_set(:@socket, socket)
-      if RUBY_VERSION.start_with?("2.3.")
-        assert_allocations(8) { statsd.increment('foobar') }
-        assert_allocations(8) { statsd.time('foobar') { 1111 } }
-      else
-        assert_allocations(7) { statsd.increment('foobar') }
-        assert_allocations(7) { statsd.time('foobar') { 1111 } }
-      end
-    end
+    it 'converts all values to strings' do
+      tag = double('a tag', to_s: 'yolo')
 
-    def assert_allocations(count, &block)
-      trace = AllocationStats.trace(&block)
-      details = trace.allocations
-        .group_by(:sourcefile, :sourceline, :class)
-        .sort_by_count
-        .to_text
-      _(trace.new_allocations.size).must_equal count, details
+      subject.increment('stat', tags: [tag])
+      expect(socket.recv[0]).to eq_with_telemetry 'stat:1|c|#yolo'
     end
-  end
-
-  def stub_time(shift)
-    t = 12345.0 + shift
-    if RUBY_VERSION >= "2.1.0"
-      Process.stubs(:clock_gettime).returns(t)
-    else
-      Time.stubs(:now).returns(Time.at(t))
-    end
-  end
-
-  def stub_const(const, value)
-    old = Datadog::Statsd.const_get(const)
-    Datadog::Statsd.send(:remove_const, const)
-    Datadog::Statsd.const_set(const, value)
-    yield
-  ensure
-    Datadog::Statsd.send(:remove_const, const)
-    Datadog::Statsd.const_set(const, old)
   end
 end
-
-describe Datadog::Statsd do
-  describe "with a real UDP socket" do
-    it "should actually send stuff over the socket" do
-      socket = UDPSocket.new
-      host, port = 'localhost', 12345
-      socket.bind(host, port)
-
-      statsd = Datadog::Statsd.new(host, port)
-      statsd.increment('foobar')
-      message = socket.recvfrom(16).first
-      _(message).must_equal 'foobar:1|c'
-    end
-  end
-end if ENV['LIVE']

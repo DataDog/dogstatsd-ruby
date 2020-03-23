@@ -5,10 +5,12 @@ require 'yard'
 
 task default: [:spec, :rubocop]
 
-Rake::TestTask.new(:spec) do |spec|
-  spec.loader = :direct
-  spec.pattern = './spec/statsd_spec.rb'
-  spec.verbose = true
+begin
+  require 'rspec/core/rake_task'
+  RSpec::Core::RakeTask.new(:spec)
+  # rubocop:disable Lint/HandleExceptions
+rescue LoadError
+  # rubocop:enable Lint/HandleExceptions
 end
 
 namespace :build do
@@ -16,5 +18,5 @@ namespace :build do
 end
 
 task :rubocop do
-  sh "rubocop"
+  sh 'rubocop'
 end
