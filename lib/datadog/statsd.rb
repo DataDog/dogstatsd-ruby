@@ -6,6 +6,7 @@ require_relative 'statsd/telemetry'
 require_relative 'statsd/udp_connection'
 require_relative 'statsd/uds_connection'
 require_relative 'statsd/batch'
+require_relative 'statsd/serialization'
 
 # = Datadog::Statsd: A DogStatsd client (https://www.datadoghq.com)
 #
