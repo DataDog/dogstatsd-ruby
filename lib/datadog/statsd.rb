@@ -305,7 +305,8 @@ module Datadog
     #   $statsd.service_check('my.service.check', Statsd::CRITICAL, :tags=>['urgent'])
     def service_check(name, status, opts = EMPTY_OPTIONS)
       @telemetry.service_checks += 1
-      send_stat(format_service_check(name, status, opts))
+
+      send_stat(serializer.to_service_check(name, status, opts))
     end
 
     # This end point allows you to post events to the stream. You can tag them, set priority and even aggregate them with other events.
