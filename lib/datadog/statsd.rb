@@ -329,7 +329,8 @@ module Datadog
     #   $statsd.event('Something terrible happened', 'The end is near if we do nothing', :alert_type=>'warning', :tags=>['end_of_times','urgent'])
     def event(title, text, opts = EMPTY_OPTIONS)
       @telemetry.events += 1
-      send_stat(format_event(title, text, opts))
+
+      send_stat(serializer.to_event(title, text, opts))
     end
 
     # Send several metrics in the same UDP Packet

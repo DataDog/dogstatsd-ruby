@@ -9,6 +9,7 @@ module Datadog
         def initialize(prefix: nil, global_tags: [])
           @stat_serializer = StatSerializer.new(prefix, global_tags: global_tags)
           @service_check_serializer = ServiceCheckSerializer.new(global_tags: global_tags)
+          @event_serializer = EventSerializer.new(global_tags: global_tags)
         end
 
         # using *args would make new allocations
@@ -21,9 +22,15 @@ module Datadog
           service_check_serializer.format(name, status, options)
         end
 
+        # using *args would make new allocations
+        def to_event(title, text, options = EMPTY_OPTIONS)
+          event_serializer.format(title, text, options)
+        end
+
         protected
         attr_reader :stat_serializer
         attr_reader :service_check_serializer
+        attr_reader :event_serializer
       end
     end
   end
