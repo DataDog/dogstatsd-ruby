@@ -104,6 +104,11 @@ module Datadog
         raise ArgumentError, 'tags must be a Array<String> or a Hash'
       end
 
+      @namespace = namespace
+      @prefix = @namespace ? "#{@namespace}.".freeze : nil
+
+      @serializer = Serialization::Serializer.new(prefix: @prefix, global_tags: tags)
+
       tags = tag_hash_to_array(tags) if tags.is_a?(Hash)
       @tags = (tags || []).compact.map! do |tag|
         escape_tag_content(tag)
@@ -126,9 +131,6 @@ module Datadog
         @connection = UDSConnection.new(socket_path, logger, @telemetry)
       end
       @logger = logger
-
-      @namespace = namespace
-      @prefix = @namespace ? "#{@namespace}.".freeze : nil
 
       @sample_rate = sample_rate
 
@@ -350,6 +352,8 @@ module Datadog
 
     private
 
+    attr_reader :serializer
+
     NEW_LINE = "\n"
     ESC_NEW_LINE = '\n'
     COMMA = ','
@@ -462,31 +466,8 @@ module Datadog
       @telemetry.metrics += 1
       sample_rate = opts[:sample_rate] || @sample_rate || 1
       if sample_rate == 1 || rand <= sample_rate
-        full_stat = ''.dup
-        full_stat << @prefix if @prefix
+        full_stat = serializer.to_stat(stat, delta, type, tags: opts[:tags], sample_rate: sample_rate)
 
-        stat = stat.is_a?(String) ? stat.dup : stat.to_s
-        # Replace Ruby module scoping with '.' and reserved chars (: | @) with underscores.
-        stat.gsub!(DOUBLE_COLON, DOT)
-        stat.tr!(':|@', UNDERSCORE)
-        full_stat << stat
-
-        full_stat << ':'
-        full_stat << delta.to_s
-        full_stat << PIPE
-        full_stat << type
-
-        unless sample_rate == 1
-          full_stat << PIPE
-          full_stat << '@'
-          full_stat << sample_rate.to_s
-        end
-
-        if tags_string = tags_as_string(opts)
-          full_stat << PIPE
-          full_stat << '#'
-          full_stat << tags_string
-        end
         send_stat(full_stat)
       end
     end

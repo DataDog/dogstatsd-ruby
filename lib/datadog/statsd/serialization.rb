@@ -9,3 +9,5 @@ end
 
 require_relative 'serialization/tag_serializer'
 require_relative 'serialization/stat_serializer'
+
+require_relative 'serialization/serializer'
