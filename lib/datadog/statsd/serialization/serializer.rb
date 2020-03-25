@@ -27,6 +27,10 @@ module Datadog
           event_serializer.format(title, text, options)
         end
 
+        def global_tags
+          stat_serializer.global_tags
+        end
+
         protected
         attr_reader :stat_serializer
         attr_reader :service_check_serializer

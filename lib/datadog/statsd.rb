@@ -26,25 +26,6 @@ require_relative 'statsd/serialization'
 #   statsd = Datadog::Statsd.new 'localhost', 8125, tags: 'tag1:true'
 module Datadog
   class Statsd
-    # Create a dictionary to assign a key to every parameter's name, except for tags (treated differently)
-    # Goal: Simple and fast to add some other parameters
-    OPTS_KEYS = {
-      date_happened:    :d,
-      hostname:         :h,
-      aggregation_key:  :k,
-      priority:         :p,
-      source_type_name: :s,
-      alert_type:       :t,
-    }.freeze
-
-    # Service check options
-    SC_OPT_KEYS = {
-      timestamp: 'd:',
-      hostname:  'h:',
-      tags:      '#',
-      message:   'm:',
-    }.freeze
-
     OK       = 0
     WARNING  = 1
     CRITICAL = 2
@@ -66,7 +47,9 @@ module Datadog
     attr_reader :namespace
 
     # Global tags to be added to every statsd call. Defaults to no tags.
-    attr_reader :tags
+    def tags
+      serializer.global_tags
+    end
 
     # Buffer containing the statsd message before they are sent in batch
     attr_reader :buffer
@@ -110,9 +93,6 @@ module Datadog
       @serializer = Serialization::Serializer.new(prefix: @prefix, global_tags: tags)
 
       transport_type = socket_path.nil? ? :udp : :uds
-      @tags = (tags || []).compact.map! do |tag|
-        escape_tag_content(tag)
-      end
 
       @telemetry = Telemetry.new(disable_telemetry, telemetry_flush_interval,
         global_tags: tags,
@@ -349,116 +329,10 @@ module Datadog
     end
 
     private
-
     attr_reader :serializer
 
-    NEW_LINE = "\n"
-    ESC_NEW_LINE = '\n'
-    COMMA = ','
-    PIPE = '|'
-    DOT = '.'
-    DOUBLE_COLON = '::'
-    UNDERSCORE = '_'
     PROCESS_TIME_SUPPORTED = (RUBY_VERSION >= '2.1.0')
     EMPTY_OPTIONS = {}.freeze
-
-    private_constant :NEW_LINE, :ESC_NEW_LINE, :COMMA, :PIPE, :DOT,
-      :DOUBLE_COLON, :UNDERSCORE, :EMPTY_OPTIONS
-
-    def format_service_check(name, status, opts = EMPTY_OPTIONS)
-      sc_string = "_sc|#{name}|#{status}".dup
-
-      SC_OPT_KEYS.each do |key, shorthand_key|
-        next unless opts[key]
-
-        if key == :tags
-          if tags_string = tags_as_string(opts)
-            sc_string << "|##{tags_string}"
-          end
-        elsif key == :message
-          message = remove_pipes(opts[:message])
-          escaped_message = escape_service_check_message(message)
-          sc_string << "|m:#{escaped_message}"
-        else
-          if key == :timestamp && opts[key].is_a?(Integer)
-            value = opts[key]
-          else
-            value = remove_pipes(opts[key])
-          end
-          sc_string << "|#{shorthand_key}#{value}"
-        end
-      end
-      sc_string
-    end
-
-    def format_event(title, text, opts = EMPTY_OPTIONS)
-      escaped_title = escape_event_content(title)
-      escaped_text = escape_event_content(text)
-      event_string_data = "_e{#{escaped_title.bytesize},#{escaped_text.bytesize}}:#{escaped_title}|#{escaped_text}".dup
-
-      # We construct the string to be sent by adding '|key:value' parts to it when needed
-      # All pipes ('|') in the metadata are removed. Title and Text can keep theirs
-      OPTS_KEYS.each do |key, shorthand_key|
-        if key != :tags && opts[key]
-          # :date_happened is the only key where the value is an Integer
-          # To not break backwards compatibility, we still accept a String
-          if key == :date_happened && opts[key].is_a?(Integer)
-              value = opts[key]
-          # All other keys only have String values
-          else
-              value = remove_pipes(opts[key])
-          end
-          event_string_data << "|#{shorthand_key}:#{value}"
-        end
-      end
-
-      # Tags are joined and added as last part to the string to be sent
-      if tags_string = tags_as_string(opts)
-        event_string_data << "|##{tags_string}"
-      end
-
-      if event_string_data.bytesize > MAX_EVENT_SIZE
-        raise "Event #{title} payload is too big (more that 8KB), event discarded"
-      end
-      event_string_data
-    end
-
-    def tags_as_string(opts)
-      if tag_arr = opts[:tags]
-        tag_arr = tag_hash_to_array(tag_arr) if tag_arr.is_a?(Hash)
-        tag_arr = tag_arr.map do |tag|
-          escape_tag_content(tag)
-        end
-        tag_arr = tags + tag_arr # @tags are normalized when set, so not need to normalize them again
-      else
-        tag_arr = tags
-      end
-      tag_arr.join(COMMA) unless tag_arr.empty?
-    end
-
-    def tag_hash_to_array(tag_hash)
-      tag_hash.to_a.map do |pair|
-        pair.compact.join(':')
-      end
-    end
-
-    def escape_event_content(message)
-      message.gsub(NEW_LINE, ESC_NEW_LINE)
-    end
-
-    def escape_tag_content(tag)
-      tag = remove_pipes(tag.to_s)
-      tag.delete!(COMMA)
-      tag
-    end
-
-    def remove_pipes(message)
-      message.delete(PIPE)
-    end
-
-    def escape_service_check_message(message)
-      escape_event_content(message).gsub('m:', 'm\:')
-    end
 
     def send_stats(stat, delta, type, opts = EMPTY_OPTIONS)
       @telemetry.metrics += 1

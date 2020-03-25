@@ -30,7 +30,7 @@ module Datadog
           if @buffer_bytes + 1 + message_bytes >= @max_buffer_bytes
             flush
           else
-            @buffer << NEW_LINE
+            @buffer << "\n"
             @buffer_bytes += 1
           end
         end

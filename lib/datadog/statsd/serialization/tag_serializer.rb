@@ -25,9 +25,9 @@ module Datadog
           tag_list.join(',') if tag_list.any?
         end
 
-        private
         attr_reader :global_tags
 
+        private
         def to_tags_list(tags)
           case tags
           when Hash
