@@ -4,8 +4,13 @@ module Datadog
   class Statsd
     module Serialization
       class TagSerializer
-        def initialize(global_tags = [])
+        def initialize(global_tags = [], env = ENV)
           @global_tags = to_tags_list(global_tags)
+
+          # append the entity id to tags if DD_ENTITY_ID env var is set
+          if dd_entity = env.fetch('DD_ENTITY_ID', nil)
+            @global_tags << to_tags_list('dd.internal.entity_id' => dd_entity).first
+          end
         end
 
         def format(message_tags)
