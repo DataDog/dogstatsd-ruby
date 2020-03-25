@@ -101,9 +101,9 @@ module Datadog
 
       @connection = case transport_type
                     when :udp
-                      UDPConnection.new(host, port, logger, @telemetry)
+                      UDPConnection.new(host, port, logger, telemetry)
                     when :uds
-                      UDSConnection.new(socket_path, logger, @telemetry)
+                      UDSConnection.new(socket_path, logger, telemetry)
                     end
 
       @logger = logger
@@ -111,7 +111,7 @@ module Datadog
       @sample_rate = sample_rate
 
       # we reduce max_buffer_bytes by a the rough estimate of the telemetry payload
-      @batch = Batch.new(@connection, (max_buffer_bytes - @telemetry.estimate_max_size))
+      @batch = Batch.new(@connection, (max_buffer_bytes - telemetry.estimate_max_size))
     end
 
     # yield a new instance to a block and close it when done
@@ -280,7 +280,7 @@ module Datadog
     # @example Report a critical service check status
     #   $statsd.service_check('my.service.check', Statsd::CRITICAL, :tags=>['urgent'])
     def service_check(name, status, opts = EMPTY_OPTIONS)
-      @telemetry.service_checks += 1
+      telemetry.sent(service_checks: 1)
 
       send_stat(serializer.to_service_check(name, status, opts))
     end
@@ -304,7 +304,7 @@ module Datadog
     # @example Report an awful event:
     #   $statsd.event('Something terrible happened', 'The end is near if we do nothing', :alert_type=>'warning', :tags=>['end_of_times','urgent'])
     def event(title, text, opts = EMPTY_OPTIONS)
-      @telemetry.events += 1
+      telemetry.sent(events: 1)
 
       send_stat(serializer.to_event(title, text, opts))
     end
@@ -330,13 +330,16 @@ module Datadog
 
     private
     attr_reader :serializer
+    attr_reader :telemetry
 
     PROCESS_TIME_SUPPORTED = (RUBY_VERSION >= '2.1.0')
     EMPTY_OPTIONS = {}.freeze
 
     def send_stats(stat, delta, type, opts = EMPTY_OPTIONS)
-      @telemetry.metrics += 1
+      telemetry.sent(metrics: 1)
+
       sample_rate = opts[:sample_rate] || @sample_rate || 1
+
       if sample_rate == 1 || rand <= sample_rate
         full_stat = serializer.to_stat(stat, delta, type, tags: opts[:tags], sample_rate: sample_rate)
 
@@ -345,7 +348,11 @@ module Datadog
     end
 
     def send_stat(message)
-      @batch.open? ? @batch.add(message) : @connection.write(message)
+      if @batch.open?
+        @batch.add(message)
+      else
+        @connection.write(message)
+      end
     end
   end
 end
