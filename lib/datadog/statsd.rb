@@ -109,27 +109,23 @@ module Datadog
 
       @serializer = Serialization::Serializer.new(prefix: @prefix, global_tags: tags)
 
-      tags = tag_hash_to_array(tags) if tags.is_a?(Hash)
+      transport_type = socket_path.nil? ? :udp : :uds
       @tags = (tags || []).compact.map! do |tag|
         escape_tag_content(tag)
       end
 
-      # append the entity id to tags if DD_ENTITY_ID env var is not nil
-      unless ENV.fetch('DD_ENTITY_ID', nil).nil?
-        dd_entity = escape_tag_content(ENV.fetch('DD_ENTITY_ID', nil))
-        @tags << 'dd.internal.entity_id:' + dd_entity
-      end
+      @telemetry = Telemetry.new(disable_telemetry, telemetry_flush_interval,
+        global_tags: tags,
+        transport_type: transport_type
+      )
 
-      # init telemetry
-      transport_type = socket_path.nil? ? 'udp': 'uds'
-      telemetry_tags = (["client:ruby", "client_version:#{VERSION}", "client_transport:#{transport_type}"] + @tags).join(COMMA).freeze
-      @telemetry = Telemetry.new(disable_telemetry, telemetry_tags, telemetry_flush_interval)
+      @connection = case transport_type
+                    when :udp
+                      UDPConnection.new(host, port, logger, @telemetry)
+                    when :uds
+                      UDSConnection.new(socket_path, logger, @telemetry)
+                    end
 
-      if socket_path.nil?
-        @connection = UDPConnection.new(host, port, logger, @telemetry)
-      else
-        @connection = UDSConnection.new(socket_path, logger, @telemetry)
-      end
       @logger = logger
 
       @sample_rate = sample_rate

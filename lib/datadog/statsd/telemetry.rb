@@ -13,10 +13,11 @@ module Datadog
       attr_accessor :packets_dropped
       attr_reader   :estimate_max_size
 
-      def initialize(disabled, tags, flush_interval)
+      def initialize(disabled, flush_interval, global_tags: [], transport_type: :udp)
         @disabled = disabled
-        @tags = tags
         @flush_interval = flush_interval
+        @global_tags = global_tags
+        @transport_type = transport_type
         reset
 
         # estimate_max_size is an estimation or the maximum size of the
@@ -52,13 +53,31 @@ module Datadog
 
         # using shorthand syntax to reduce the garbage collection
         return %Q(
-datadog.dogstatsd.client.metrics:#{@metrics}|#{COUNTER_TYPE}|##{@tags}
-datadog.dogstatsd.client.events:#{@events}|#{COUNTER_TYPE}|##{@tags}
-datadog.dogstatsd.client.service_checks:#{@service_checks}|#{COUNTER_TYPE}|##{@tags}
-datadog.dogstatsd.client.bytes_sent:#{@bytes_sent}|#{COUNTER_TYPE}|##{@tags}
-datadog.dogstatsd.client.bytes_dropped:#{@bytes_dropped}|#{COUNTER_TYPE}|##{@tags}
-datadog.dogstatsd.client.packets_sent:#{@packets_sent}|#{COUNTER_TYPE}|##{@tags}
-datadog.dogstatsd.client.packets_dropped:#{@packets_dropped}|#{COUNTER_TYPE}|##{@tags})
+datadog.dogstatsd.client.metrics:#{@metrics}|#{COUNTER_TYPE}|##{serialized_tags}
+datadog.dogstatsd.client.events:#{@events}|#{COUNTER_TYPE}|##{serialized_tags}
+datadog.dogstatsd.client.service_checks:#{@service_checks}|#{COUNTER_TYPE}|##{serialized_tags}
+datadog.dogstatsd.client.bytes_sent:#{@bytes_sent}|#{COUNTER_TYPE}|##{serialized_tags}
+datadog.dogstatsd.client.bytes_dropped:#{@bytes_dropped}|#{COUNTER_TYPE}|##{serialized_tags}
+datadog.dogstatsd.client.packets_sent:#{@packets_sent}|#{COUNTER_TYPE}|##{serialized_tags}
+datadog.dogstatsd.client.packets_dropped:#{@packets_dropped}|#{COUNTER_TYPE}|##{serialized_tags})
+      end
+
+      private
+      attr_reader :global_tags
+      attr_reader :transport_type
+
+      def serialized_tags
+        # TODO: Karim: I don't know why but telemetry tags are serialized
+        # before global tags so by refactoring this, I am keeping the same behavior
+        @serialized_tags ||= Serialization::TagSerializer.new(telemetry_tags).format(global_tags)
+      end
+
+      def telemetry_tags
+        {
+          client: 'ruby',
+          client_version: VERSION,
+          client_transport: transport_type,
+        }
       end
     end
   end
