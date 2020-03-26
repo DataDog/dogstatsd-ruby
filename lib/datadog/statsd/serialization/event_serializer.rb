@@ -58,8 +58,8 @@ module Datadog
         attr_reader :tag_serializer
 
         def escape(text)
-          text.delete('|').tap do |text|
-            text.gsub!("\n", '\n')
+          text.delete('|').tap do |t|
+            t.gsub!("\n", '\n')
           end
         end
       end
