@@ -49,11 +49,11 @@ module Datadog
         def formated_name(name)
           formated = name.is_a?(String) ? name.dup : name.to_s
 
-          formated.tap do |formated|
+          formated.tap do |f|
             # replace Ruby module scoping with '.'
-            formated.gsub!('::', '.')
+            f.gsub!('::', '.')
             # replace reserved chars (: | @) with underscores.
-            formated.tr!(':|@', '_')
+            f.tr!(':|@', '_')
           end
         end
       end
