@@ -20,6 +20,14 @@ module Datadog
         @transport_type = transport_type
         reset
 
+        # TODO: Karim: I don't know why but telemetry tags are serialized
+        # before global tags so by refactoring this, I am keeping the same behavior
+        @serialized_tags = Serialization::TagSerializer.new(
+          client: 'ruby',
+          client_version: VERSION,
+          client_transport: transport_type,
+        ).format(global_tags)
+
         # estimate_max_size is an estimation or the maximum size of the
         # telemetry payload. Since we don't want our packet to go over
         # 'max_buffer_bytes', we have to adjust with the size of the telemetry
@@ -74,22 +82,7 @@ datadog.dogstatsd.client.packets_dropped:#{@packets_dropped}|#{COUNTER_TYPE}|##{
       end
 
       private
-      attr_reader :global_tags
-      attr_reader :transport_type
-
-      def serialized_tags
-        # TODO: Karim: I don't know why but telemetry tags are serialized
-        # before global tags so by refactoring this, I am keeping the same behavior
-        @serialized_tags ||= Serialization::TagSerializer.new(telemetry_tags).format(global_tags)
-      end
-
-      def telemetry_tags
-        {
-          client: 'ruby',
-          client_version: VERSION,
-          client_transport: transport_type,
-        }
-      end
+      attr_reader :serialized_tags
     end
   end
 end
