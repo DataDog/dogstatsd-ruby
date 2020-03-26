@@ -18,8 +18,8 @@ module Datadog
         end
 
         def format(title, text, options = EMPTY_OPTIONS)
-          title = clean(title)
-          text = clean(text)
+          title = escape(title)
+          text = escape(text)
 
           String.new.tap do |event|
             event << '_e{'
@@ -57,7 +57,7 @@ module Datadog
         protected
         attr_reader :tag_serializer
 
-        def clean(text)
+        def escape(text)
           text.delete('|').tap do |text|
             text.gsub!("\n", '\n')
           end
