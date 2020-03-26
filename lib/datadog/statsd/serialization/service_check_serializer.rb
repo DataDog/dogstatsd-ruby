@@ -50,9 +50,9 @@ module Datadog
         attr_reader :tag_serializer
 
         def escape_message(message)
-          message.delete('|').tap do |message|
-            message.gsub!("\n", '\n')
-            message.gsub!('m:', 'm\:')
+          message.delete('|').tap do |m|
+            m.gsub!("\n", '\n')
+            m.gsub!('m:', 'm\:')
           end
         end
       end
