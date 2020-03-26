@@ -111,7 +111,7 @@ module Datadog
       @sample_rate = sample_rate
 
       # we reduce max_buffer_bytes by a the rough estimate of the telemetry payload
-      @batch = Batch.new(@connection, (max_buffer_bytes - telemetry.estimate_max_size))
+      @batch = Batch.new(connection, (max_buffer_bytes - telemetry.estimate_max_size))
     end
 
     # yield a new instance to a block and close it when done
@@ -325,7 +325,7 @@ module Datadog
 
     # Close the underlying socket
     def close
-      @connection.close
+      connection.close
     end
 
     private
