@@ -34,7 +34,7 @@ module Datadog
 
             if message = options[:message]
               service_check << '|m:'
-              service_check << clean_message(message)
+              service_check << escape_message(message)
             end
 
             if raw_tags = options[:tags]
@@ -49,7 +49,7 @@ module Datadog
         protected
         attr_reader :tag_serializer
 
-        def clean_message(message)
+        def escape_message(message)
           message.delete('|').tap do |message|
             message.gsub!("\n", '\n')
             message.gsub!('m:', 'm\:')
