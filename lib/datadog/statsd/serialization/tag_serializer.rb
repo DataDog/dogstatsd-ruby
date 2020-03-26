@@ -16,11 +16,11 @@ module Datadog
         def format(message_tags)
           # fast return global tags if there's no message_tags
           # to avoid more allocations
-          tag_list = if message_tags && message_tags.any?
-            global_tags + to_tags_list(message_tags)
-          else
-            global_tags
-          end
+          tag_list =  if message_tags && message_tags.any?
+                        global_tags + to_tags_list(message_tags)
+                      else
+                        global_tags
+                      end
 
           tag_list.join(',') if tag_list.any?
         end
