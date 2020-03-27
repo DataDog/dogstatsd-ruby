@@ -50,17 +50,17 @@ module Datadog
       end
 
       def sent(metrics: 0, events: 0, service_checks: 0, bytes: 0, packets: 0)
-        @metrics += Integer(metrics) if metrics > 0
-        @events += Integer(events) if events > 0
-        @service_checks += Integer(service_checks) if service_checks > 0
+        @metrics += metrics
+        @events += events
+        @service_checks += service_checks
 
-        @bytes_sent += Integer(bytes) if bytes > 0
-        @packets_sent += Integer(packets) if packets > 0
+        @bytes_sent += bytes
+        @packets_sent += packets
       end
 
       def dropped(bytes: 0, packets: 0)
-        @bytes_dropped += Integer(bytes) if bytes > 0
-        @packets_dropped += Integer(packets) if packets > 0
+        @bytes_dropped += bytes
+        @packets_dropped += packets
       end
 
       def flush?
