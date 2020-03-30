@@ -6,6 +6,7 @@ require_relative 'statsd/telemetry'
 require_relative 'statsd/udp_connection'
 require_relative 'statsd/uds_connection'
 require_relative 'statsd/batch'
+require_relative 'statsd/serialization'
 
 # = Datadog::Statsd: A DogStatsd client (https://www.datadoghq.com)
 #
@@ -25,25 +26,6 @@ require_relative 'statsd/batch'
 #   statsd = Datadog::Statsd.new 'localhost', 8125, tags: 'tag1:true'
 module Datadog
   class Statsd
-    # Create a dictionary to assign a key to every parameter's name, except for tags (treated differently)
-    # Goal: Simple and fast to add some other parameters
-    OPTS_KEYS = {
-      date_happened:    :d,
-      hostname:         :h,
-      aggregation_key:  :k,
-      priority:         :p,
-      source_type_name: :s,
-      alert_type:       :t,
-    }.freeze
-
-    # Service check options
-    SC_OPT_KEYS = {
-      timestamp: 'd:',
-      hostname:  'h:',
-      tags:      '#',
-      message:   'm:',
-    }.freeze
-
     OK       = 0
     WARNING  = 1
     CRITICAL = 2
@@ -65,7 +47,9 @@ module Datadog
     attr_reader :namespace
 
     # Global tags to be added to every statsd call. Defaults to no tags.
-    attr_reader :tags
+    def tags
+      serializer.global_tags
+    end
 
     # Buffer containing the statsd message before they are sent in batch
     attr_reader :buffer
@@ -103,36 +87,31 @@ module Datadog
         raise ArgumentError, 'tags must be a Array<String> or a Hash'
       end
 
-      tags = tag_hash_to_array(tags) if tags.is_a?(Hash)
-      @tags = (tags || []).compact.map! do |tag|
-        escape_tag_content(tag)
-      end
-
-      # append the entity id to tags if DD_ENTITY_ID env var is not nil
-      unless ENV.fetch('DD_ENTITY_ID', nil).nil?
-        dd_entity = escape_tag_content(ENV.fetch('DD_ENTITY_ID', nil))
-        @tags << 'dd.internal.entity_id:' + dd_entity
-      end
-
-      # init telemetry
-      transport_type = socket_path.nil? ? 'udp': 'uds'
-      telemetry_tags = (["client:ruby", "client_version:#{VERSION}", "client_transport:#{transport_type}"] + @tags).join(COMMA).freeze
-      @telemetry = Telemetry.new(disable_telemetry, telemetry_tags, telemetry_flush_interval)
-
-      if socket_path.nil?
-        @connection = UDPConnection.new(host, port, logger, @telemetry)
-      else
-        @connection = UDSConnection.new(socket_path, logger, @telemetry)
-      end
-      @logger = logger
-
       @namespace = namespace
       @prefix = @namespace ? "#{@namespace}.".freeze : nil
+
+      @serializer = Serialization::Serializer.new(prefix: @prefix, global_tags: tags)
+
+      transport_type = socket_path.nil? ? :udp : :uds
+
+      @telemetry = Telemetry.new(disable_telemetry, telemetry_flush_interval,
+        global_tags: tags,
+        transport_type: transport_type
+      )
+
+      @connection = case transport_type
+                    when :udp
+                      UDPConnection.new(host, port, logger, telemetry)
+                    when :uds
+                      UDSConnection.new(socket_path, logger, telemetry)
+                    end
+
+      @logger = logger
 
       @sample_rate = sample_rate
 
       # we reduce max_buffer_bytes by a the rough estimate of the telemetry payload
-      @batch = Batch.new(@connection, (max_buffer_bytes - @telemetry.estimate_max_size))
+      @batch = Batch.new(connection, (max_buffer_bytes - telemetry.estimate_max_size))
     end
 
     # yield a new instance to a block and close it when done
@@ -301,8 +280,9 @@ module Datadog
     # @example Report a critical service check status
     #   $statsd.service_check('my.service.check', Statsd::CRITICAL, :tags=>['urgent'])
     def service_check(name, status, opts = EMPTY_OPTIONS)
-      @telemetry.service_checks += 1
-      send_stat(format_service_check(name, status, opts))
+      telemetry.sent(service_checks: 1)
+
+      send_stat(serializer.to_service_check(name, status, opts))
     end
 
     # This end point allows you to post events to the stream. You can tag them, set priority and even aggregate them with other events.
@@ -324,8 +304,9 @@ module Datadog
     # @example Report an awful event:
     #   $statsd.event('Something terrible happened', 'The end is near if we do nothing', :alert_type=>'warning', :tags=>['end_of_times','urgent'])
     def event(title, text, opts = EMPTY_OPTIONS)
-      @telemetry.events += 1
-      send_stat(format_event(title, text, opts))
+      telemetry.sent(events: 1)
+
+      send_stat(serializer.to_event(title, text, opts))
     end
 
     # Send several metrics in the same UDP Packet
@@ -344,154 +325,34 @@ module Datadog
 
     # Close the underlying socket
     def close
-      @connection.close
+      connection.close
     end
 
     private
+    attr_reader :serializer
+    attr_reader :telemetry
 
-    NEW_LINE = "\n"
-    ESC_NEW_LINE = '\n'
-    COMMA = ','
-    PIPE = '|'
-    DOT = '.'
-    DOUBLE_COLON = '::'
-    UNDERSCORE = '_'
     PROCESS_TIME_SUPPORTED = (RUBY_VERSION >= '2.1.0')
     EMPTY_OPTIONS = {}.freeze
 
-    private_constant :NEW_LINE, :ESC_NEW_LINE, :COMMA, :PIPE, :DOT,
-      :DOUBLE_COLON, :UNDERSCORE, :EMPTY_OPTIONS
-
-    def format_service_check(name, status, opts = EMPTY_OPTIONS)
-      sc_string = "_sc|#{name}|#{status}".dup
-
-      SC_OPT_KEYS.each do |key, shorthand_key|
-        next unless opts[key]
-
-        if key == :tags
-          if tags_string = tags_as_string(opts)
-            sc_string << "|##{tags_string}"
-          end
-        elsif key == :message
-          message = remove_pipes(opts[:message])
-          escaped_message = escape_service_check_message(message)
-          sc_string << "|m:#{escaped_message}"
-        else
-          if key == :timestamp && opts[key].is_a?(Integer)
-            value = opts[key]
-          else
-            value = remove_pipes(opts[key])
-          end
-          sc_string << "|#{shorthand_key}#{value}"
-        end
-      end
-      sc_string
-    end
-
-    def format_event(title, text, opts = EMPTY_OPTIONS)
-      escaped_title = escape_event_content(title)
-      escaped_text = escape_event_content(text)
-      event_string_data = "_e{#{escaped_title.bytesize},#{escaped_text.bytesize}}:#{escaped_title}|#{escaped_text}".dup
-
-      # We construct the string to be sent by adding '|key:value' parts to it when needed
-      # All pipes ('|') in the metadata are removed. Title and Text can keep theirs
-      OPTS_KEYS.each do |key, shorthand_key|
-        if key != :tags && opts[key]
-          # :date_happened is the only key where the value is an Integer
-          # To not break backwards compatibility, we still accept a String
-          if key == :date_happened && opts[key].is_a?(Integer)
-              value = opts[key]
-          # All other keys only have String values
-          else
-              value = remove_pipes(opts[key])
-          end
-          event_string_data << "|#{shorthand_key}:#{value}"
-        end
-      end
-
-      # Tags are joined and added as last part to the string to be sent
-      if tags_string = tags_as_string(opts)
-        event_string_data << "|##{tags_string}"
-      end
-
-      if event_string_data.bytesize > MAX_EVENT_SIZE
-        raise "Event #{title} payload is too big (more that 8KB), event discarded"
-      end
-      event_string_data
-    end
-
-    def tags_as_string(opts)
-      if tag_arr = opts[:tags]
-        tag_arr = tag_hash_to_array(tag_arr) if tag_arr.is_a?(Hash)
-        tag_arr = tag_arr.map do |tag|
-          escape_tag_content(tag)
-        end
-        tag_arr = tags + tag_arr # @tags are normalized when set, so not need to normalize them again
-      else
-        tag_arr = tags
-      end
-      tag_arr.join(COMMA) unless tag_arr.empty?
-    end
-
-    def tag_hash_to_array(tag_hash)
-      tag_hash.to_a.map do |pair|
-        pair.compact.join(':')
-      end
-    end
-
-    def escape_event_content(message)
-      message.gsub(NEW_LINE, ESC_NEW_LINE)
-    end
-
-    def escape_tag_content(tag)
-      tag = remove_pipes(tag.to_s)
-      tag.delete!(COMMA)
-      tag
-    end
-
-    def remove_pipes(message)
-      message.delete(PIPE)
-    end
-
-    def escape_service_check_message(message)
-      escape_event_content(message).gsub('m:', 'm\:')
-    end
-
     def send_stats(stat, delta, type, opts = EMPTY_OPTIONS)
-      @telemetry.metrics += 1
+      telemetry.sent(metrics: 1)
+
       sample_rate = opts[:sample_rate] || @sample_rate || 1
+
       if sample_rate == 1 || rand <= sample_rate
-        full_stat = ''.dup
-        full_stat << @prefix if @prefix
+        full_stat = serializer.to_stat(stat, delta, type, tags: opts[:tags], sample_rate: sample_rate)
 
-        stat = stat.is_a?(String) ? stat.dup : stat.to_s
-        # Replace Ruby module scoping with '.' and reserved chars (: | @) with underscores.
-        stat.gsub!(DOUBLE_COLON, DOT)
-        stat.tr!(':|@', UNDERSCORE)
-        full_stat << stat
-
-        full_stat << ':'
-        full_stat << delta.to_s
-        full_stat << PIPE
-        full_stat << type
-
-        unless sample_rate == 1
-          full_stat << PIPE
-          full_stat << '@'
-          full_stat << sample_rate.to_s
-        end
-
-        if tags_string = tags_as_string(opts)
-          full_stat << PIPE
-          full_stat << '#'
-          full_stat << tags_string
-        end
         send_stat(full_stat)
       end
     end
 
     def send_stat(message)
-      @batch.open? ? @batch.add(message) : @connection.write(message)
+      if @batch.open?
+        @batch.add(message)
+      else
+        @connection.write(message)
+      end
     end
   end
 end

@@ -14,19 +14,16 @@ module Datadog
 
       def write(payload)
         logger.debug { "Statsd: #{payload}" } if logger
-        flush_telemetry = @telemetry.flush?
-        if flush_telemetry
-          payload += @telemetry.flush()
-        end
+
+        flush_telemetry = telemetry.flush?
+
+        payload += telemetry.flush if flush_telemetry
 
         send_message(payload)
 
-        if flush_telemetry
-          @telemetry.reset
-        end
+        telemetry.reset if flush_telemetry
 
-        telemetry.bytes_sent += payload.length
-        telemetry.packets_sent += 1
+        telemetry.sent(packets: 1, bytes: payload.length)
       rescue StandardError => boom
         # Try once to reconnect if the socket has been closed
         retries ||= 1
@@ -43,14 +40,12 @@ module Datadog
           end
         end
 
-        telemetry.bytes_dropped += payload.length
-        telemetry.packets_dropped += 1
+        telemetry.dropped(packets: 1, bytes: payload.length)
         logger.error { "Statsd: #{boom.class} #{boom}" } if logger
         nil
       end
 
       private
-
       attr_reader :telemetry
       attr_reader :logger
 
