@@ -238,20 +238,10 @@ module Datadog
     #   $statsd.time('account.activate') { @account.activate! }
     def time(stat, opts = EMPTY_OPTIONS)
       opts = { sample_rate: opts } if opts.is_a?(Numeric)
-      start = if PROCESS_TIME_SUPPORTED
-                Process.clock_gettime(Process::CLOCK_MONOTONIC) # uncovered
-              else
-                Time.now.to_f # uncovered
-              end
+      start = now
       yield
     ensure
-      finished =  if PROCESS_TIME_SUPPORTED
-                    Process.clock_gettime(Process::CLOCK_MONOTONIC) # uncovered
-                  else
-                    Time.now.to_f # uncovered
-                  end
-
-      timing(stat, ((finished - start) * 1000).round, opts)
+      timing(stat, ((now - start) * 1000).round, opts)
     end
 
     # Sends a value to be tracked as a set to the statsd server.
@@ -334,6 +324,16 @@ module Datadog
 
     PROCESS_TIME_SUPPORTED = (RUBY_VERSION >= '2.1.0')
     EMPTY_OPTIONS = {}.freeze
+
+    if PROCESS_TIME_SUPPORTED
+      def now
+        Process.clock_gettime(Process::CLOCK_MONOTONIC) # uncovered
+      end
+    else
+      def now
+        Time.now.to_f
+      end
+    end
 
     def send_stats(stat, delta, type, opts = EMPTY_OPTIONS)
       telemetry.sent(metrics: 1)
