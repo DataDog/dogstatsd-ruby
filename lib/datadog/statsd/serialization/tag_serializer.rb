@@ -44,8 +44,6 @@ module Datadog
         end
 
         def escape_tag_content(tag)
-          # Remove pipe and use copy of string to make
-          # other deletions
           tag.to_s.delete('|,')
         end
       end
