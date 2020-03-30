@@ -327,7 +327,7 @@ module Datadog
 
     if PROCESS_TIME_SUPPORTED
       def now
-        Process.clock_gettime(Process::CLOCK_MONOTONIC) # uncovered
+        Process.clock_gettime(Process::CLOCK_MONOTONIC)
       end
     else
       def now
