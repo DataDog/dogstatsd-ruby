@@ -17,7 +17,7 @@ module Datadog
       def initialize(host, port, logger, telemetry)
         super(telemetry)
         @host = host || ENV.fetch('DD_AGENT_HOST', DEFAULT_HOST)
-        @port = port || ENV.fetch('DD_DOGSTATSD_PORT', DEFAULT_PORT)
+        @port = port || ENV.fetch('DD_DOGSTATSD_PORT', DEFAULT_PORT).to_i
         @logger = logger
       end
 
