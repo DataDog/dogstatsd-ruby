@@ -69,11 +69,19 @@ describe Datadog::Statsd do
         )
       end
 
-      before do
-        allow(ENV).to receive(:fetch).and_call_original
-        allow(ENV).to receive(:fetch).with('DD_AGENT_HOST', anything).and_return('myhost')
-        allow(ENV).to receive(:fetch).with('DD_DOGSTATSD_PORT', anything).and_return(4321)
-        allow(ENV).to receive(:fetch).with('DD_ENTITY_ID', anything).and_return('04652bb7-19b7-11e9-9cc6-42010a9c016d')
+
+      around do |example|
+        ClimateControl.modify(
+          'DD_AGENT_HOST' => 'myhost',
+          'DD_DOGSTATSD_PORT' => '4321',
+          'DD_ENTITY_ID' => '04652bb7-19b7-11e9-9cc6-42010a9c016d',
+          'DD_ENV' => 'staging',
+          'DD_SERVICE' => 'billing-service',
+          'DD_VERSION' => '0.1.0-alpha',
+          'DD_TAGS' => 'ghi,team:qa'
+        ) do
+          example.run
+        end
       end
 
       it 'sets the host using the env var DD_AGENT_HOST' do
@@ -85,11 +93,16 @@ describe Datadog::Statsd do
       end
 
       it 'sets the entity tag using ' do
-        expect(subject.tags).to eq [
+        expect(subject.tags.sort).to eq [
           'abc',
           'def',
+          'ghi',
+          'env:staging',
+          'service:billing-service',
+          'team:qa',
+          'version:0.1.0-alpha',
           'dd.internal.entity_id:04652bb7-19b7-11e9-9cc6-42010a9c016d'
-        ]
+        ].sort
       end
     end
 
