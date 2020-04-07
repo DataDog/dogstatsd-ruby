@@ -84,7 +84,7 @@ datadog.dogstatsd.client.packets_dropped:#{@packets_dropped}|#{COUNTER_TYPE}|##{
       private
       attr_reader :serialized_tags
 
-      if Kernel.const_defined?(Process) && Process.respond_to?(:clock_gettime)
+      if Kernel.const_defined?('Process') && Process.respond_to?(:clock_gettime)
         def now_in_s
           Process.clock_gettime(Process::CLOCK_MONOTONIC, :second)
         end
