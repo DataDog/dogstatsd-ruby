@@ -500,13 +500,14 @@ describe Datadog::Statsd do
 
     before do
       Timecop.freeze(before_date)
-      allow(Process).to receive(:clock_gettime).and_return(0, 1) if Datadog::Statsd::PROCESS_TIME_SUPPORTED
+      allow(Process).to receive(:clock_gettime).and_return(0) if Datadog::Statsd::PROCESS_TIME_SUPPORTED
     end
 
     it_behaves_like 'a metrics method', 'foobar:1000|ms' do
       let(:basic_action) do
         subject.time('foobar', tags: action_tags) do
           Timecop.travel(after_date)
+          allow(Process).to receive(:clock_gettime).and_return(1) if Datadog::Statsd::PROCESS_TIME_SUPPORTED
         end
       end
     end
@@ -515,6 +516,7 @@ describe Datadog::Statsd do
       it 'sends the timing' do
         subject.time('foobar') do
           Timecop.travel(after_date)
+          allow(Process).to receive(:clock_gettime).and_return(1) if Datadog::Statsd::PROCESS_TIME_SUPPORTED
         end
 
         expect(socket.recv[0]).to eq_with_telemetry 'foobar:1000|ms'
@@ -524,6 +526,7 @@ describe Datadog::Statsd do
         # rubocop:disable Lint/RescueWithoutErrorClass
         subject.time('foobar') do
           Timecop.travel(after_date)
+          allow(Process).to receive(:clock_gettime).and_return(1) if Datadog::Statsd::PROCESS_TIME_SUPPORTED
           raise 'stop'
         end rescue nil
         # rubocop:enable Lint/RescueWithoutErrorClass
@@ -560,6 +563,7 @@ describe Datadog::Statsd do
       it 'sends the timing with the sample rate' do
         subject.time('foobar', sample_rate: 0.5) do
           Timecop.travel(after_date)
+          allow(Process).to receive(:clock_gettime).and_return(1) if Datadog::Statsd::PROCESS_TIME_SUPPORTED
         end
 
         expect(socket.recv[0]).to eq_with_telemetry 'foobar:1000|ms|@0.5'
@@ -574,6 +578,7 @@ describe Datadog::Statsd do
       it 'sends the timing with the sample rate' do
         subject.time('foobar', 0.5) do
           Timecop.travel(after_date)
+          allow(Process).to receive(:clock_gettime).and_return(1) if Datadog::Statsd::PROCESS_TIME_SUPPORTED
         end
 
         expect(socket.recv[0]).to eq_with_telemetry 'foobar:1000|ms|@0.5'
@@ -924,6 +929,7 @@ describe Datadog::Statsd do
     context 'when flusing only every 2 seconds' do
       before do
         Timecop.freeze(DateTime.new(2020, 2, 22, 12, 12, 12))
+        allow(Process).to receive(:clock_gettime).and_return(0) if Datadog::Statsd::PROCESS_TIME_SUPPORTED
         subject
       end
 
@@ -943,6 +949,7 @@ describe Datadog::Statsd do
 
       it 'does not send telemetry before the delay' do
         Timecop.freeze(DateTime.new(2020, 2, 22, 12, 12, 13))
+        allow(Process).to receive(:clock_gettime).and_return(1) if Datadog::Statsd::PROCESS_TIME_SUPPORTED
 
         subject.count('test', 21)
 
@@ -951,6 +958,7 @@ describe Datadog::Statsd do
 
       it 'sends telemetry after the delay' do
         Timecop.freeze(DateTime.new(2020, 2, 22, 12, 12, 15))
+        allow(Process).to receive(:clock_gettime).and_return(3) if Datadog::Statsd::PROCESS_TIME_SUPPORTED
 
         subject.count('test', 21)
 
