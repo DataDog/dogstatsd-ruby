@@ -2,10 +2,6 @@
 
 [//]: # (comment: Don't forget to update lib/datadog/statsd.rb:DogStatsd::Statsd::VERSION when releasing a new version)
 
-## 4.7.1 / 2020.04.09
-
-* [BUGFIX] Properly close UDPSocket before creating a new one [#143][] by [@zachmccormick]
-
 ## 4.7.0 / 2020.02.14
 
 * [FEATURE] Add configurable flush interval for the telemetry [#132][] by [@hush-hush][]
@@ -231,7 +227,6 @@ Future versions are likely to introduce backward incompatibilities with < Ruby 1
 [#128]: https://github.com/DataDog/dogstatsd-ruby/issues/128
 [#131]: https://github.com/DataDog/dogstatsd-ruby/issues/131
 [#132]: https://github.com/DataDog/dogstatsd-ruby/issues/132
-[#143]: https://github.com/DataDog/dogstatsd-ruby/issues/143
 [@AMekss]: https://github.com/AMekss
 [@abicky]: https://github.com/abicky
 [@adimitrov]: https://github.com/adimitrov
@@ -258,4 +253,3 @@ Future versions are likely to introduce backward incompatibilities with < Ruby 1
 [@sensadrome]: https://github.com/sensadrome
 [@sj26]: https://github.com/sj26
 [@sullerandras]: https://github.com/sullerandras
-[@zachmccormick]: https://github.com/zachmccormick
