@@ -93,7 +93,7 @@ describe Datadog::Statsd do
       end
 
       it 'sets the entity tag using ' do
-        expect(subject.tags.sort).to eq [
+        expect(subject.tags).to match_array [
           'abc',
           'def',
           'ghi',
@@ -102,7 +102,7 @@ describe Datadog::Statsd do
           'team:qa',
           'version:0.1.0-alpha',
           'dd.internal.entity_id:04652bb7-19b7-11e9-9cc6-42010a9c016d'
-        ].sort
+        ]
       end
     end
 

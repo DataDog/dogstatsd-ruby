@@ -1,5 +1,4 @@
 # frozen_string_literal: true
-require 'set'
 
 module Datadog
   class Statsd
@@ -72,13 +71,19 @@ module Datadog
           tag.to_s.delete('|,')
         end
 
+        def dd_tags(env = ENV)
+          return {} unless dd_tags = env['DD_TAGS']
+
+          to_tags_hash(dd_tags.split(','))
+        end
+
         def default_tags(env = ENV)
-          tags = env.key?('DD_TAGS') ? to_tags_hash(env['DD_TAGS'].split(',')) : {}
-          tags['dd.internal.entity_id'] = env['DD_ENTITY_ID'] if env.key?('DD_ENTITY_ID')
-          tags['env'] = env['DD_ENV'] if env.key?('DD_ENV')
-          tags['service'] = env['DD_SERVICE'] if env.key?('DD_SERVICE')
-          tags['version'] = env['DD_VERSION'] if env.key?('DD_VERSION')
-          tags
+          dd_tags(env).tap do |tags|
+            tags['dd.internal.entity_id'] = env['DD_ENTITY_ID'] if env.key?('DD_ENTITY_ID')
+            tags['env'] = env['DD_ENV'] if env.key?('DD_ENV')
+            tags['service'] = env['DD_SERVICE'] if env.key?('DD_SERVICE')
+            tags['version'] = env['DD_VERSION'] if env.key?('DD_VERSION')
+          end
         end
       end
     end
