@@ -46,7 +46,7 @@ module Datadog
         @bytes_dropped = 0
         @packets_sent = 0
         @packets_dropped = 0
-        @next_flush_time = Time.now.to_i + @flush_interval
+        @next_flush_time = now_in_s + @flush_interval
       end
 
       def sent(metrics: 0, events: 0, service_checks: 0, bytes: 0, packets: 0)
@@ -64,7 +64,7 @@ module Datadog
       end
 
       def flush?
-        @next_flush_time < Time.now.to_i
+        @next_flush_time < now_in_s
       end
 
       def flush
@@ -83,6 +83,16 @@ datadog.dogstatsd.client.packets_dropped:#{@packets_dropped}|#{COUNTER_TYPE}|##{
 
       private
       attr_reader :serialized_tags
+
+      if Kernel.const_defined?('Process') && Process.respond_to?(:clock_gettime)
+        def now_in_s
+          Process.clock_gettime(Process::CLOCK_MONOTONIC, :second)
+        end
+      else
+        def now_in_s
+          Time.now.to_i
+        end
+      end
     end
   end
 end
