@@ -37,11 +37,11 @@ module Datadog
             tags.dup
           when Array
             Hash[
-              tags.collect do |string|
-                string.split(':').tap do |tokens|
-                  tokens << nil if tokens.length == 1
-                end
-              end
+              tags.map do |string|
+                tokens = string.split(':')
+                tokens << nil if tokens.length == 1
+                tokens.length == 2 ? tokens : nil
+              end.compact
             ]
           else
             {}
