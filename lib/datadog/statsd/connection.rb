@@ -9,7 +9,12 @@ module Datadog
 
       # Close the underlying socket
       def close
-        @socket && @socket.close
+        begin
+          @socket && @socket.close
+        rescue StandardError => boom
+          logger.error { "Statsd: #{boom.class} #{boom}" } if logger
+        end
+        @socket = nil
       end
 
       def write(payload)
@@ -33,7 +38,7 @@ module Datadog
            boom.is_a?(IOError) && boom.message =~ /closed stream/i)
           retries += 1
           begin
-            @socket = connect
+            close
             retry
           rescue StandardError => e
             boom = e

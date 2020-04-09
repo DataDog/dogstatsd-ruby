@@ -74,6 +74,9 @@ describe 'Connection edge cases test' do
         allow(fake_socket)
           .to receive(:send)
           .and_raise(IOError.new('closed stream'))
+
+        allow(fake_socket)
+          .to receive(:close)
       end
 
       context 'when retrying is working' do
@@ -81,6 +84,13 @@ describe 'Connection edge cases test' do
           expect(fake_socket)
             .to receive(:send)
             .with('foobar', anything)
+
+          subject.write('foobar')
+        end
+
+        it 'close the initial socket' do
+          expect(fake_socket)
+            .to receive(:close)
 
           subject.write('foobar')
         end
@@ -140,6 +150,9 @@ describe 'Connection edge cases test' do
         allow(fake_socket)
           .to receive(:send)
           .and_raise(Errno::ECONNREFUSED.new('closed stream'))
+
+        allow(fake_socket)
+          .to receive(:close)
       end
 
       context 'when retrying is working' do
@@ -147,6 +160,13 @@ describe 'Connection edge cases test' do
           expect(fake_socket)
             .to receive(:send)
             .with('foobar', anything)
+
+          subject.write('foobar')
+        end
+
+        it 'close the initial socket' do
+          expect(fake_socket)
+            .to receive(:close)
 
           subject.write('foobar')
         end
