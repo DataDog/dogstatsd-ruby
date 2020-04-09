@@ -4,6 +4,6 @@ require_relative 'connection'
 
 module Datadog
   class Statsd
-    VERSION = '4.7.0'
+    VERSION = '4.7.1'
   end
 end
