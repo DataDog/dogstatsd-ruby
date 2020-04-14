@@ -10,7 +10,7 @@ module Datadog
       # Close the underlying socket
       def close
         begin
-          @socket && @socket.close
+          @socket && @socket.close if instance_variable_defined?(:@socket)
         rescue StandardError => boom
           logger.error { "Statsd: #{boom.class} #{boom}" } if logger
         end

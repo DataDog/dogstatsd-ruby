@@ -143,5 +143,77 @@ describe Datadog::Statsd::Serialization::TagSerializer do
         expect(subject.format(['name:foobarfoo'.freeze])).to eq 'name:foobarfoo'
       end
     end
+
+    context '[testing management of env vars]' do
+      context 'when testing DD_TAGS' do
+        around do |example|
+          ClimateControl.modify(
+            'DD_TAGS' => 'ghi,team:qa'
+          ) do
+            example.run
+          end
+        end
+
+        it 'correctly adds individual tags' do
+          expect(subject.format([])).to eq 'ghi,team:qa'
+        end
+      end
+
+      context 'when testing DD_ENTITY_ID' do
+        around do |example|
+          ClimateControl.modify(
+            'DD_ENTITY_ID' => '04652bb7-19b7-11e9-9cc6-42010a9c016d'
+          ) do
+            example.run
+          end
+        end
+
+        it 'correctly adds the entity_id tag' do
+          expect(subject.format([])).to eq 'dd.internal.entity_id:04652bb7-19b7-11e9-9cc6-42010a9c016d'
+        end
+      end
+
+      context 'when testing DD_ENV' do
+        around do |example|
+          ClimateControl.modify(
+            'DD_ENV' => 'staging'
+          ) do
+            example.run
+          end
+        end
+
+        it 'correctly adds the env tag' do
+          expect(subject.format([])).to eq 'env:staging'
+        end
+      end
+
+      context 'when testing DD_SERVICE' do
+        around do |example|
+          ClimateControl.modify(
+            'DD_SERVICE' => 'billing-service'
+          ) do
+            example.run
+          end
+        end
+
+        it 'correctly adds the service tag' do
+          expect(subject.format([])).to eq 'service:billing-service'
+        end
+      end
+
+      context 'when testing DD_VERSION' do
+        around do |example|
+          ClimateControl.modify(
+            'DD_VERSION' => '0.1.0-alpha'
+          ) do
+            example.run
+          end
+        end
+
+        it 'correctly adds the version tag' do
+          expect(subject.format([])).to eq 'version:0.1.0-alpha'
+        end
+      end
+    end
   end
 end

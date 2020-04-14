@@ -5,12 +5,14 @@ module Datadog
     module Serialization
       class TagSerializer
         def initialize(global_tags = [], env = ENV)
-          @global_tags = to_tags_list(global_tags)
+          # Convert to hash
+          global_tags = to_tags_hash(global_tags)
 
-          # append the entity id to tags if DD_ENTITY_ID env var is set
-          if dd_entity = env.fetch('DD_ENTITY_ID', nil)
-            @global_tags << to_tags_list('dd.internal.entity_id' => dd_entity).first
-          end
+          # Merge with default tags
+          global_tags = default_tags(env).merge(global_tags)
+
+          # Convert to tag list and set
+          @global_tags = to_tags_list(global_tags)
         end
 
         def format(message_tags)
@@ -28,11 +30,33 @@ module Datadog
         attr_reader :global_tags
 
         private
+
+        def to_tags_hash(tags)
+          case tags
+          when Hash
+            tags.dup
+          when Array
+            Hash[
+              tags.map do |string|
+                tokens = string.split(':')
+                tokens << nil if tokens.length == 1
+                tokens.length == 2 ? tokens : nil
+              end.compact
+            ]
+          else
+            {}
+          end
+        end
+
         def to_tags_list(tags)
           case tags
           when Hash
-            tags.each_with_object([]) do |tag_pair, formated_tags|
-              formated_tags << "#{tag_pair.first}:#{tag_pair.last}"
+            tags.each_with_object([]) do |tag_pair, formatted_tags|
+              if tag_pair.last.nil?
+                formatted_tags << "#{tag_pair.first}"
+              else
+                formatted_tags << "#{tag_pair.first}:#{tag_pair.last}"
+              end
             end
           when Array
             tags.dup
@@ -45,6 +69,21 @@ module Datadog
 
         def escape_tag_content(tag)
           tag.to_s.delete('|,')
+        end
+
+        def dd_tags(env = ENV)
+          return {} unless dd_tags = env['DD_TAGS']
+
+          to_tags_hash(dd_tags.split(','))
+        end
+
+        def default_tags(env = ENV)
+          dd_tags(env).tap do |tags|
+            tags['dd.internal.entity_id'] = env['DD_ENTITY_ID'] if env.key?('DD_ENTITY_ID')
+            tags['env'] = env['DD_ENV'] if env.key?('DD_ENV')
+            tags['service'] = env['DD_SERVICE'] if env.key?('DD_SERVICE')
+            tags['version'] = env['DD_VERSION'] if env.key?('DD_VERSION')
+          end
         end
       end
     end
