@@ -4,7 +4,8 @@ describe Datadog::Statsd::MessageBuffer do
   subject do
     described_class.new(connection,
       max_buffer_payload_size: max_buffer_payload_size,
-      max_buffer_pool_size: max_buffer_pool_size
+      max_buffer_pool_size: max_buffer_pool_size,
+      buffer_overflowing_stategy: buffer_overflowing_stategy,
     )
   end
 
@@ -20,6 +21,10 @@ describe Datadog::Statsd::MessageBuffer do
     3
   end
 
+  let(:buffer_overflowing_stategy) do
+    :drop
+  end
+
   describe '#add' do
     context 'when the buffer is empty' do
       context 'when the message is lesser than the max size' do
@@ -31,11 +36,24 @@ describe Datadog::Statsd::MessageBuffer do
       end
 
       context 'when the message is bigger than the max size' do
-        # this logic has to be reworked
-        it 'does not flush' do
-          expect(connection).not_to receive(:write)
+        context 'in buffer overflow mode :drop' do
+          it 'does not flush' do
+            expect(connection).not_to receive(:write)
 
-          subject.add('a' * 65)
+            subject.add('a' * 65)
+          end
+        end
+
+        context 'in buffer overflow mode :raise' do
+          let(:buffer_overflowing_stategy) do
+            :raise
+          end
+
+          it 'raises a specific error' do
+            expect do
+              subject.add('a' * 65)
+            end.to raise_error(Datadog::Statsd::Error, 'Message too big for payload limit')
+          end
         end
       end
     end
@@ -70,12 +88,24 @@ describe Datadog::Statsd::MessageBuffer do
       end
 
       context 'when we overflow the max size' do
-        it 'flushes the previous messages' do
-          expect(connection)
-            .to receive(:write)
-            .with("a")
+        context 'in buffer overflow mode :drop' do
+          it 'does not flush' do
+            expect(connection).not_to receive(:write)
 
-          subject.add('a' * 75)
+            subject.add('a' * 75)
+          end
+        end
+
+        context 'in buffer overflow mode :raise' do
+          let(:buffer_overflowing_stategy) do
+            :raise
+          end
+
+          it 'raises a specific error' do
+            expect do
+              subject.add('a' * 75)
+            end.to raise_error(Datadog::Statsd::Error, 'Message too big for payload limit')
+          end
         end
       end
 

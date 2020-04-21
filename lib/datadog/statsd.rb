@@ -26,6 +26,9 @@ require_relative 'statsd/serialization'
 #   statsd = Datadog::Statsd.new 'localhost', 8125, tags: 'tag1:true'
 module Datadog
   class Statsd
+    class Error < StandardError
+    end
+
     OK       = 0
     WARNING  = 1
     CRITICAL = 2
@@ -84,7 +87,8 @@ module Datadog
       logger: nil,
       sample_rate: nil,
       disable_telemetry: false,
-      telemetry_flush_interval: DEFAULT_TELEMETRY_FLUSH_INTERVAL
+      telemetry_flush_interval: DEFAULT_TELEMETRY_FLUSH_INTERVAL,
+      buffer_overflowing_stategy: :drop
     )
       unless tags.nil? || tags.is_a?(Array) || tags.is_a?(Hash)
         raise ArgumentError, 'tags must be a Array<String> or a Hash'
@@ -119,6 +123,7 @@ module Datadog
       @buffer = MessageBuffer.new(connection,
         max_buffer_payload_size: (max_buffer_payload_size - telemetry.estimate_max_size),
         max_buffer_pool_size: max_buffer_pool_size,
+        buffer_overflowing_stategy: buffer_overflowing_stategy,
       )
     end
 
