@@ -2,7 +2,7 @@
 
 module Datadog
   class Statsd
-    class Batch
+    class MessageBuffer
       def initialize(connection, max_buffer_bytes)
         @connection = connection
         @max_buffer_bytes = max_buffer_bytes
