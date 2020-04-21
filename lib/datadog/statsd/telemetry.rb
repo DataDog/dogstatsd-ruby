@@ -30,7 +30,7 @@ module Datadog
 
         # estimate_max_size is an estimation or the maximum size of the
         # telemetry payload. Since we don't want our packet to go over
-        # 'max_buffer_bytes', we have to adjust with the size of the telemetry
+        # 'max_buffer_payload_size', we have to adjust with the size of the telemetry
         # (and any tags used). The telemetry payload size will change depending
         # on the actual value of metrics: metrics received, packet dropped,
         # etc. This is why we add a 63bytes margin: 9 bytes for each of the 7

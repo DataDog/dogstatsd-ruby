@@ -32,7 +32,7 @@ module Datadog
     UNKNOWN  = 3
 
     DEFAULT_BUFFER_SIZE = 8 * 1_024
-    DEFAULT_BUFFER_POOL_SIZE = 2 * 1_024
+    DEFAULT_BUFFER_POOL_SIZE = Float::INFINITY
     MAX_EVENT_SIZE = 8 * 1_024
     # minimum flush interval for the telemetry in seconds
     DEFAULT_TELEMETRY_FLUSH_INTERVAL = 10
@@ -78,6 +78,7 @@ module Datadog
       namespace: nil,
       tags: nil,
       max_buffer_bytes: DEFAULT_BUFFER_SIZE,
+      max_buffer_pool_size: DEFAULT_BUFFER_POOL_SIZE,
       socket_path: nil,
       logger: nil,
       sample_rate: nil,
@@ -114,6 +115,7 @@ module Datadog
       # we reduce max_buffer_bytes by a the rough estimate of the telemetry payload
       @buffer = MessageBuffer.new(connection,
         max_buffer_payload_size: (max_buffer_bytes - telemetry.estimate_max_size),
+        max_buffer_pool_size: max_buffer_pool_size
       )
     end
 
