@@ -47,10 +47,6 @@ module Datadog
                 event << tags
               end
             end
-
-            if event.bytesize > MAX_EVENT_SIZE
-              raise "Event #{title} payload is too big (more that 8KB), event discarded"
-            end
           end
         end
 

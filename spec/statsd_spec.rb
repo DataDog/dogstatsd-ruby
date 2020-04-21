@@ -674,16 +674,6 @@ describe Datadog::Statsd do
       end
     end
 
-    context 'when the event data string too long > 8KB' do
-      let(:text) { "this is a longer\ntext" * 200_000 }
-
-      it 'raises an error' do
-        expect do
-          subject.event(title, text)
-        end.to raise_error(RuntimeError, /payload is too big/)
-      end
-    end
-
     context 'with a known alert type' do
       it 'sends events with title and text along with a tag for the alert type' do
         subject.event(title, text, alert_type: 'warning')
