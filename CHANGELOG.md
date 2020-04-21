@@ -16,11 +16,6 @@
 * [FEATURE] Add configurable flush interval for the telemetry [#132][] by [@hush-hush][]
 * [OTHER] Code structure and tests improvements [#131][] by [@kbogtob][]
 
-## 4.7.0 / 2020.02.14
-
-* [FEATURE] Add configurable flush interval for the telemetry [#132][] by [@hush-hush][]
-* [OTHER] Code structure and tests improvements [#131][] by [@kbogtob][]
-
 ## 4.6.0 / 2020.01.20
 
 * [FEATURE] Adding telemetry to the dogstatsd client [#128][] by [@hush-hush][]
