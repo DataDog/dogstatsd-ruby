@@ -39,23 +39,20 @@ module Datadog
 
         return nil unless ensure_sendable!(message_size)
 
-        unless buffer.empty?
-          if should_flush?(message_size, inner_message_count)
-            flush
-          else
-            buffer << "\n"
-          end
-        end
+        flush if should_flush?(message_size, inner_message_count)
 
+        buffer << "\n" unless buffer.empty?
         buffer << message
+
         @message_count += inner_message_count
+
         true
       end
 
       def flush
         return if buffer.empty?
 
-        connection.write(@buffer)
+        connection.write(buffer)
 
         buffer.clear
         @message_count = 0
