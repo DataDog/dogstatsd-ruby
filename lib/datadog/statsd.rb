@@ -32,6 +32,7 @@ module Datadog
     UNKNOWN  = 3
 
     DEFAULT_BUFFER_SIZE = 8 * 1_024
+    DEFAULT_BUFFER_POOL_SIZE = 2 * 1_024
     MAX_EVENT_SIZE = 8 * 1_024
     # minimum flush interval for the telemetry in seconds
     DEFAULT_TELEMETRY_FLUSH_INTERVAL = 10
@@ -111,7 +112,9 @@ module Datadog
       @sample_rate = sample_rate
 
       # we reduce max_buffer_bytes by a the rough estimate of the telemetry payload
-      @buffer = MessageBuffer.new(connection, (max_buffer_bytes - telemetry.estimate_max_size))
+      @buffer = MessageBuffer.new(connection,
+        max_buffer_payload_size: (max_buffer_bytes - telemetry.estimate_max_size),
+      )
     end
 
     # yield a new instance to a block and close it when done
