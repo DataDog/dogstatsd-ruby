@@ -11,10 +11,6 @@
 * [OTHER] Refactor to translate unit tests to rspec [#135][] by [@kbogtob][]
 * [OTHER] Bump rake requirement to >= 12.3.3 [#137][] by [@remeh][]
 
-## 4.7.1 / Do not use
-
-* 4.7.1 was released by mistake and is not to use
-
 ## 4.7.0 / 2020.02.14
 
 * [FEATURE] Add configurable flush interval for the telemetry [#132][] by [@hush-hush][]
