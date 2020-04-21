@@ -30,9 +30,10 @@ describe Datadog::Statsd::Serialization::EventSerializer do
 
     context 'when there are global tags' do
       before do
-        allow(tag_serializer).to receive(:format).
-        with(nil).
-        and_return('a-global-tag,another-global')
+        allow(tag_serializer)
+          .to receive(:format)
+          .with(nil)
+          .and_return('a-global-tag,another-global')
       end
 
       it 'serializes the event correctly with global tags' do
