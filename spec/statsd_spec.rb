@@ -141,6 +141,14 @@ describe Datadog::Statsd do
         it 'uses an UDP socket' do
           expect(subject.connection.send(:socket)).to be fake_socket
         end
+
+        it 'gives the right default size to the message buffer' do
+          expect(Datadog::Statsd::MessageBuffer)
+            .to receive(:new)
+            .with(anything, hash_including(max_buffer_payload_size: 641))
+
+          subject
+        end
       end
 
       context 'when using a socket_path' do
@@ -160,6 +168,14 @@ describe Datadog::Statsd do
           expect do
             subject.connection.send(:socket)
           end.to raise_error(Errno::ENOENT, /No such file or directory - connect\(2\)/)
+        end
+
+        it 'gives the right default size to the message buffer' do
+          expect(Datadog::Statsd::MessageBuffer)
+            .to receive(:new)
+            .with(anything, hash_including(max_buffer_payload_size: 7_457))
+
+          subject
         end
       end
     end
@@ -859,7 +875,7 @@ describe Datadog::Statsd do
 
       subject.batch do |s|
         # increment a counter to fill the buffer and trigger buffer flush
-        buffer_size = Datadog::Statsd::DEFAULT_BUFFER_SIZE - subject.telemetry.estimate_max_size - 1
+        buffer_size = Datadog::Statsd::UDP_DEFAULT_BUFFER_SIZE - subject.telemetry.estimate_max_size - 1
 
         number_of_messages_to_fill_the_buffer = buffer_size / (expected_message.bytesize + 1)
         theoretical_reply = Array.new(number_of_messages_to_fill_the_buffer) { expected_message }
@@ -877,7 +893,7 @@ describe Datadog::Statsd do
       # flush. This means that the last metric (who filled the buffer and triggered a
       # flush) increment the telemetry but was not sent. Then once the 'do' block
       # finishes we flush the buffer with a telemtry of 0 metrics being received.
-      expect(socket.recv[0]).to eq_with_telemetry(expected_message, metrics: 0, bytes_sent: 8121, packets_sent: 1)
+      expect(socket.recv[0]).to eq_with_telemetry(expected_message, metrics: 0, bytes_sent: 1358, packets_sent: 1)
     end
 
     it 'batches nested batch blocks' do

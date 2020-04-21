@@ -31,7 +31,8 @@ module Datadog
     CRITICAL = 2
     UNKNOWN  = 3
 
-    DEFAULT_BUFFER_SIZE = 8 * 1_024
+    UDP_DEFAULT_BUFFER_SIZE = 1_432
+    UDS_DEFAULT_BUFFER_SIZE = 8_192
     DEFAULT_BUFFER_POOL_SIZE = Float::INFINITY
     MAX_EVENT_SIZE = 8 * 1_024
     # minimum flush interval for the telemetry in seconds
@@ -77,7 +78,7 @@ module Datadog
       port = nil,
       namespace: nil,
       tags: nil,
-      max_buffer_bytes: DEFAULT_BUFFER_SIZE,
+      max_buffer_payload_size: nil,
       max_buffer_pool_size: DEFAULT_BUFFER_POOL_SIZE,
       socket_path: nil,
       logger: nil,
@@ -112,10 +113,12 @@ module Datadog
 
       @sample_rate = sample_rate
 
-      # we reduce max_buffer_bytes by a the rough estimate of the telemetry payload
+      max_buffer_payload_size ||= (transport_type == :udp ? UDP_DEFAULT_BUFFER_SIZE : UDS_DEFAULT_BUFFER_SIZE)
+
+      # we reduce max_buffer_payload_size by a the rough estimate of the telemetry payload
       @buffer = MessageBuffer.new(connection,
-        max_buffer_payload_size: (max_buffer_bytes - telemetry.estimate_max_size),
-        max_buffer_pool_size: max_buffer_pool_size
+        max_buffer_payload_size: (max_buffer_payload_size - telemetry.estimate_max_size),
+        max_buffer_pool_size: max_buffer_pool_size,
       )
     end
 
