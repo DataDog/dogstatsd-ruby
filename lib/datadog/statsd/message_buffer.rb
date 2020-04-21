@@ -3,11 +3,13 @@
 module Datadog
   class Statsd
     class MessageBuffer
-      def initialize(connection, max_buffer_bytes)
+      def initialize(connection, max_buffer_payload_size:)
         @connection = connection
-        @max_buffer_bytes = max_buffer_bytes
+        @max_buffer_payload_size = max_buffer_payload_size
+
+        @buffer = String.new
+
         @depth = 0
-        reset
       end
 
       def open
@@ -24,32 +26,34 @@ module Datadog
       end
 
       def add(message)
-        message_bytes = message.bytesize
+        message_size = message.bytesize
 
-        unless @buffer_bytes == 0
-          if @buffer_bytes + 1 + message_bytes >= @max_buffer_bytes
+        unless buffer.empty?
+          if should_flush?(message_size)
             flush
           else
-            @buffer << "\n"
-            @buffer_bytes += 1
+            buffer << "\n"
           end
         end
 
-        @buffer << message
-        @buffer_bytes += message_bytes
+        buffer << message
       end
 
       def flush
-        return if @buffer_bytes == 0
+        return if @buffer.empty?
+
         @connection.write(@buffer)
-        reset
+
+        buffer.clear
       end
 
       private
+      attr :max_buffer_payload_size
 
-      def reset
-        @buffer = String.new
-        @buffer_bytes = 0
+      attr :buffer
+
+      def should_flush?(message_size)
+        buffer.bytesize + 1 + message_size >= max_buffer_payload_size
       end
     end
   end
