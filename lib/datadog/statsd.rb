@@ -5,7 +5,7 @@ require_relative 'statsd/version'
 require_relative 'statsd/telemetry'
 require_relative 'statsd/udp_connection'
 require_relative 'statsd/uds_connection'
-require_relative 'statsd/batch'
+require_relative 'statsd/message_buffer'
 require_relative 'statsd/serialization'
 
 # = Datadog::Statsd: A DogStatsd client (https://www.datadoghq.com)
@@ -111,7 +111,7 @@ module Datadog
       @sample_rate = sample_rate
 
       # we reduce max_buffer_bytes by a the rough estimate of the telemetry payload
-      @batch = Batch.new(connection, (max_buffer_bytes - telemetry.estimate_max_size))
+      @buffer = MessageBuffer.new(connection, (max_buffer_bytes - telemetry.estimate_max_size))
     end
 
     # yield a new instance to a block and close it when done
@@ -308,7 +308,7 @@ module Datadog
     #      s.increment('page.views')
     #    end
     def batch
-      @batch.open do
+      @buffer.open do
         yield self
       end
     end
@@ -348,8 +348,8 @@ module Datadog
     end
 
     def send_stat(message)
-      if @batch.open?
-        @batch.add(message)
+      if @buffer.open?
+        @buffer.add(message)
       else
         @connection.write(message)
       end
