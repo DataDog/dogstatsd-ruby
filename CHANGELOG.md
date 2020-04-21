@@ -2,6 +2,20 @@
 
 [//]: # (comment: Don't forget to update lib/datadog/statsd.rb:DogStatsd::Statsd::VERSION when releasing a new version)
 
+## 4.8.0 / 2020.04.20
+
+* [Feature] Add support of more environment variables for tagging [#140][] by [@delner][]
+* [OTHER] Small optimizations [#139][] by [@tenderlove][]
+* [BUGFIX] Properly close UDPSocket before creating a new one [#143][] by [@zachmccormick][]
+* [OTHER] Refactor to make code more idiomatic [#138][] by [@kbogtob][]
+* [OTHER] Refactor to translate unit tests to rspec [#135][] by [@kbogtob][]
+* [OTHER] Bump rake requirement to >= 12.3.3 [#137][] by [@remeh][]
+
+## 4.7.0 / 2020.02.14
+
+* [FEATURE] Add configurable flush interval for the telemetry [#132][] by [@hush-hush][]
+* [OTHER] Code structure and tests improvements [#131][] by [@kbogtob][]
+
 ## 4.7.0 / 2020.02.14
 
 * [FEATURE] Add configurable flush interval for the telemetry [#132][] by [@hush-hush][]
@@ -227,6 +241,11 @@ Future versions are likely to introduce backward incompatibilities with < Ruby 1
 [#128]: https://github.com/DataDog/dogstatsd-ruby/issues/128
 [#131]: https://github.com/DataDog/dogstatsd-ruby/issues/131
 [#132]: https://github.com/DataDog/dogstatsd-ruby/issues/132
+[#135]: https://github.com/DataDog/dogstatsd-ruby/issues/135
+[#137]: https://github.com/DataDog/dogstatsd-ruby/issues/137
+[#138]: https://github.com/DataDog/dogstatsd-ruby/issues/138
+[#140]: https://github.com/DataDog/dogstatsd-ruby/issues/140
+[#143]: https://github.com/DataDog/dogstatsd-ruby/issues/143
 [@AMekss]: https://github.com/AMekss
 [@abicky]: https://github.com/abicky
 [@adimitrov]: https://github.com/adimitrov
@@ -253,3 +272,6 @@ Future versions are likely to introduce backward incompatibilities with < Ruby 1
 [@sensadrome]: https://github.com/sensadrome
 [@sj26]: https://github.com/sj26
 [@sullerandras]: https://github.com/sullerandras
+[@delner]: https://github.com/delner
+[@tenderlove]: https://github.com/tenderlove
+[@zachmccormick]: https://github.com/zachmccormick
