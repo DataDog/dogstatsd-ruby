@@ -14,7 +14,7 @@ describe Datadog::Statsd::MessageBuffer do
   end
 
   let(:max_buffer_payload_size) do
-    64
+    100
   end
 
   let(:max_buffer_pool_size) do
@@ -27,11 +27,31 @@ describe Datadog::Statsd::MessageBuffer do
 
   describe '#add' do
     context 'when the buffer is empty' do
-      context 'when the message is lesser than the max size' do
+      context 'when the message is lesser than the max size - send tolerance' do
         it 'does not flush' do
           expect(connection).not_to receive(:write)
 
-          subject.add('a' * 63)
+          subject.add('a' * 95)
+        end
+      end
+
+      context 'when the message is equal to the max size (- tolerance)' do
+        it 'flushes the message' do
+          expect(connection)
+            .to receive(:write)
+            .with('a' * 96)
+
+          subject.add('a' * 96)
+        end
+      end
+
+      context 'when the message is equal to the max size (- tolerance)' do
+        it 'flushes the message' do
+          expect(connection)
+            .to receive(:write)
+            .with('a' * 100)
+
+          subject.add('a' * 100)
         end
       end
 
@@ -40,7 +60,7 @@ describe Datadog::Statsd::MessageBuffer do
           it 'does not flush' do
             expect(connection).not_to receive(:write)
 
-            subject.add('a' * 65)
+            subject.add('a' * 101)
           end
         end
 
@@ -51,7 +71,7 @@ describe Datadog::Statsd::MessageBuffer do
 
           it 'raises a specific error' do
             expect do
-              subject.add('a' * 65)
+              subject.add('a' * 101)
             end.to raise_error(Datadog::Statsd::Error, 'Message too big for payload limit')
           end
         end
@@ -60,7 +80,7 @@ describe Datadog::Statsd::MessageBuffer do
 
     context 'when the buffer already has messages' do
       before do
-        subject.add('a')
+        subject.add('aaaaaa')
       end
 
       context 'when reaching the maximum pool size' do
@@ -68,22 +88,22 @@ describe Datadog::Statsd::MessageBuffer do
           subject.add('a')
         end
 
-        it 'flushes the previous messages' do
+        it 'flushes the messages' do
           expect(connection)
             .to receive(:write)
-            .with("a\na")
+            .with("aaaaaa\na\na")
 
           subject.add('a')
         end
       end
 
       context 'when we get the max size' do
-        it 'flushes the previous messages' do
+        it 'flushes the previous messages as there is not enough space to bufferize new message' do
           expect(connection)
             .to receive(:write)
-            .with("a")
+            .with("aaaaaa")
 
-          subject.add('a' * 62)
+          subject.add('a' * 94)
         end
       end
 
@@ -92,7 +112,7 @@ describe Datadog::Statsd::MessageBuffer do
           it 'does not flush' do
             expect(connection).not_to receive(:write)
 
-            subject.add('a' * 75)
+            subject.add('a' * 105)
           end
         end
 
@@ -103,7 +123,7 @@ describe Datadog::Statsd::MessageBuffer do
 
           it 'raises a specific error' do
             expect do
-              subject.add('a' * 75)
+              subject.add('a' * 105)
             end.to raise_error(Datadog::Statsd::Error, 'Message too big for payload limit')
           end
         end
@@ -113,7 +133,7 @@ describe Datadog::Statsd::MessageBuffer do
         it 'does not flush' do
           expect(connection).not_to receive(:write)
 
-          subject.add('a' * 61)
+          subject.add('a' * 20)
         end
       end
     end
