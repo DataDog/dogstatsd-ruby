@@ -6,10 +6,13 @@ module Datadog
       PAYLOAD_SIZE_TOLERANCE = 0.05
 
       def initialize(connection,
-        max_buffer_payload_size:,
-        max_buffer_pool_size:,
+        max_buffer_payload_size: nil,
+        max_buffer_pool_size: DEFAULT_BUFFER_POOL_SIZE,
         buffer_overflowing_stategy: :drop
       )
+        raise ArgumentError, 'max_buffer_payload_size keyword argument must be provided' unless max_buffer_payload_size
+        raise ArgumentError, 'max_buffer_pool_size keyword argument must be provided' unless max_buffer_pool_size
+
         @connection = connection
         @max_buffer_payload_size = max_buffer_payload_size
         @max_buffer_pool_size = max_buffer_pool_size
