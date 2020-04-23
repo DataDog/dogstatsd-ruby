@@ -60,8 +60,11 @@ module Datadog
     # Buffer containing the statsd message before they are sent in batch
     attr_reader :buffer
 
-    # Maximum buffer size in bytes before it is flushed
-    attr_reader :max_buffer_bytes
+    # Maximum buffer payload size in bytes before it is flushed
+    attr_reader :max_buffer_payload_size
+
+    # Maximum buffer pool size before it is flushed
+    attr_reader :max_buffer_pool_size
 
     # Default sample rate
     attr_reader :sample_rate
@@ -74,7 +77,8 @@ module Datadog
     # @option [String] namespace set a namespace to be prepended to every metric name
     # @option [Array<String>|Hash] tags tags to be added to every metric
     # @option [Logger] logger for debugging
-    # @option [Integer] max_buffer_bytes max bytes to buffer when using #batch
+    # @option [Integer] max_buffer_payload_size max bytes to buffer
+    # @option [Integer] max_buffer_pool_size max messages to buffer
     # @option [String] socket_path unix socket path
     # @option [Float] default sample rate if not overridden
     def initialize(
@@ -120,9 +124,18 @@ module Datadog
 
       max_buffer_payload_size ||= (transport_type == :udp ? UDP_DEFAULT_BUFFER_SIZE : UDS_DEFAULT_BUFFER_SIZE)
 
+      if max_buffer_payload_size <= 0
+        raise ArgumentError, 'max_buffer_payload_size cannot be < 0'
+      end
+
+      unless disable_telemetry
+        max_buffer_payload_size = max_buffer_payload_size - telemetry.estimate_max_size
+        raise ArgumentError, 'max_buffer_payload_size is not high enough to use telemetry' if max_buffer_payload_size <= 0
+      end
+
       # we reduce max_buffer_payload_size by a the rough estimate of the telemetry payload
       @buffer = MessageBuffer.new(connection,
-        max_buffer_payload_size: (max_buffer_payload_size - telemetry.estimate_max_size),
+        max_buffer_payload_size: max_buffer_payload_size,
         max_buffer_pool_size: max_buffer_pool_size,
         buffer_overflowing_stategy: buffer_overflowing_stategy,
       )
