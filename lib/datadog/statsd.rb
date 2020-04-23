@@ -299,7 +299,7 @@ module Datadog
     def service_check(name, status, opts = EMPTY_OPTIONS)
       telemetry.sent(service_checks: 1)
 
-      send_stat(serializer.to_service_check(name, status, opts))
+      buffer.add(serializer.to_service_check(name, status, opts))
     end
 
     # This end point allows you to post events to the stream. You can tag them, set priority and even aggregate them with other events.
@@ -323,7 +323,7 @@ module Datadog
     def event(title, text, opts = EMPTY_OPTIONS)
       telemetry.sent(events: 1)
 
-      send_stat(serializer.to_event(title, text, opts))
+      buffer.add(serializer.to_event(title, text, opts))
     end
 
     # Send several metrics in the same UDP Packet
@@ -343,6 +343,11 @@ module Datadog
     # Close the underlying socket
     def close
       connection.close
+    end
+
+    # Flush the buffer into the connection
+    def flush
+      buffer.flush
     end
 
     private
@@ -370,15 +375,7 @@ module Datadog
       if sample_rate == 1 || rand <= sample_rate
         full_stat = serializer.to_stat(stat, delta, type, tags: opts[:tags], sample_rate: sample_rate)
 
-        send_stat(full_stat)
-      end
-    end
-
-    def send_stat(message)
-      if @buffer.open?
-        @buffer.add(message)
-      else
-        @connection.write(message)
+        buffer.add(full_stat)
       end
     end
   end
