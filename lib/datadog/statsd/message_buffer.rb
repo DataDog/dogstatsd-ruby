@@ -21,20 +21,6 @@ module Datadog
         @depth = 0
       end
 
-      def open
-        @depth += 1
-
-        yield
-      ensure
-        @depth -= 1
-
-        flush if !open?
-      end
-
-      def open?
-        @depth > 0
-      end
-
       def add(message)
         message_size = message.bytesize
 

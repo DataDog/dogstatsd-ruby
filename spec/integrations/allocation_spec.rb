@@ -39,6 +39,7 @@ describe 'Allocations and garbage collection' do
     before do
       # warmup
       subject.increment('foobar', tags: { something: 'a value' })
+      subject.flush
     end
 
     let(:expected_allocations) do
@@ -54,6 +55,7 @@ describe 'Allocations and garbage collection' do
     it 'produces low amounts of garbage' do
       expect do
         subject.increment('foobar')
+        subject.flush
       end.to make_allocations(expected_allocations)
     end
 
@@ -81,6 +83,7 @@ describe 'Allocations and garbage collection' do
       it 'produces even lower amounts of garbage' do
         expect do
           subject.increment('foobar')
+          subject.flush
         end.to make_allocations(expected_allocations)
       end
     end
@@ -99,6 +102,7 @@ describe 'Allocations and garbage collection' do
       it 'produces low amounts of garbage' do
         expect do
           subject.increment('foobar', tags: { something: 'a value' }) { 1111 }
+          subject.flush
         end.to make_allocations(expected_allocations)
       end
     end
@@ -108,6 +112,7 @@ describe 'Allocations and garbage collection' do
     before do
       # warmup
       subject.time('foobar', tags: { something: 'a value' }) { 1111 }
+      subject.flush
     end
 
     let(:expected_allocations) do
@@ -123,6 +128,7 @@ describe 'Allocations and garbage collection' do
     it 'produces low amounts of garbage' do
       expect do
         subject.time('foobar') { 1111 }
+        subject.flush
       end.to make_allocations(expected_allocations)
     end
 
@@ -150,6 +156,7 @@ describe 'Allocations and garbage collection' do
       it 'produces even lower amounts of garbage' do
         expect do
           subject.time('foobar') { 1111 }
+          subject.flush
         end.to make_allocations(expected_allocations)
       end
     end
@@ -168,6 +175,7 @@ describe 'Allocations and garbage collection' do
       it 'produces low amounts of garbage' do
         expect do
           subject.time('foobar', tags: { something: 'a value' }) { 1111 }
+          subject.flush
         end.to make_allocations(expected_allocations)
       end
     end
@@ -177,6 +185,7 @@ describe 'Allocations and garbage collection' do
     before do
       # warmup
       subject.event('foobar', 'happening', tags: { something: 'a value' })
+      subject.flush
     end
 
     let(:expected_allocations) do
@@ -192,6 +201,7 @@ describe 'Allocations and garbage collection' do
     it 'produces low amounts of garbage' do
       expect do
         subject.event('foobar', 'happening')
+        subject.flush
       end.to make_allocations(expected_allocations)
     end
 
@@ -219,6 +229,7 @@ describe 'Allocations and garbage collection' do
       it 'produces even lower amounts of garbage' do
         expect do
           subject.event('foobar', 'happening')
+          subject.flush
         end.to make_allocations(expected_allocations)
       end
     end
@@ -237,6 +248,7 @@ describe 'Allocations and garbage collection' do
       it 'produces low amounts of garbage' do
         expect do
           subject.event('foobar', 'happening', tags: { something: 'a value' })
+          subject.flush
         end.to make_allocations(expected_allocations)
       end
     end
@@ -246,6 +258,7 @@ describe 'Allocations and garbage collection' do
     before do
       # warmup
       subject.service_check('foobar', 'happening', tags: { something: 'a value' })
+      subject.flush
     end
 
     let(:expected_allocations) do
@@ -261,6 +274,7 @@ describe 'Allocations and garbage collection' do
     it 'produces low amounts of garbage' do
       expect do
         subject.service_check('foobar', 'ok')
+        subject.flush
       end.to make_allocations(expected_allocations)
     end
 
@@ -288,6 +302,7 @@ describe 'Allocations and garbage collection' do
       it 'produces even lower amounts of garbage' do
         expect do
           subject.service_check('foobar', 'ok')
+          subject.flush
         end.to make_allocations(expected_allocations)
       end
     end
@@ -306,6 +321,7 @@ describe 'Allocations and garbage collection' do
       it 'produces low amounts of garbage' do
         expect do
           subject.service_check('foobar', 'ok', tags: { something: 'a value' })
+          subject.flush
         end.to make_allocations(expected_allocations)
       end
     end
