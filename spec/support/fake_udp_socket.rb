@@ -5,7 +5,7 @@ class FakeUDPSocket
     @copy_message = copy_message
   end
 
-  def send(message, *args)
+  def send(message, *_)
     raise @error_on_send if @error_on_send
     message = message.dup if @copy_message
 

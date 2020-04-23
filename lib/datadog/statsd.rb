@@ -136,7 +136,7 @@ module Datadog
       # we reduce max_buffer_payload_size by a the rough estimate of the telemetry payload
       @buffer = MessageBuffer.new(connection,
         max_buffer_payload_size: max_buffer_payload_size,
-        max_buffer_pool_size: max_buffer_pool_size,
+        max_buffer_pool_size: max_buffer_pool_size || DEFAULT_BUFFER_POOL_SIZE,
         buffer_overflowing_stategy: buffer_overflowing_stategy,
       )
     end
