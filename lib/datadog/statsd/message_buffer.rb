@@ -6,17 +6,17 @@ module Datadog
       PAYLOAD_SIZE_TOLERANCE = 0.05
 
       def initialize(connection,
-        max_buffer_payload_size: nil,
-        max_buffer_pool_size: DEFAULT_BUFFER_POOL_SIZE,
-        buffer_overflowing_stategy: :drop
+        max_payload_size: nil,
+        max_pool_size: DEFAULT_BUFFER_POOL_SIZE,
+        overflowing_stategy: :drop
       )
-        raise ArgumentError, 'max_buffer_payload_size keyword argument must be provided' unless max_buffer_payload_size
-        raise ArgumentError, 'max_buffer_pool_size keyword argument must be provided' unless max_buffer_pool_size
+        raise ArgumentError, 'max_payload_size keyword argument must be provided' unless max_payload_size
+        raise ArgumentError, 'max_pool_size keyword argument must be provided' unless max_pool_size
 
         @connection = connection
-        @max_buffer_payload_size = max_buffer_payload_size
-        @max_buffer_pool_size = max_buffer_pool_size
-        @buffer_overflowing_stategy = buffer_overflowing_stategy
+        @max_payload_size = max_payload_size
+        @max_pool_size = max_pool_size
+        @overflowing_stategy = overflowing_stategy
 
         @buffer = String.new
         @message_count = 0
@@ -51,28 +51,28 @@ module Datadog
       end
 
       private
-      attr :max_buffer_payload_size
-      attr :max_buffer_pool_size
+      attr :max_payload_size
+      attr :max_pool_size
 
-      attr :buffer_overflowing_stategy
+      attr :overflowing_stategy
 
       attr :connection
       attr :buffer
 
       def should_flush?(message_size)
-        return true if buffer.bytesize + 1 + message_size >= max_buffer_payload_size
+        return true if buffer.bytesize + 1 + message_size >= max_payload_size
 
         false
       end
 
       def preemptive_flush?
-        @message_count == max_buffer_pool_size || buffer.bytesize > bytesize_threshold
+        @message_count == max_pool_size || buffer.bytesize > bytesize_threshold
       end
 
       def ensure_sendable!(message_size)
-        return true if message_size <= max_buffer_payload_size
+        return true if message_size <= max_payload_size
 
-        if buffer_overflowing_stategy == :raise
+        if overflowing_stategy == :raise
           raise Error, 'Message too big for payload limit'
         end
 
@@ -80,7 +80,7 @@ module Datadog
       end
 
       def bytesize_threshold
-        @bytesize_threshold ||= (max_buffer_payload_size - PAYLOAD_SIZE_TOLERANCE * max_buffer_payload_size).to_i
+        @bytesize_threshold ||= (max_payload_size - PAYLOAD_SIZE_TOLERANCE * max_payload_size).to_i
       end
     end
   end

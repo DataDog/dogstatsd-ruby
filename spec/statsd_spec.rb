@@ -31,11 +31,11 @@ describe Datadog::Statsd do
   describe '#initialize' do
     context 'when using provided values' do
       it 'sets the host correctly' do
-        expect(subject.connection.host).to eq 'localhost'
+        expect(subject.host).to eq 'localhost'
       end
 
       it 'sets the port correctly' do
-        expect(subject.connection.port).to eq 1234
+        expect(subject.port).to eq 1234
       end
 
       it 'sets the namespace' do
@@ -85,11 +85,11 @@ describe Datadog::Statsd do
       end
 
       it 'sets the host using the env var DD_AGENT_HOST' do
-        expect(subject.connection.host).to eq 'myhost'
+        expect(subject.host).to eq 'myhost'
       end
 
       it 'sets the port using the env var DD_DOGSTATSD_PORT' do
-        expect(subject.connection.port).to eq 4321
+        expect(subject.port).to eq 4321
       end
 
       it 'sets the entity tag using ' do
@@ -112,11 +112,11 @@ describe Datadog::Statsd do
       end
 
       it 'sets the host to default values' do
-        expect(subject.connection.host).to eq '127.0.0.1'
+        expect(subject.host).to eq '127.0.0.1'
       end
 
       it 'sets the port to default values' do
-        expect(subject.connection.port).to eq 8125
+        expect(subject.port).to eq 8125
       end
 
       it 'sets no namespace' do
@@ -139,13 +139,13 @@ describe Datadog::Statsd do
         end
 
         it 'uses an UDP socket' do
-          expect(subject.connection.send(:socket)).to be fake_socket
+          expect(subject.transport_type).to eq :udp
         end
 
         it 'gives the right default size to the message buffer' do
           expect(Datadog::Statsd::MessageBuffer)
             .to receive(:new)
-            .with(anything, hash_including(max_buffer_payload_size: 7401))
+            .with(anything, hash_including(max_payload_size: 8_192))
 
           subject
         end
@@ -165,15 +165,13 @@ describe Datadog::Statsd do
         end
 
         it 'uses an UDS socket' do
-          expect do
-            subject.connection.send(:socket)
-          end.to raise_error(Errno::ENOENT, /No such file or directory - connect\(2\)/)
+          expect(subject.transport_type).to eq :uds
         end
 
         it 'gives the right default size to the message buffer' do
           expect(Datadog::Statsd::MessageBuffer)
             .to receive(:new)
-            .with(anything, hash_including(max_buffer_payload_size: 7_457))
+            .with(anything, hash_including(max_payload_size: 8_192))
 
           subject
         end
@@ -940,7 +938,7 @@ describe Datadog::Statsd do
           sample_rate: sample_rate,
           tags: tags,
           logger: logger,
-          disable_telemetry: true,
+          telemetry_enable: false,
         )
       end
 
@@ -1045,13 +1043,6 @@ describe Datadog::Statsd do
       let(:socket) do
         FakeUDPSocket.new.tap do |s|
           s.error_on_send('some error')
-        end
-      end
-
-      # HACK: this test breaks encapsulation
-      before do
-        def subject.telemetry
-          @telemetry
         end
       end
 

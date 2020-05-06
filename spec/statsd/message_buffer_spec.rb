@@ -3,9 +3,9 @@ require 'spec_helper'
 describe Datadog::Statsd::MessageBuffer do
   subject do
     described_class.new(connection,
-      max_buffer_payload_size: max_buffer_payload_size,
-      max_buffer_pool_size: max_buffer_pool_size,
-      buffer_overflowing_stategy: buffer_overflowing_stategy,
+      max_payload_size: max_payload_size,
+      max_pool_size: max_pool_size,
+      overflowing_stategy: overflowing_stategy,
     )
   end
 
@@ -13,15 +13,15 @@ describe Datadog::Statsd::MessageBuffer do
     instance_double(Datadog::Statsd::UDPConnection)
   end
 
-  let(:max_buffer_payload_size) do
+  let(:max_payload_size) do
     100
   end
 
-  let(:max_buffer_pool_size) do
+  let(:max_pool_size) do
     3
   end
 
-  let(:buffer_overflowing_stategy) do
+  let(:overflowing_stategy) do
     :drop
   end
 
@@ -65,7 +65,7 @@ describe Datadog::Statsd::MessageBuffer do
         end
 
         context 'in buffer overflow mode :raise' do
-          let(:buffer_overflowing_stategy) do
+          let(:overflowing_stategy) do
             :raise
           end
 
@@ -117,7 +117,7 @@ describe Datadog::Statsd::MessageBuffer do
         end
 
         context 'in buffer overflow mode :raise' do
-          let(:buffer_overflowing_stategy) do
+          let(:overflowing_stategy) do
             :raise
           end
 

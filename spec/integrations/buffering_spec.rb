@@ -8,11 +8,11 @@ describe 'Buffering integration testing' do
   subject do
     Datadog::Statsd.new('localhost', 1234,
       telemetry_flush_interval: -1,
-      max_buffer_pool_size: max_buffer_pool_size,
+      buffer_max_pool_size: buffer_max_pool_size,
     )
   end
 
-  let(:max_buffer_pool_size) do
+  let(:buffer_max_pool_size) do
     2
   end
 
@@ -67,22 +67,15 @@ describe 'Buffering integration testing' do
   end
 
   context 'when testing payload size limits' do
-    let(:max_buffer_pool_size) do
+    let(:buffer_max_pool_size) do
       nil
-    end
-
-    # HACK: this test breaks encapsulation
-    before do
-      def subject.telemetry
-        @telemetry
-      end
     end
 
     it 'flushes when the buffer gets too big' do
       expected_message = 'mycounter:1|c'
 
       # increment a counter to fill the buffer and trigger buffer flush
-      buffer_size = Datadog::Statsd::UDP_DEFAULT_BUFFER_SIZE - subject.telemetry.estimate_max_size
+      buffer_size = Datadog::Statsd::UDP_DEFAULT_BUFFER_SIZE
 
       trigger_size = (buffer_size * (1 - Datadog::Statsd::MessageBuffer::PAYLOAD_SIZE_TOLERANCE)).round
 
@@ -102,20 +95,13 @@ describe 'Buffering integration testing' do
       # flush. This means that the last metric (who filled the buffer and triggered a
       # flush) increment the telemetry but was not sent. Then once the 'do' block
       # finishes we flush the buffer with a telemtry of 0 metrics being received.
-      expect(socket.recv[0]).to eq_with_telemetry(expected_message, metrics: 1, bytes_sent: 7771, packets_sent: 1)
+      expect(socket.recv[0]).to eq_with_telemetry(expected_message, metrics: 1, bytes_sent: 8457, packets_sent: 1)
     end
   end
 
   context 'when testing with all data types' do
-    let(:max_buffer_pool_size) do
+    let(:buffer_max_pool_size) do
       nil
-    end
-
-    # HACK: this test breaks encapsulation
-    before do
-      def subject.telemetry
-        @telemetry
-      end
     end
 
     it 'handles all data types' do

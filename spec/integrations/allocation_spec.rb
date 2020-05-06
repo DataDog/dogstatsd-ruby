@@ -66,7 +66,7 @@ describe 'Allocations and garbage collection' do
           sample_rate: sample_rate,
           tags: tags,
           logger: logger,
-          disable_telemetry: true,
+          telemetry_enable: false,
         )
       end
 
@@ -139,7 +139,7 @@ describe 'Allocations and garbage collection' do
           sample_rate: sample_rate,
           tags: tags,
           logger: logger,
-          disable_telemetry: true,
+          telemetry_enable: false,
         )
       end
 
@@ -212,7 +212,7 @@ describe 'Allocations and garbage collection' do
           sample_rate: sample_rate,
           tags: tags,
           logger: logger,
-          disable_telemetry: true,
+          telemetry_enable: false,
         )
       end
 
@@ -285,7 +285,7 @@ describe 'Allocations and garbage collection' do
           sample_rate: sample_rate,
           tags: tags,
           logger: logger,
-          disable_telemetry: true,
+          telemetry_enable: false,
         )
       end
 

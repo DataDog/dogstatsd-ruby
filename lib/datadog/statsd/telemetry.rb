@@ -11,10 +11,11 @@ module Datadog
       attr_reader :bytes_dropped
       attr_reader :packets_sent
       attr_reader :packets_dropped
-      attr_reader :estimate_max_size
 
-      def initialize(disabled, flush_interval, global_tags: [], transport_type: :udp)
-        @disabled = disabled
+      # Rough estimation of maximum telemetry message size without tags
+      MAX_TELEMETRY_MESSAGE_SIZE_WT_TAGS = 50 # bytes
+
+      def initialize(flush_interval, global_tags: [], transport_type: :udp)
         @flush_interval = flush_interval
         @global_tags = global_tags
         @transport_type = transport_type
@@ -27,15 +28,10 @@ module Datadog
           client_version: VERSION,
           client_transport: transport_type,
         ).format(global_tags)
+      end
 
-        # estimate_max_size is an estimation or the maximum size of the
-        # telemetry payload. Since we don't want our packet to go over
-        # 'max_buffer_payload_size', we have to adjust with the size of the telemetry
-        # (and any tags used). The telemetry payload size will change depending
-        # on the actual value of metrics: metrics received, packet dropped,
-        # etc. This is why we add a 63bytes margin: 9 bytes for each of the 7
-        # telemetry metrics.
-        @estimate_max_size = disabled ? 0 : flush.length + 9 * 7
+      def would_fit_in?(max_buffer_payload_size)
+        MAX_TELEMETRY_MESSAGE_SIZE_WT_TAGS + serialized_tags.size < max_buffer_payload_size
       end
 
       def reset
@@ -68,8 +64,6 @@ module Datadog
       end
 
       def flush
-        return '' if @disabled
-
         # using shorthand syntax to reduce the garbage collection
         %Q(
 datadog.dogstatsd.client.metrics:#{@metrics}|#{COUNTER_TYPE}|##{serialized_tags}

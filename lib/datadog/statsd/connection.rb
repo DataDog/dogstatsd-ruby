@@ -3,8 +3,9 @@
 module Datadog
   class Statsd
     class Connection
-      def initialize(telemetry)
+      def initialize(telemetry: nil, logger: nil)
         @telemetry = telemetry
+        @logger = logger
       end
 
       # Close the underlying socket
@@ -20,7 +21,7 @@ module Datadog
       def write(payload)
         logger.debug { "Statsd: #{payload}" } if logger
 
-        flush_telemetry = telemetry.flush?
+        flush_telemetry = telemetry && telemetry.flush?
 
         payload += telemetry.flush if flush_telemetry
 
@@ -28,7 +29,7 @@ module Datadog
 
         telemetry.reset if flush_telemetry
 
-        telemetry.sent(packets: 1, bytes: payload.length)
+        telemetry.sent(packets: 1, bytes: payload.length) if telemetry
       rescue StandardError => boom
         # Try once to reconnect if the socket has been closed
         retries ||= 1
@@ -45,7 +46,7 @@ module Datadog
           end
         end
 
-        telemetry.dropped(packets: 1, bytes: payload.length)
+        telemetry.dropped(packets: 1, bytes: payload.length) if telemetry
         logger.error { "Statsd: #{boom.class} #{boom}" } if logger
         nil
       end

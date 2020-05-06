@@ -7,6 +7,7 @@ require_relative 'statsd/udp_connection'
 require_relative 'statsd/uds_connection'
 require_relative 'statsd/message_buffer'
 require_relative 'statsd/serialization'
+require_relative 'statsd/forwarder'
 
 # = Datadog::Statsd: A DogStatsd client (https://www.datadoghq.com)
 #
@@ -57,87 +58,58 @@ module Datadog
       serializer.global_tags
     end
 
-    # Buffer containing the statsd message before they are sent in batch
-    attr_reader :buffer
-
-    # Maximum buffer payload size in bytes before it is flushed
-    attr_reader :max_buffer_payload_size
-
-    # Maximum buffer pool size before it is flushed
-    attr_reader :max_buffer_pool_size
-
     # Default sample rate
     attr_reader :sample_rate
-
-    # Connection
-    attr_reader :connection
 
     # @param [String] host your statsd host
     # @param [Integer] port your statsd port
     # @option [String] namespace set a namespace to be prepended to every metric name
     # @option [Array<String>|Hash] tags tags to be added to every metric
     # @option [Logger] logger for debugging
-    # @option [Integer] max_buffer_payload_size max bytes to buffer
-    # @option [Integer] max_buffer_pool_size max messages to buffer
+    # @option [Integer] buffer_max_payload_size max bytes to buffer
+    # @option [Integer] buffer_max_pool_size max messages to buffer
     # @option [String] socket_path unix socket path
     # @option [Float] default sample rate if not overridden
     def initialize(
       host = nil,
       port = nil,
+      socket_path: nil,
+
       namespace: nil,
       tags: nil,
-      max_buffer_payload_size: nil,
-      max_buffer_pool_size: DEFAULT_BUFFER_POOL_SIZE,
-      socket_path: nil,
-      logger: nil,
       sample_rate: nil,
-      disable_telemetry: false,
-      telemetry_flush_interval: DEFAULT_TELEMETRY_FLUSH_INTERVAL,
-      buffer_overflowing_stategy: :drop
+
+      buffer_max_payload_size: nil,
+      buffer_max_pool_size: nil,
+      buffer_overflowing_stategy: :drop,
+
+      logger: nil,
+
+      telemetry_enable: true,
+      telemetry_flush_interval: DEFAULT_TELEMETRY_FLUSH_INTERVAL
     )
       unless tags.nil? || tags.is_a?(Array) || tags.is_a?(Hash)
-        raise ArgumentError, 'tags must be a Array<String> or a Hash'
+        raise ArgumentError, 'tags must be an array of string tags or a Hash'
       end
 
       @namespace = namespace
       @prefix = @namespace ? "#{@namespace}.".freeze : nil
-
       @serializer = Serialization::Serializer.new(prefix: @prefix, global_tags: tags)
-
-      transport_type = socket_path.nil? ? :udp : :uds
-
-      @telemetry = Telemetry.new(disable_telemetry, telemetry_flush_interval,
-        global_tags: tags,
-        transport_type: transport_type
-      )
-
-      @connection = case transport_type
-                    when :udp
-                      UDPConnection.new(host, port, logger, telemetry)
-                    when :uds
-                      UDSConnection.new(socket_path, logger, telemetry)
-                    end
-
-      @logger = logger
-
       @sample_rate = sample_rate
 
-      max_buffer_payload_size ||= (transport_type == :udp ? UDP_DEFAULT_BUFFER_SIZE : UDS_DEFAULT_BUFFER_SIZE)
+      @forwarder = Forwarder.new(
+        host: host,
+        port: port,
+        socket_path: socket_path,
 
-      if max_buffer_payload_size <= 0
-        raise ArgumentError, 'max_buffer_payload_size cannot be < 0'
-      end
+        global_tags: tags,
+        logger: logger,
 
-      unless disable_telemetry
-        max_buffer_payload_size = max_buffer_payload_size - telemetry.estimate_max_size
-        raise ArgumentError, 'max_buffer_payload_size is not high enough to use telemetry' if max_buffer_payload_size <= 0
-      end
-
-      # we reduce max_buffer_payload_size by a the rough estimate of the telemetry payload
-      @buffer = MessageBuffer.new(connection,
-        max_buffer_payload_size: max_buffer_payload_size,
-        max_buffer_pool_size: max_buffer_pool_size || DEFAULT_BUFFER_POOL_SIZE,
+        buffer_max_payload_size: buffer_max_payload_size,
+        buffer_max_pool_size: buffer_max_pool_size,
         buffer_overflowing_stategy: buffer_overflowing_stategy,
+
+        telemetry_flush_interval: telemetry_enable ? telemetry_flush_interval : nil,
       )
     end
 
@@ -297,9 +269,9 @@ module Datadog
     # @example Report a critical service check status
     #   $statsd.service_check('my.service.check', Statsd::CRITICAL, :tags=>['urgent'])
     def service_check(name, status, opts = EMPTY_OPTIONS)
-      telemetry.sent(service_checks: 1)
+      telemetry.sent(service_checks: 1) if telemetry
 
-      buffer.add(serializer.to_service_check(name, status, opts))
+      forwarder.send_message(serializer.to_service_check(name, status, opts))
     end
 
     # This end point allows you to post events to the stream. You can tag them, set priority and even aggregate them with other events.
@@ -321,9 +293,9 @@ module Datadog
     # @example Report an awful event:
     #   $statsd.event('Something terrible happened', 'The end is near if we do nothing', :alert_type=>'warning', :tags=>['end_of_times','urgent'])
     def event(title, text, opts = EMPTY_OPTIONS)
-      telemetry.sent(events: 1)
+      telemetry.sent(events: 1) if telemetry
 
-      buffer.add(serializer.to_event(title, text, opts))
+      forwarder.send_message(serializer.to_event(title, text, opts))
     end
 
     # Send several metrics in the same UDP Packet
@@ -342,17 +314,37 @@ module Datadog
 
     # Close the underlying socket
     def close
-      connection.close
+      forwarder.close
     end
 
     # Flush the buffer into the connection
     def flush
-      buffer.flush
+      forwarder.flush
+    end
+
+    def telemetry
+      forwarder.telemetry
+    end
+
+    def host
+      forwarder.host
+    end
+
+    def port
+      forwarder.port
+    end
+
+    def socket_path
+      forwarder.socket_path
+    end
+
+    def transport_type
+      forwarder.transport_type
     end
 
     private
     attr_reader :serializer
-    attr_reader :telemetry
+    attr_reader :forwarder
 
     PROCESS_TIME_SUPPORTED = (RUBY_VERSION >= '2.1.0')
     EMPTY_OPTIONS = {}.freeze
@@ -368,14 +360,14 @@ module Datadog
     end
 
     def send_stats(stat, delta, type, opts = EMPTY_OPTIONS)
-      telemetry.sent(metrics: 1)
+      telemetry.sent(metrics: 1) if telemetry
 
       sample_rate = opts[:sample_rate] || @sample_rate || 1
 
       if sample_rate == 1 || rand <= sample_rate
         full_stat = serializer.to_stat(stat, delta, type, tags: opts[:tags], sample_rate: sample_rate)
 
-        buffer.add(full_stat)
+        forwarder.send_message(full_stat)
       end
     end
   end
