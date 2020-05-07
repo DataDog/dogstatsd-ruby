@@ -37,11 +37,10 @@ module Datadog
               service_check << escape_message(message)
             end
 
-            if raw_tags = options[:tags]
-              if tags = tag_serializer.format(raw_tags)
-                service_check << '|#'
-                service_check << tags
-              end
+            # also returns the global tags from serializer
+            if tags = tag_serializer.format(options[:tags])
+              service_check << '|#'
+              service_check << tags
             end
           end
         end

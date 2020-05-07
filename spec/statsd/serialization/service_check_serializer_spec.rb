@@ -27,6 +27,19 @@ describe Datadog::Statsd::Serialization::ServiceCheckSerializer do
       expect(subject.format('windmill', 'grinding')).to eq '_sc|windmill|grinding'
     end
 
+    context 'when there are global tags' do
+      before do
+        allow(tag_serializer).to receive(:format).
+        with(nil).
+        and_return('a-global-tag,another-global')
+      end
+
+      it 'serializes the event correctly with global tags' do
+        expect(subject.format('windmill', 'grinding'))
+          .to eq '_sc|windmill|grinding|#a-global-tag,another-global'
+      end
+    end
+
     context 'when having a hostname' do
       it 'serializes the service check correctly' do
         expect(subject.format('windmill', 'grinding', hostname: 'amsterdam'))
