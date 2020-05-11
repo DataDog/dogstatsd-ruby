@@ -39,7 +39,7 @@ describe Datadog::Statsd::Telemetry do
     end
   end
 
-  describe '#flush?' do
+  describe '#should_flush?' do
     before do
       Timecop.freeze(DateTime.new(2020, 2, 22, 12, 12, 12))
       allow(Process).to receive(:clock_gettime).and_return(0) if Datadog::Statsd::PROCESS_TIME_SUPPORTED
@@ -58,7 +58,7 @@ describe Datadog::Statsd::Telemetry do
       end
 
       it 'returns false' do
-        expect(subject.flush?).to be false
+        expect(subject.should_flush?).to be false
       end
     end
 
@@ -69,7 +69,7 @@ describe Datadog::Statsd::Telemetry do
       end
 
       it 'returns true' do
-        expect(subject.flush?).to be true
+        expect(subject.should_flush?).to be true
       end
     end
   end
@@ -82,14 +82,15 @@ describe Datadog::Statsd::Telemetry do
     end
 
     it 'serializes the telemetry' do
-      expect(subject.flush).to eq %(
-datadog.dogstatsd.client.metrics:1|c|#client:ruby,client_version:4.8.0,client_transport:doe
-datadog.dogstatsd.client.events:2|c|#client:ruby,client_version:4.8.0,client_transport:doe
-datadog.dogstatsd.client.service_checks:3|c|#client:ruby,client_version:4.8.0,client_transport:doe
-datadog.dogstatsd.client.bytes_sent:4|c|#client:ruby,client_version:4.8.0,client_transport:doe
-datadog.dogstatsd.client.bytes_dropped:6|c|#client:ruby,client_version:4.8.0,client_transport:doe
-datadog.dogstatsd.client.packets_sent:5|c|#client:ruby,client_version:4.8.0,client_transport:doe
-datadog.dogstatsd.client.packets_dropped:7|c|#client:ruby,client_version:4.8.0,client_transport:doe)
+      expect(subject.flush).to eq [
+        "datadog.dogstatsd.client.metrics:1|c|#client:ruby,client_version:4.8.0,client_transport:doe",
+        "datadog.dogstatsd.client.events:2|c|#client:ruby,client_version:4.8.0,client_transport:doe",
+        "datadog.dogstatsd.client.service_checks:3|c|#client:ruby,client_version:4.8.0,client_transport:doe",
+        "datadog.dogstatsd.client.bytes_sent:4|c|#client:ruby,client_version:4.8.0,client_transport:doe",
+        "datadog.dogstatsd.client.bytes_dropped:6|c|#client:ruby,client_version:4.8.0,client_transport:doe",
+        "datadog.dogstatsd.client.packets_sent:5|c|#client:ruby,client_version:4.8.0,client_transport:doe",
+        "datadog.dogstatsd.client.packets_dropped:7|c|#client:ruby,client_version:4.8.0,client_transport:doe",
+      ]
     end
 
     it 'makes only 8 allocations' do
@@ -118,7 +119,7 @@ datadog.dogstatsd.client.packets_dropped:7|c|#client:ruby,client_version:4.8.0,c
 
       expect do
         subject.reset
-      end.to change { subject.flush? }.from(true).to(false)
+      end.to change { subject.should_flush? }.from(true).to(false)
     end
 
     it 'resets the metrics sent' do

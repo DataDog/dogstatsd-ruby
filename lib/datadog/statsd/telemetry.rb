@@ -59,24 +59,28 @@ module Datadog
         @packets_dropped += packets
       end
 
-      def flush?
+      def should_flush?
         @next_flush_time < now_in_s
       end
 
       def flush
-        # using shorthand syntax to reduce the garbage collection
-        %Q(
-datadog.dogstatsd.client.metrics:#{@metrics}|#{COUNTER_TYPE}|##{serialized_tags}
-datadog.dogstatsd.client.events:#{@events}|#{COUNTER_TYPE}|##{serialized_tags}
-datadog.dogstatsd.client.service_checks:#{@service_checks}|#{COUNTER_TYPE}|##{serialized_tags}
-datadog.dogstatsd.client.bytes_sent:#{@bytes_sent}|#{COUNTER_TYPE}|##{serialized_tags}
-datadog.dogstatsd.client.bytes_dropped:#{@bytes_dropped}|#{COUNTER_TYPE}|##{serialized_tags}
-datadog.dogstatsd.client.packets_sent:#{@packets_sent}|#{COUNTER_TYPE}|##{serialized_tags}
-datadog.dogstatsd.client.packets_dropped:#{@packets_dropped}|#{COUNTER_TYPE}|##{serialized_tags})
+        [
+          sprintf(pattern, 'metrics', @metrics),
+          sprintf(pattern, 'events', @events),
+          sprintf(pattern, 'service_checks', @service_checks),
+          sprintf(pattern, 'bytes_sent', @bytes_sent),
+          sprintf(pattern, 'bytes_dropped', @bytes_dropped),
+          sprintf(pattern, 'packets_sent', @packets_sent),
+          sprintf(pattern, 'packets_dropped', @packets_dropped),
+        ]
       end
 
       private
       attr_reader :serialized_tags
+
+      def pattern
+        @pattern ||= "datadog.dogstatsd.client.%s:%d|#{COUNTER_TYPE}|##{serialized_tags}"
+      end
 
       if Kernel.const_defined?('Process') && Process.respond_to?(:clock_gettime)
         def now_in_s
