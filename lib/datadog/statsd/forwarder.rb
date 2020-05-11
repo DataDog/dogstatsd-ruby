@@ -56,9 +56,13 @@ module Datadog
 
       def send_message(message)
         buffer.add(message)
+
+        tick_telemetry
       end
 
-      def flush
+      def flush(flush_telemetry: false)
+        do_flush_telemetry if telemetry && flush_telemetry
+
         buffer.flush
       end
 
@@ -87,6 +91,21 @@ module Datadog
       private
       attr_reader :buffer
       attr_reader :connection
+
+      def do_flush_telemetry
+        telemetry_snapshot = telemetry.flush
+        telemetry.reset
+
+        telemetry_snapshot.each do |message|
+          buffer.add(message)
+        end
+      end
+
+      def tick_telemetry
+        return nil unless telemetry
+
+        do_flush_telemetry if telemetry.should_flush?
+      end
     end
   end
 end

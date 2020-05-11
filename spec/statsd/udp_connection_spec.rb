@@ -90,7 +90,7 @@ describe Datadog::Statsd::UDPConnection do
 
   describe '#write' do
     let(:telemetry) do
-      instance_double(Datadog::Statsd::Telemetry, flush?: false, sent: true, dropped: true)
+      instance_double(Datadog::Statsd::Telemetry, sent: true, dropped: true)
     end
 
     it 'connects to the right host and port' do

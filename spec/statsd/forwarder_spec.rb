@@ -350,4 +350,96 @@ describe Datadog::Statsd::Forwarder do
       end
     end
   end
+
+  describe '#send_message' do
+    before do
+      allow(Datadog::Statsd::UDPConnection)
+        .to receive(:new)
+        .and_return(udp_connection)
+    end
+
+    let(:udp_connection) do
+      instance_double(Datadog::Statsd::UDPConnection,
+        host: host,
+        port: port
+      )
+    end
+
+    let(:host) do
+      '127.0.0.1'
+    end
+
+    let(:port) do
+      1234
+    end
+
+    let(:params) do
+      {
+        host: host,
+        port: port,
+
+        buffer_max_payload_size: buffer_max_payload_size,
+        buffer_max_pool_size: buffer_max_pool_size,
+        buffer_overflowing_stategy: buffer_overflowing_stategy,
+
+        telemetry_flush_interval: telemetry_flush_interval,
+
+        logger: logger,
+        global_tags: global_tags,
+      }
+    end
+
+    context 'when we should flush the telemetry' do
+      let(:message_buffer) do
+        instance_double(Datadog::Statsd::MessageBuffer, add: true)
+      end
+
+      let(:telemetry) do
+        instance_double(Datadog::Statsd::Telemetry,
+          would_fit_in?: true,
+          should_flush?: true,
+          flush: ['telemetry1', 'telemetry2'],
+          reset: true
+        )
+      end
+
+      it 'adds the message to the buffer' do
+        expect(message_buffer)
+          .to receive(:add)
+          .with('toto')
+
+        subject.send_message('toto')
+      end
+
+      it 'adds the telemetry message' do
+        expect(message_buffer)
+          .to receive(:add)
+          .with('toto')
+
+        expect(message_buffer)
+          .to receive(:add)
+          .with('telemetry1')
+
+        expect(message_buffer)
+          .to receive(:add)
+          .with('telemetry2')
+
+        subject.send_message('toto')
+      end
+    end
+
+    context 'when we do not have to flush the telemetry' do
+      let(:telemetry) do
+        instance_double(Datadog::Statsd::Telemetry, would_fit_in?: true, should_flush?: false)
+      end
+
+      it 'adds the message to the buffer' do
+        expect(message_buffer)
+          .to receive(:add)
+          .with('toto')
+
+        subject.send_message('toto')
+      end
+    end
+  end
 end

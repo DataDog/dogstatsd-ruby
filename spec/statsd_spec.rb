@@ -1,7 +1,7 @@
 require 'spec_helper'
 
 describe Datadog::Statsd do
-  let(:socket) { FakeUDPSocket.new }
+  let(:socket) { FakeUDPSocket.new(copy_message: true) }
 
   subject do
     described_class.new('localhost', 1234,
@@ -130,7 +130,7 @@ describe Datadog::Statsd do
 
     context 'when testing connection type' do
       let(:fake_socket) do
-        FakeUDPSocket.new
+        FakeUDPSocket.new(copy_message: true)
       end
 
       context 'when using a host and a port' do
@@ -920,150 +920,6 @@ describe Datadog::Statsd do
       expect(socket).to receive(:close)
 
       subject.close
-    end
-  end
-
-  # TODO: This specs will have to move to another integration test dedicated to telemetry
-  describe 'telemetry' do
-    let(:namespace) { nil }
-    let(:sample_rate) { nil }
-    let(:tags) { nil }
-
-    let(:socket) { FakeUDPSocket.new(copy_message: true) }
-
-    context 'when disabling telemetry' do
-      subject do
-        described_class.new('localhost', 1234,
-          namespace: namespace,
-          sample_rate: sample_rate,
-          tags: tags,
-          logger: logger,
-          telemetry_enable: false,
-        )
-      end
-
-      it 'does not send any telemetry' do
-        subject.count("test", 21)
-        subject.flush
-
-        expect(socket.recv[0]).to eq 'test:21|c'
-      end
-    end
-
-    it 'is enabled by default' do
-      subject.count('test', 21)
-      subject.flush
-
-      expect(socket.recv[0]).to eq_with_telemetry 'test:21|c'
-    end
-
-    context 'when flusing only every 2 seconds' do
-      before do
-        Timecop.freeze(DateTime.new(2020, 2, 22, 12, 12, 12))
-        allow(Process).to receive(:clock_gettime).and_return(0) if Datadog::Statsd::PROCESS_TIME_SUPPORTED
-        subject
-      end
-
-      after do
-        Timecop.return
-      end
-
-      subject do
-        described_class.new('localhost', 1234,
-          namespace: namespace,
-          sample_rate: sample_rate,
-          tags: tags,
-          logger: logger,
-          telemetry_flush_interval: 2,
-        )
-      end
-
-      it 'does not send telemetry before the delay' do
-        Timecop.freeze(DateTime.new(2020, 2, 22, 12, 12, 13))
-        allow(Process).to receive(:clock_gettime).and_return(1) if Datadog::Statsd::PROCESS_TIME_SUPPORTED
-
-        subject.count('test', 21)
-
-        subject.flush
-
-        expect(socket.recv[0]).to eq 'test:21|c'
-      end
-
-      it 'sends telemetry after the delay' do
-        Timecop.freeze(DateTime.new(2020, 2, 22, 12, 12, 15))
-        allow(Process).to receive(:clock_gettime).and_return(3) if Datadog::Statsd::PROCESS_TIME_SUPPORTED
-
-        subject.count('test', 21)
-
-        subject.flush
-
-        expect(socket.recv[0]).to eq_with_telemetry 'test:21|c'
-      end
-    end
-
-    it 'handles all data type' do
-      subject.increment('test', 1)
-      subject.flush
-      expect(socket.recv[0]).to eq_with_telemetry('test:1|c', metrics: 1, packets_sent: 0, bytes_sent: 0)
-
-      subject.decrement('test', 1)
-      subject.flush
-      expect(socket.recv[0]).to eq_with_telemetry('test:-1|c', metrics: 1, packets_sent: 1, bytes_sent: 680)
-
-      subject.count('test', 21)
-      subject.flush
-      expect(socket.recv[0]).to eq_with_telemetry('test:21|c', metrics: 1, packets_sent: 1, bytes_sent: 683)
-
-      subject.gauge('test', 21)
-      subject.flush
-      expect(socket.recv[0]).to eq_with_telemetry('test:21|g', metrics: 1, packets_sent: 1, bytes_sent: 683)
-
-      subject.histogram('test', 21)
-      subject.flush
-      expect(socket.recv[0]).to eq_with_telemetry('test:21|h', metrics: 1, packets_sent: 1, bytes_sent: 683)
-
-      subject.timing('test', 21)
-      subject.flush
-      expect(socket.recv[0]).to eq_with_telemetry('test:21|ms', metrics: 1, packets_sent: 1, bytes_sent: 683)
-
-      subject.set('test', 21)
-      subject.flush
-      expect(socket.recv[0]).to eq_with_telemetry('test:21|s', metrics: 1, packets_sent: 1, bytes_sent: 684)
-
-      subject.service_check('sc', 0)
-      subject.flush
-      expect(socket.recv[0]).to eq_with_telemetry('_sc|sc|0', metrics: 0, service_checks: 1, packets_sent: 1, bytes_sent: 683)
-
-      subject.event('ev', 'text')
-      subject.flush
-      expect(socket.recv[0]).to eq_with_telemetry('_e{2,4}:ev|text', metrics: 0, events: 1, packets_sent: 1, bytes_sent: 682)
-    end
-
-    context 'when some data is dropped' do
-      let(:socket) do
-        FakeUDPSocket.new.tap do |s|
-          s.error_on_send('some error')
-        end
-      end
-
-      it 'handles dropped data' do
-        subject.gauge('test', 21)
-        subject.flush
-        expect(subject.telemetry.flush).to eq_with_telemetry('', metrics: 1, service_checks: 0, events: 0, packets_dropped: 1, bytes_dropped: 681)
-
-        subject.gauge('test', 21)
-        subject.flush
-        expect(subject.telemetry.flush).to eq_with_telemetry('', metrics: 2, service_checks: 0, events: 0, packets_dropped: 2, bytes_dropped: 1364)
-
-        #disable network failure
-        socket.error_on_send(nil)
-
-        subject.gauge('test', 21)
-        subject.flush
-        expect(socket.recv[0]).to eq_with_telemetry('test:21|g', metrics: 3, service_checks: 0, events: 0, packets_dropped: 2, bytes_dropped: 1364)
-
-        expect(subject.telemetry.flush).to eq_with_telemetry('', metrics: 0, service_checks: 0, events: 0, packets_sent: 1, bytes_sent: 684)
-      end
     end
   end
 

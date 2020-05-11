@@ -20,8 +20,6 @@ module Datadog
 
         @buffer = String.new
         @message_count = 0
-
-        @depth = 0
       end
 
       def add(message)

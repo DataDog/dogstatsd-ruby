@@ -21,15 +21,11 @@ module Datadog
       def write(payload)
         logger.debug { "Statsd: #{payload}" } if logger
 
-        flush_telemetry = telemetry && telemetry.flush?
-
-        payload += telemetry.flush if flush_telemetry
-
         send_message(payload)
 
-        telemetry.reset if flush_telemetry
-
         telemetry.sent(packets: 1, bytes: payload.length) if telemetry
+
+        true
       rescue StandardError => boom
         # Try once to reconnect if the socket has been closed
         retries ||= 1

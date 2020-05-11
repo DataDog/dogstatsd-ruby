@@ -298,28 +298,14 @@ module Datadog
       forwarder.send_message(serializer.to_event(title, text, opts))
     end
 
-    # Send several metrics in the same UDP Packet
-    # They will be buffered and flushed when the block finishes
-    #
-    # @example Send several metrics in one packet:
-    #   $statsd.batch do |s|
-    #      s.gauge('users.online',156)
-    #      s.increment('page.views')
-    #    end
-    def batch
-      @buffer.open do
-        yield self
-      end
-    end
-
     # Close the underlying socket
     def close
       forwarder.close
     end
 
     # Flush the buffer into the connection
-    def flush
-      forwarder.flush
+    def flush(flush_telemetry: false)
+      forwarder.flush(flush_telemetry: flush_telemetry)
     end
 
     def telemetry

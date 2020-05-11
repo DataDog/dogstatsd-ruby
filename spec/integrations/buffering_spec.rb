@@ -3,11 +3,12 @@
 require 'spec_helper'
 
 describe 'Buffering integration testing' do
-  let(:socket) { FakeUDPSocket.new }
+  let(:socket) { FakeUDPSocket.new(copy_message: true) }
 
   subject do
     Datadog::Statsd.new('localhost', 1234,
       telemetry_flush_interval: -1,
+      telemetry_enable: false,
       buffer_max_pool_size: buffer_max_pool_size,
     )
   end
@@ -32,7 +33,7 @@ describe 'Buffering integration testing' do
 
     subject.flush
 
-    expect(socket.recv[0]).to eq_with_telemetry 'mycounter:1|c'
+    expect(socket.recv[0]).to eq 'mycounter:1|c'
   end
 
   it 'sends multiple samples in one packet' do
@@ -40,28 +41,7 @@ describe 'Buffering integration testing' do
     subject.decrement('myothercounter')
     subject.decrement('anothercounter')
 
-    expect(socket.recv[0]).to eq_with_telemetry("mycounter:1|c\nmyothercounter:-1|c", metrics: 2)
-    # last value is still buffered
-    expect(socket.recv).to be_nil
-  end
-
-  it 'increments telemetry correctly' do
-    subject.gauge('mygauge', 10)
-    subject.gauge('myothergauge', 20)
-
-    subject.increment('mycounter')
-
-    subject.flush
-
-    subject.increment('myothercounter')
-
-    subject.flush
-
-    subject.increment('anoothercounter')
-
-    expect(socket.recv[0]).to eq_with_telemetry("mygauge:10|g\nmyothergauge:20|g", metrics: 2)
-    expect(socket.recv[0]).to eq_with_telemetry('mycounter:1|c', bytes_sent: 702, packets_sent: 1)
-    expect(socket.recv[0]).to eq_with_telemetry('myothercounter:1|c', bytes_sent: 687, packets_sent: 1)
+    expect(socket.recv[0]).to eq("mycounter:1|c\nmyothercounter:-1|c")
     # last value is still buffered
     expect(socket.recv).to be_nil
   end
@@ -87,7 +67,7 @@ describe 'Buffering integration testing' do
         subject.increment('mycounter')
       end
 
-      expect(socket.recv[0]).to eq_with_telemetry(theoretical_reply.join("\n"), metrics: number_of_messages_to_fill_the_buffer)
+      expect(socket.recv[0]).to eq theoretical_reply.join("\n")
 
       subject.flush
 
@@ -95,7 +75,7 @@ describe 'Buffering integration testing' do
       # flush. This means that the last metric (who filled the buffer and triggered a
       # flush) increment the telemetry but was not sent. Then once the 'do' block
       # finishes we flush the buffer with a telemtry of 0 metrics being received.
-      expect(socket.recv[0]).to eq_with_telemetry(expected_message, metrics: 1, bytes_sent: 8457, packets_sent: 1)
+      expect(socket.recv[0]).to eq expected_message
     end
   end
 
@@ -115,15 +95,79 @@ describe 'Buffering integration testing' do
       subject.service_check('sc', 0)
       subject.event('ev', 'text')
 
-      subject.flush
+      subject.flush(flush_telemetry: true)
 
-      expect(socket.recv[0]).to eq_with_telemetry("test:1|c\ntest:-1|c\ntest:21|c\ntest:21|g\ntest:21|h\ntest:21|ms\ntest:21|s\n_sc|sc|0\n_e{2,4}:ev|text",
-        metrics: 7,
-        service_checks: 1,
-        events: 1
+      expect(socket.recv[0]).to eq "test:1|c\ntest:-1|c\ntest:21|c\ntest:21|g\ntest:21|h\ntest:21|ms\ntest:21|s\n_sc|sc|0\n_e{2,4}:ev|text"
+    end
+  end
+
+  context 'with telemetry' do
+    subject do
+      Datadog::Statsd.new('localhost', 1234,
+        telemetry_flush_interval: 60,
+        buffer_max_pool_size: buffer_max_pool_size,
       )
+    end
 
-      expect(subject.telemetry.flush).to eq_with_telemetry('', metrics: 0, service_checks: 0, events: 0, packets_sent: 1, bytes_sent: 766)
+    let(:buffer_max_pool_size) do
+      9
+    end
+
+    it 'increments telemetry correctly' do
+      subject.gauge('mygauge', 10)
+      subject.gauge('myothergauge', 20)
+
+      subject.flush(flush_telemetry: true)
+
+      expect(socket.recv[0]).to eq_with_telemetry("mygauge:10|g\nmyothergauge:20|g", bytes_sent: 0, packets_sent: 0, metrics: 2)
+
+      subject.increment('mycounter')
+
+      subject.flush(flush_telemetry: true)
+
+      expect(socket.recv[0]).to eq_with_telemetry('mycounter:1|c', bytes_sent: 702, packets_sent: 1, metrics: 1)
+
+      subject.increment('myothercounter')
+
+      subject.flush(flush_telemetry: true)
+
+      subject.increment('anoothercounter')
+
+      expect(socket.recv[0]).to eq_with_telemetry('myothercounter:1|c', bytes_sent: 687, packets_sent: 1, metrics: 1)
+      # last value is still buffered
+      expect(socket.recv).to be_nil
+    end
+
+    context 'when testing with all data types' do
+      let(:buffer_max_pool_size) do
+        nil
+      end
+
+      it 'handles all data types and updates telemetry correctly' do
+        subject.increment('test', 1)
+        subject.decrement('test', 1)
+        subject.count('test', 21)
+        subject.gauge('test', 21)
+        subject.histogram('test', 21)
+        subject.timing('test', 21)
+        subject.set('test', 21)
+        subject.service_check('sc', 0)
+        subject.event('ev', 'text')
+
+        subject.flush(flush_telemetry: true)
+
+        expect(socket.recv[0]).to eq_with_telemetry("test:1|c\ntest:-1|c\ntest:21|c\ntest:21|g\ntest:21|h\ntest:21|ms\ntest:21|s\n_sc|sc|0\n_e{2,4}:ev|text",
+          metrics: 7,
+          service_checks: 1,
+          events: 1
+        )
+
+        expect(subject.telemetry.metrics).to eq 0
+        expect(subject.telemetry.service_checks).to eq 0
+        expect(subject.telemetry.events).to eq 0
+        expect(subject.telemetry.packets_sent).to eq 1
+        expect(subject.telemetry.bytes_sent).to eq 766
+      end
     end
   end
 end

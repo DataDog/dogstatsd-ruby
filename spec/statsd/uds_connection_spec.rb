@@ -38,7 +38,7 @@ describe Datadog::Statsd::UDSConnection do
 
   describe '#write' do
     let(:telemetry) do
-      instance_double(Datadog::Statsd::Telemetry, flush?: false, sent: true, dropped: true)
+      instance_double(Datadog::Statsd::Telemetry, sent: true, dropped: true)
     end
 
     it 'builds the socket in the right mode' do
