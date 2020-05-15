@@ -9,13 +9,10 @@ describe 'Connection edge cases test' do
     end
   end
   let(:log) { StringIO.new }
-  let(:telemetry) do
-    Datadog::Statsd::Telemetry.new(true, -1, global_tags: [])
-  end
 
   describe 'when having problems with UDP communication' do
     subject do
-      Datadog::Statsd::UDPConnection.new('localhost', 1234, logger, telemetry)
+      Datadog::Statsd::UDPConnection.new('localhost', 1234, logger: logger)
     end
 
     before do
@@ -224,7 +221,7 @@ describe 'Connection edge cases test' do
 
   describe 'when having problems with UDS communication' do
     subject do
-      Datadog::Statsd::UDSConnection.new('/tmp/socket', logger, telemetry)
+      Datadog::Statsd::UDSConnection.new('/tmp/socket', logger: logger)
     end
 
     before do
