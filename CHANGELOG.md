@@ -4,7 +4,7 @@
 
 ## 4.8.1 / 2020.05.25
 
-* [BUGFIX] Send global tags even if no tags provided to the service check / event call [#147][] by [@f3ndot][]
+* [BUGFIX] Send global tags even if no tags provided when using service check / event call [#147][] by [@f3ndot][]
 
 ## 4.8.0 / 2020.04.20
 
