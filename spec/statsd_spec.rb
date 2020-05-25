@@ -145,7 +145,7 @@ describe Datadog::Statsd do
         it 'gives the right default size to the message buffer' do
           expect(Datadog::Statsd::MessageBuffer)
             .to receive(:new)
-            .with(anything, hash_including(max_payload_size: 8_192))
+            .with(anything, hash_including(max_payload_size: 1_432))
 
           subject
         end

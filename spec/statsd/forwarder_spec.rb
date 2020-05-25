@@ -304,10 +304,10 @@ describe Datadog::Statsd::Forwarder do
           nil
         end
 
-        it 'builds the message buffer with max_payload_size=UDP_DEFAULT_BUFFER_SIZE' do
+        it 'builds the message buffer with max_payload_size=UDS_DEFAULT_BUFFER_SIZE' do
           expect(Datadog::Statsd::MessageBuffer)
             .to receive(:new)
-            .with(anything, hash_including(max_payload_size: Datadog::Statsd::UDP_DEFAULT_BUFFER_SIZE))
+            .with(anything, hash_including(max_payload_size: Datadog::Statsd::UDS_DEFAULT_BUFFER_SIZE))
 
           subject
         end
