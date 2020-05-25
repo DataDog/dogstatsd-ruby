@@ -123,7 +123,7 @@ describe Datadog::Statsd::Forwarder do
         it 'raises an ArgumentError' do
           expect do
             subject
-          end.to raise_error(ArgumentError, /buffer_max_payload_size cannot be < 0/)
+          end.to raise_error(ArgumentError, /buffer_max_payload_size cannot be <= 0/)
         end
       end
 
@@ -272,7 +272,7 @@ describe Datadog::Statsd::Forwarder do
         it 'raises an ArgumentError' do
           expect do
             subject
-          end.to raise_error(ArgumentError, /buffer_max_payload_size cannot be < 0/)
+          end.to raise_error(ArgumentError, /buffer_max_payload_size cannot be <= 0/)
         end
       end
 

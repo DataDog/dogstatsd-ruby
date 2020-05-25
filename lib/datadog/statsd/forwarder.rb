@@ -40,7 +40,7 @@ module Datadog
         buffer_max_payload_size ||= (transport_type == :udp ? UDP_DEFAULT_BUFFER_SIZE : UDS_DEFAULT_BUFFER_SIZE)
 
         if buffer_max_payload_size <= 0
-          raise ArgumentError, 'buffer_max_payload_size cannot be < 0'
+          raise ArgumentError, 'buffer_max_payload_size cannot be <= 0'
         end
 
         unless telemetry.nil? || telemetry.would_fit_in?(buffer_max_payload_size)
