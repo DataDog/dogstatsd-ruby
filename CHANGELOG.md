@@ -2,9 +2,13 @@
 
 [//]: # (comment: Don't forget to update lib/datadog/statsd.rb:DogStatsd::Statsd::VERSION when releasing a new version)
 
+## 4.8.1 / 2020.05.25
+
+* [BUGFIX] Send global tags even if no tags provided to the service check / event call [#147][] by [@f3ndot][]
+
 ## 4.8.0 / 2020.04.20
 
-* [Feature] Add support of more environment variables for tagging [#140][] by [@delner][]
+* [FEATURE] Add support of more environment variables for tagging [#140][] by [@delner][]
 * [OTHER] Small optimizations [#139][] by [@tenderlove][]
 * [BUGFIX] Properly close UDPSocket before creating a new one [#143][] by [@zachmccormick][]
 * [OTHER] Refactor to make code more idiomatic [#138][] by [@kbogtob][]
@@ -241,6 +245,7 @@ Future versions are likely to introduce backward incompatibilities with < Ruby 1
 [#138]: https://github.com/DataDog/dogstatsd-ruby/issues/138
 [#140]: https://github.com/DataDog/dogstatsd-ruby/issues/140
 [#143]: https://github.com/DataDog/dogstatsd-ruby/issues/143
+[#147]: https://github.com/DataDog/dogstatsd-ruby/issues/147
 [@AMekss]: https://github.com/AMekss
 [@abicky]: https://github.com/abicky
 [@adimitrov]: https://github.com/adimitrov
@@ -250,6 +255,7 @@ Future versions are likely to introduce backward incompatibilities with < Ruby 1
 [@degemer]: https://github.com/degemer
 [@devleoper]: https://github.com/devleoper
 [@djpate]: https://github.com/djpate
+[@f3ndot]: https://github.com/f3ndot
 [@fimmtiu]: https://github.com/fimmtiu
 [@gleseur]: https://github.com/gleseur
 [@grosser]: https://github.com/grosser
