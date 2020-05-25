@@ -41,11 +41,10 @@ module Datadog
               end
             end
 
-            if raw_tags = options[:tags]
-              if tags = tag_serializer.format(raw_tags)
-                event << '|#'
-                event << tags
-              end
+            # also returns the global tags from serializer
+            if tags = tag_serializer.format(options[:tags])
+              event << '|#'
+              event << tags
             end
 
             if event.bytesize > MAX_EVENT_SIZE

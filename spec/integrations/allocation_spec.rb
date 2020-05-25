@@ -181,11 +181,11 @@ describe 'Allocations and garbage collection' do
 
     let(:expected_allocations) do
       if RUBY_VERSION < '2.4.0'
-        19
+        20
       elsif RUBY_VERSION >= '2.4.0' && RUBY_VERSION < '2.5.0'
-        18
+        19
       else
-        17
+        18
       end
     end
 
@@ -208,11 +208,11 @@ describe 'Allocations and garbage collection' do
 
       let(:expected_allocations) do
         if RUBY_VERSION < '2.4.0'
-          10
+          11
         elsif RUBY_VERSION >= '2.4.0' && RUBY_VERSION < '2.5.0'
-          9
+          10
         else
-          8
+          9
         end
       end
 
@@ -250,11 +250,11 @@ describe 'Allocations and garbage collection' do
 
     let(:expected_allocations) do
       if RUBY_VERSION < '2.4.0'
-        15
+        16
       elsif RUBY_VERSION >= '2.4.0' && RUBY_VERSION < '2.5.0'
-        14
+        15
       else
-        13
+        14
       end
     end
 
@@ -277,11 +277,11 @@ describe 'Allocations and garbage collection' do
 
       let(:expected_allocations) do
         if RUBY_VERSION < '2.4.0'
-          6
+          7
         elsif RUBY_VERSION >= '2.4.0' && RUBY_VERSION < '2.5.0'
-          5
+          6
         else
-          4
+          5
         end
       end
 
