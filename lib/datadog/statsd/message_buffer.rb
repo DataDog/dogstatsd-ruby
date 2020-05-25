@@ -25,6 +25,7 @@ module Datadog
       def add(message)
         message_size = message.bytesize
 
+        return nil unless message_size > 0 # to avoid adding empty messages to the buffer
         return nil unless ensure_sendable!(message_size)
 
         flush if should_flush?(message_size)

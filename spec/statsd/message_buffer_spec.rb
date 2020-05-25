@@ -26,6 +26,18 @@ describe Datadog::Statsd::MessageBuffer do
   end
 
   describe '#add' do
+    context 'when the message is empty' do
+      it 'returns nil' do
+        expect(subject.add('')).to be nil
+      end
+
+      it 'never flushes (never adds only \n)' do
+        expect(connection).not_to receive(:write)
+
+        1000.times { subject.add('') }
+      end
+    end
+
     context 'when the buffer is empty' do
       context 'when the message is lesser than the max size - send tolerance' do
         it 'does not flush' do
