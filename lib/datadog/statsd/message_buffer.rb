@@ -35,6 +35,8 @@ module Datadog
 
         @message_count += 1
 
+        # flush when we're pretty sure that we won't be able
+        # to add another message to the buffer
         flush if preemptive_flush?
 
         true
