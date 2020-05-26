@@ -30,22 +30,15 @@ describe Datadog::Statsd::Serialization::EventSerializer do
 
     context 'when there are global tags' do
       before do
-        allow(tag_serializer).to receive(:format).
-        with(nil).
-        and_return('a-global-tag,another-global')
+        allow(tag_serializer)
+          .to receive(:format)
+          .with(nil)
+          .and_return('a-global-tag,another-global')
       end
 
       it 'serializes the event correctly with global tags' do
         expect(subject.format('this is a title', 'this is a longer text'))
           .to eq '_e{15,21}:this is a title|this is a longer text|#a-global-tag,another-global'
-      end
-    end
-
-    context 'when the event description is too long (> 8KB)' do
-      it 'raises a specific error' do
-        expect do
-          subject.format('this is a title', 'this is a longer text' * 1000)
-        end.to raise_error(RuntimeError, /payload is too big/)
       end
     end
 
