@@ -77,7 +77,7 @@ describe Datadog::Statsd::UDSConnection do
     it 'logs the sent message in debug mode' do
       subject.write('test')
 
-      expect(log.string).to match /DEBUG -- : Statsd: test/
+      expect(log.string).to match %r{DEBUG -- : Statsd: test}
     end
 
     context 'when writing fails' do
