@@ -42,14 +42,6 @@ describe Datadog::Statsd::Serialization::EventSerializer do
       end
     end
 
-    context 'when the event description is too long (> 8KB)' do
-      it 'raises a specific error' do
-        expect do
-          subject.format('this is a title', 'this is a longer text' * 1000)
-        end.to raise_error(RuntimeError, /payload is too big/)
-      end
-    end
-
     context 'when having an alert type' do
       it 'serializes the event correctly with a known alert type' do
         expect(subject.format('this is a title', 'this is a longer text', alert_type: 'warning'))
