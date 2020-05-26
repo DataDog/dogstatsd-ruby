@@ -93,10 +93,16 @@ describe Datadog::Statsd::Telemetry do
       ]
     end
 
-    it 'makes only 8 allocations' do
-      expect do
-        subject.flush
-      end.to make_allocations(8)
+    context do
+      before do
+        skip 'Ruby too old' if RUBY_VERSION < '2.3.0'
+      end
+
+      it 'makes only 8 allocations' do
+        expect do
+          subject.flush
+        end.to make_allocations(8)
+      end
     end
   end
 
