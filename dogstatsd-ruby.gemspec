@@ -8,7 +8,7 @@ Gem::Specification.new do |s|
   s.authors = ["Rein Henrichs"]
 
   s.summary = "A Ruby DogStatsd client"
-  s.description = "A Ruby DogStastd client"
+  s.description = "A Ruby DogStatsd client"
   s.email = "code@datadoghq.com"
 
   s.metadata = {
