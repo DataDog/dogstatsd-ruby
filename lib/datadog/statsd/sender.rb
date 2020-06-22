@@ -3,6 +3,8 @@
 module Datadog
   class Statsd
     class Sender
+      CLOSEABLE_QUEUES = Queue.instance_methods.include?(:close)
+
       def initialize(message_buffer)
         @message_buffer = message_buffer
       end
@@ -41,9 +43,16 @@ module Datadog
         @sender_thread = Thread.new(&method(:send_loop))
       end
 
-      def stop(join_worker: true)
-        message_queue.close if message_queue
-        sender_thread.join if sender_thread && join_worker
+      if CLOSEABLE_QUEUES
+        def stop(join_worker: true)
+          message_queue.close if message_queue
+          sender_thread.join if sender_thread && join_worker
+        end
+      else
+        def stop(join_worker: true)
+          message_queue << :close if message_queue
+          sender_thread.join if sender_thread && join_worker
+        end
       end
 
       private
@@ -53,24 +62,48 @@ module Datadog
       attr_reader :message_queue
       attr_reader :sender_thread
 
-      def send_loop
-        until (message = message_queue.pop).nil? && message_queue.closed?
-          # skip if message is nil, e.g. when message_queue
-          # is empty and closed
-          next unless message
+      if CLOSEABLE_QUEUES
+        def send_loop
+          until (message = message_queue.pop).nil? && message_queue.closed?
+            # skip if message is nil, e.g. when message_queue
+            # is empty and closed
+            next unless message
 
-          case message
-          when :flush
-            message_buffer.flush
-          when Queue
-            message.push(:go_on)
-          else
-            message_buffer.add(message)
+            case message
+            when :flush
+              message_buffer.flush
+            when Queue
+              message.push(:go_on)
+            else
+              message_buffer.add(message)
+            end
           end
-        end
 
-        @message_queue = nil
-        @sender_thread = nil
+          @message_queue = nil
+          @sender_thread = nil
+        end
+      else
+        def send_loop
+          loop do
+            message = message_queue.pop
+
+            next unless message
+
+            case message
+            when :close
+              break
+            when :flush
+              message_buffer.flush
+            when Queue
+              message.push(:go_on)
+            else
+              message_buffer.add(message)
+            end
+          end
+
+          @message_queue = nil
+          @sender_thread = nil
+        end
       end
     end
   end
