@@ -332,10 +332,6 @@ module Datadog
       forwarder.transport_type
     end
 
-    def close
-      forwarder.close
-    end
-
     private
     attr_reader :serializer
     attr_reader :forwarder
