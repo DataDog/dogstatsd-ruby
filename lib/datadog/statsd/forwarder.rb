@@ -52,18 +52,25 @@ module Datadog
           max_pool_size: buffer_max_pool_size || DEFAULT_BUFFER_POOL_SIZE,
           overflowing_stategy: buffer_overflowing_stategy,
         )
+
+        @sender = Sender.new(buffer)
+        @sender.start
       end
 
       def send_message(message)
-        buffer.add(message)
+        sender.add(message)
 
         tick_telemetry
       end
 
-      def flush(flush_telemetry: false)
+      def sync_with_outbound_io
+        sender.rendez_vous
+      end
+
+      def flush(flush_telemetry: false, sync: false)
         do_flush_telemetry if telemetry && flush_telemetry
 
-        buffer.flush
+        sender.flush(sync: sync)
       end
 
       def host
@@ -85,11 +92,13 @@ module Datadog
       end
 
       def close
+        sender.stop
         connection.close
       end
 
       private
       attr_reader :buffer
+      attr_reader :sender
       attr_reader :connection
 
       def do_flush_telemetry
@@ -97,7 +106,7 @@ module Datadog
         telemetry.reset
 
         telemetry_snapshot.each do |message|
-          buffer.add(message)
+          sender.add(message)
         end
       end
 
