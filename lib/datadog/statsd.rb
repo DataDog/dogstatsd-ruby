@@ -7,6 +7,7 @@ require_relative 'statsd/udp_connection'
 require_relative 'statsd/uds_connection'
 require_relative 'statsd/message_buffer'
 require_relative 'statsd/serialization'
+require_relative 'statsd/sender'
 require_relative 'statsd/forwarder'
 
 # = Datadog::Statsd: A DogStatsd client (https://www.datadoghq.com)
@@ -302,9 +303,13 @@ module Datadog
       forwarder.close
     end
 
+    def sync_with_outbound_io
+      forwarder.sync_with_outbound_io
+    end
+
     # Flush the buffer into the connection
-    def flush(flush_telemetry: false)
-      forwarder.flush(flush_telemetry: flush_telemetry)
+    def flush(flush_telemetry: false, sync: false)
+      forwarder.flush(flush_telemetry: flush_telemetry, sync: sync)
     end
 
     def telemetry

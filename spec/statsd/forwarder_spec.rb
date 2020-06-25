@@ -37,6 +37,10 @@ describe Datadog::Statsd::Forwarder do
     allow(Datadog::Statsd::Telemetry)
       .to receive(:new)
       .and_return(telemetry)
+
+    allow(Datadog::Statsd::Sender)
+      .to receive(:new)
+      .and_return(sender)
   end
 
   let(:message_buffer) do
@@ -45,6 +49,10 @@ describe Datadog::Statsd::Forwarder do
 
   let(:telemetry) do
     instance_double(Datadog::Statsd::Telemetry, would_fit_in?: true)
+  end
+
+  let(:sender) do
+    instance_double(Datadog::Statsd::Sender, start: true)
   end
 
   context 'when using a host and a port' do
@@ -90,6 +98,23 @@ describe Datadog::Statsd::Forwarder do
         expect(Datadog::Statsd::UDPConnection)
           .to receive(:new)
           .with('127.0.0.1', 1234, logger: logger, telemetry: telemetry)
+
+        subject
+      end
+
+      it 'builds the sender' do
+        expect(Datadog::Statsd::Sender)
+          .to receive(:new)
+          .with(message_buffer)
+          .exactly(1)
+
+        subject
+      end
+
+      it 'starts the sender' do
+        expect(sender)
+          .to receive(:start)
+          .exactly(1)
 
         subject
       end
@@ -193,6 +218,18 @@ describe Datadog::Statsd::Forwarder do
     its(:socket_path) { is_expected.to be_nil }
 
     describe '#close' do
+      before do
+        allow(sender).to receive(:stop)
+        allow(udp_connection).to receive(:close)
+      end
+
+      it 'stops the sender' do
+        expect(sender)
+          .to receive(:stop)
+
+        subject.close
+      end
+
       it 'forwards the close message to the connection' do
         expect(udp_connection)
           .to receive(:close)
@@ -239,6 +276,23 @@ describe Datadog::Statsd::Forwarder do
         expect(Datadog::Statsd::UDSConnection)
           .to receive(:new)
           .with('/tmp/dd_socket', logger: logger, telemetry: telemetry)
+
+        subject
+      end
+
+      it 'builds the sender' do
+        expect(Datadog::Statsd::Sender)
+          .to receive(:new)
+          .with(message_buffer)
+          .exactly(1)
+
+        subject
+      end
+
+      it 'starts the sender' do
+        expect(sender)
+          .to receive(:start)
+          .exactly(1)
 
         subject
       end
@@ -342,6 +396,18 @@ describe Datadog::Statsd::Forwarder do
     its(:socket_path) { is_expected.to eq '/tmp/dd_socket' }
 
     describe '#close' do
+      before do
+        allow(sender).to receive(:stop)
+        allow(uds_connection).to receive(:close)
+      end
+
+      it 'stops the sender' do
+        expect(sender)
+          .to receive(:stop)
+
+        subject.close
+      end
+
       it 'forwards the close message to the connection' do
         expect(uds_connection)
           .to receive(:close)
@@ -390,8 +456,8 @@ describe Datadog::Statsd::Forwarder do
     end
 
     context 'when we should flush the telemetry' do
-      let(:message_buffer) do
-        instance_double(Datadog::Statsd::MessageBuffer, add: true)
+      before do
+        allow(sender).to receive(:add)
       end
 
       let(:telemetry) do
@@ -403,8 +469,8 @@ describe Datadog::Statsd::Forwarder do
         )
       end
 
-      it 'adds the message to the buffer' do
-        expect(message_buffer)
+      it 'adds the message to the sender queue' do
+        expect(sender)
           .to receive(:add)
           .with('toto')
 
@@ -412,15 +478,15 @@ describe Datadog::Statsd::Forwarder do
       end
 
       it 'adds the telemetry message' do
-        expect(message_buffer)
+        expect(sender)
           .to receive(:add)
           .with('toto')
 
-        expect(message_buffer)
+        expect(sender)
           .to receive(:add)
           .with('telemetry1')
 
-        expect(message_buffer)
+        expect(sender)
           .to receive(:add)
           .with('telemetry2')
 
@@ -434,7 +500,7 @@ describe Datadog::Statsd::Forwarder do
       end
 
       it 'adds the message to the buffer' do
-        expect(message_buffer)
+        expect(sender)
           .to receive(:add)
           .with('toto')
 
