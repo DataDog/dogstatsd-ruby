@@ -1,7 +1,6 @@
 source 'https://rubygems.org'
 
 gem 'rake', '>= 12.3.3'
-gem 'rack', '~> 1.6'
 gem 'minitest'
 gem 'minitest-matchers'
 gem 'yard', '~> 0.9.20'
@@ -10,6 +9,12 @@ gem 'climate_control'
 
 if RUBY_VERSION >= '2.0.0'
   gem 'rubocop', '~> 0.50.0' # bump this and TargetRubyVersion once we drop ruby 2.0
+end
+
+if RUBY_VERSION >= '2.2.2'
+  gem 'rack', '~> 2.1', '>= 2.1.4'
+else
+  gem 'rack', '~> 1.6'
 end
 
 if RUBY_VERSION >= '2.3.0'
