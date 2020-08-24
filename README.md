@@ -71,6 +71,19 @@ After the client is created, you can start sending events to your Datadog Event 
 
 After the client is created, you can start sending Service Checks to Datadog. See the dedicated [Service Check Submission: DogStatsD documentation](https://docs.datadoghq.com/developers/service_checks/dogstatsd_service_checks_submission/?tab=ruby) to see how to submit a Service Check to Datadog.
 
+### Maximum packets size in high-throughput scenarios
+
+In order to have the most efficient use of this library in high-throughput scenarios,
+default values for the maximum packets size have already been set for both UDS (8192 bytes)
+and UDP (1432 bytes) in order to have the best usage of the underlying network.
+However, if you perfectly know your network and you know that a different value for the maximum packets
+size should be used, you can set it with the parameter `buffer_max_payload_size`. Example:
+
+```ruby
+# Create a DogStatsD client instance.
+statsd = Datadog::Statsd.new('localhost', 8125, buffer_max_payload_size: 4096)
+```
+
 ## Credits
 
 dogstatsd-ruby is forked from Rien Henrichs [original Statsd
