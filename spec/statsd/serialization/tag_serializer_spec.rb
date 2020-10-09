@@ -215,5 +215,46 @@ describe Datadog::Statsd::Serialization::TagSerializer do
         end
       end
     end
+
+    context 'benchmark' do
+      before { skip("Benchmarks results are currently not used by CI") if ENV.key?('CI') }
+
+      def benchmark_setup(x)
+        global_tags = %w(app:foo env:abc version:123)
+        tags_array = %w(host:storage network:gigabit request:xyz)
+        tags_hash = { host: "storage", network: "gigabit", request: "xyz" }
+        tags_empty = []
+
+        subject_without_global_tags = described_class.new
+        subject_with_global_tags = described_class.new(global_tags)
+
+        x.report("no tags") { subject_without_global_tags.format(tags_empty) }
+        x.report("global tags") { subject_with_global_tags.format(tags_empty) }
+        x.report("tags Array") { subject_without_global_tags.format(tags_array) }
+        x.report("tags Hash") { subject_without_global_tags.format(tags_hash) }
+        x.report("tags Array + global tags") { subject_with_global_tags.format(tags_array) }
+        x.report("tags Hash + global tags") { subject_with_global_tags.format(tags_hash) }
+      end
+
+      it 'measure IPS' do
+        require 'benchmark/ips'
+
+        Benchmark.ips do |x|
+          benchmark_setup(x)
+
+          x.compare!
+        end
+      end
+
+      it 'measure memory' do
+        require 'benchmark-memory'
+
+        Benchmark.memory do |x|
+          benchmark_setup(x)
+
+          x.compare!
+        end
+      end
+    end
   end
 end

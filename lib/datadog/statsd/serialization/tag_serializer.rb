@@ -13,18 +13,21 @@ module Datadog
 
           # Convert to tag list and set
           @global_tags = to_tags_list(global_tags)
+          @global_tags_formatted = @global_tags.join(',') if @global_tags.any?
         end
 
         def format(message_tags)
-          # fast return global tags if there's no message_tags
-          # to avoid more allocations
-          tag_list =  if message_tags && message_tags.any?
-                        global_tags + to_tags_list(message_tags)
-                      else
-                        global_tags
-                      end
+          if !message_tags || message_tags.empty?
+            return @global_tags_formatted
+          end
 
-          tag_list.join(',') if tag_list.any?
+          tags = if @global_tags_formatted
+                   [@global_tags_formatted, to_tags_list(message_tags)]
+                 else
+                   to_tags_list(message_tags)
+                 end
+
+          tags.join(',')
         end
 
         attr_reader :global_tags
@@ -51,19 +54,17 @@ module Datadog
         def to_tags_list(tags)
           case tags
           when Hash
-            tags.each_with_object([]) do |tag_pair, formatted_tags|
-              if tag_pair.last.nil?
-                formatted_tags << "#{tag_pair.first}"
+            tags.map do |name, value|
+              if value
+                escape_tag_content("#{name}:#{value}")
               else
-                formatted_tags << "#{tag_pair.first}:#{tag_pair.last}"
+                escape_tag_content(name)
               end
             end
           when Array
-            tags.dup
+            tags.map { |tag| escape_tag_content(tag) }
           else
             []
-          end.map! do |tag|
-            escape_tag_content(tag)
           end
         end
 

@@ -17,6 +17,8 @@ if RUBY_VERSION >= '2.3.0'
 end
 
 group :development do
+  gem 'benchmark-ips'
+  gem 'benchmark-memory'
   gem 'faker'
   gem 'rspec'
   gem 'rspec-its'
