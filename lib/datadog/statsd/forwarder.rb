@@ -12,6 +12,7 @@ module Datadog
         buffer_max_payload_size: nil,
         buffer_max_pool_size: nil,
         buffer_overflowing_stategy: :drop,
+        buffer_flush_interval: nil,
 
         telemetry_flush_interval: nil,
         global_tags: [],
@@ -43,12 +44,13 @@ module Datadog
           raise ArgumentError, "buffer_max_payload_size is not high enough to use telemetry (tags=(#{global_tags.inspect}))"
         end
 
-        buffer = MessageBuffer.new(@connection,
+        @buffer = MessageBuffer.new(@connection,
           max_payload_size: buffer_max_payload_size,
           max_pool_size: buffer_max_pool_size || DEFAULT_BUFFER_POOL_SIZE,
           overflowing_stategy: buffer_overflowing_stategy,
+          flush_interval: buffer_flush_interval,
         )
-        @sender = (single_thread ? SingleThreadSender : Sender).new(buffer, logger: logger)
+        @sender = (single_thread ? SingleThreadSender : Sender).new(@buffer, logger: logger)
         @sender.start
       end
 
@@ -89,11 +91,13 @@ module Datadog
       def close
         sender.stop
         connection.close
+        buffer.close
       end
 
       private
       attr_reader :sender
       attr_reader :connection
+      attr_reader :buffer
 
       def do_flush_telemetry
         telemetry_snapshot = telemetry.flush

@@ -17,6 +17,10 @@ describe Datadog::Statsd::Forwarder do
     :anything
   end
 
+  let(:buffer_flush_interval) do
+    15
+  end
+
   let(:telemetry_flush_interval) do
     42
   end
@@ -84,6 +88,7 @@ describe Datadog::Statsd::Forwarder do
         buffer_max_payload_size: buffer_max_payload_size,
         buffer_max_pool_size: buffer_max_pool_size,
         buffer_overflowing_stategy: buffer_overflowing_stategy,
+        buffer_flush_interval: buffer_flush_interval,
 
         telemetry_flush_interval: telemetry_flush_interval,
 
@@ -220,6 +225,7 @@ describe Datadog::Statsd::Forwarder do
       before do
         allow(sender).to receive(:stop)
         allow(udp_connection).to receive(:close)
+        allow(message_buffer).to receive(:close)
       end
 
       it 'stops the sender' do
@@ -231,6 +237,13 @@ describe Datadog::Statsd::Forwarder do
 
       it 'forwards the close message to the connection' do
         expect(udp_connection)
+          .to receive(:close)
+
+        subject.close
+      end
+
+      it 'closes the buffer' do
+        expect(message_buffer)
           .to receive(:close)
 
         subject.close
@@ -262,6 +275,7 @@ describe Datadog::Statsd::Forwarder do
         buffer_max_payload_size: buffer_max_payload_size,
         buffer_max_pool_size: buffer_max_pool_size,
         buffer_overflowing_stategy: buffer_overflowing_stategy,
+        buffer_flush_interval: buffer_flush_interval,
 
         telemetry_flush_interval: telemetry_flush_interval,
 
@@ -398,6 +412,7 @@ describe Datadog::Statsd::Forwarder do
       before do
         allow(sender).to receive(:stop)
         allow(uds_connection).to receive(:close)
+        allow(message_buffer).to receive(:close)
       end
 
       it 'stops the sender' do
@@ -409,6 +424,13 @@ describe Datadog::Statsd::Forwarder do
 
       it 'forwards the close message to the connection' do
         expect(uds_connection)
+          .to receive(:close)
+
+        subject.close
+      end
+
+      it 'closes the buffer' do
+        expect(message_buffer)
           .to receive(:close)
 
         subject.close

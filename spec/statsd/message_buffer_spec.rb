@@ -6,6 +6,7 @@ describe Datadog::Statsd::MessageBuffer do
       max_payload_size: max_payload_size,
       max_pool_size: max_pool_size,
       overflowing_stategy: overflowing_stategy,
+      flush_interval: flush_interval,
     )
   end
 
@@ -23,6 +24,45 @@ describe Datadog::Statsd::MessageBuffer do
 
   let(:overflowing_stategy) do
     :drop
+  end
+
+  let(:flush_interval) do
+    nil
+  end
+
+  describe '#initialize' do
+    context 'when flush_interval is not set' do
+      let(:flush_interval) do
+        nil
+      end
+
+      it 'does not create the flush thread' do
+        expect do
+          subject
+        end.to change { Thread.list.size }.by(0)
+      end
+    end
+
+    context 'when flush_interval is set' do
+      let(:flush_interval) do
+        0.001
+      end
+
+      it 'creates the flush thread and flushes the buffer' do
+        mutex = Mutex.new
+        cv = ConditionVariable.new
+        expect do
+          subject
+        end.to change { Thread.list.size }.by(1)
+
+        expect(subject).to receive(:flush).and_wrap_original do
+          mutex.synchronize { cv.broadcast }
+        end
+
+        # wait a second or until #flush is called
+        mutex.synchronize { cv.wait(mutex, 1) }
+      end
+    end
   end
 
   describe '#add' do
@@ -146,6 +186,47 @@ describe Datadog::Statsd::MessageBuffer do
           expect(connection).not_to receive(:write)
 
           subject.add('a' * 20)
+        end
+      end
+    end
+
+    context 'after #close is called' do
+      it 'raises a specific error' do
+        subject.close
+        expect do
+          subject.add('a')
+        end.to raise_error(Datadog::Statsd::Error, 'buffer is closed')
+      end
+    end
+  end
+
+  describe '#close' do
+    context 'when flush_interval is not set' do
+      let(:flush_interval) do
+        nil
+      end
+
+      it 'does nothing' do
+        expect do
+          subject
+        end.to change { Thread.list.size }.by(0)
+      end
+    end
+
+    context 'when flush_interval is set' do
+      let(:flush_interval) do
+        15
+      end
+
+      it 'calls #flush immediately and deletes the flush thread' do
+        expect(subject).to receive(:flush)
+
+        # sleep a little for the flush thread to call ConditionVariable#wait
+        sleep 0.001
+
+        # call #flush without waiting flush_interval
+        Timeout.timeout(1) do
+          expect { subject.close }.to change { Thread.list.size }.by(-1)
         end
       end
     end
