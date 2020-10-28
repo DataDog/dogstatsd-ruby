@@ -93,4 +93,40 @@ describe Datadog::Statsd::Serialization::StatSerializer do
       end
     end
   end
+
+  context 'benchmark' do
+    before { skip("Benchmarks results are currently not used by CI") if ENV.key?('CI') }
+
+    def benchmark_setup(x)
+      s = subject # Avoid RSpec lookup on every iteration
+      name = 'somecount'
+      type = 'c'
+      tags = ["host:storage", "network:gigabit", "request:xyz"]
+
+      x.report("no tags") { s.format(name, 42, type) }
+      x.report("no tags + sample rate") { s.format(name, 42, type, sample_rate: 0.5) }
+      x.report("with tags") { s.format(name, 42, type, tags: tags) }
+      x.report("with tags + sample rate") { s.format(name, 42, type, tags: tags, sample_rate: 0.5) }
+    end
+
+    it 'measure IPS' do
+      require 'benchmark/ips'
+
+      Benchmark.ips do |x|
+        benchmark_setup(x)
+
+        x.compare!
+      end
+    end
+
+    it 'measure memory' do
+      require 'benchmark-memory'
+
+      Benchmark.memory do |x|
+        benchmark_setup(x)
+
+        x.compare!
+      end
+    end
+  end
 end
