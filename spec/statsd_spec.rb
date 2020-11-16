@@ -238,13 +238,13 @@ describe Datadog::Statsd do
     it_behaves_like 'a metrics method', 'foobar:1|c' do
       let(:basic_action) do
         subject.increment('foobar', tags: action_tags)
-        subject.flush(sync: true)
+        subject.flush
       end
     end
 
     it 'sends the increment' do
       subject.increment('foobar')
-      subject.flush(sync: true)
+      subject.flush
 
       expect(socket.recv[0]).to eq_with_telemetry('foobar:1|c')
     end
@@ -256,7 +256,7 @@ describe Datadog::Statsd do
 
       it 'formats the message according to the statsd spec' do
         subject.increment('foobar', sample_rate: 0.5)
-        subject.flush(sync: true)
+        subject.flush
 
         expect(socket.recv[0]).to eq_with_telemetry 'foobar:1|c|@0.5'
       end
@@ -269,7 +269,7 @@ describe Datadog::Statsd do
 
       it 'sends the increment with the sample rate' do
         subject.increment('foobar', 0.5)
-        subject.flush(sync: true)
+        subject.flush
 
         expect(socket.recv[0]).to eq_with_telemetry 'foobar:1|c|@0.5'
       end
@@ -278,7 +278,7 @@ describe Datadog::Statsd do
     context 'with a increment by' do
       it 'increments by the number given' do
         subject.increment('foobar', by: 5)
-        subject.flush(sync: true)
+        subject.flush
 
         expect(socket.recv[0]).to eq_with_telemetry 'foobar:5|c'
       end
@@ -293,13 +293,13 @@ describe Datadog::Statsd do
     it_behaves_like 'a metrics method', 'foobar:-1|c' do
       let(:basic_action) do
         subject.decrement('foobar', tags: action_tags)
-        subject.flush(sync: true)
+        subject.flush
       end
     end
 
     it 'sends the decrement' do
       subject.decrement('foobar')
-      subject.flush(sync: true)
+      subject.flush
 
       expect(socket.recv[0]).to eq_with_telemetry 'foobar:-1|c'
     end
@@ -311,7 +311,7 @@ describe Datadog::Statsd do
 
       it 'sends the decrement with the sample rate' do
         subject.decrement('foobar', sample_rate: 0.5)
-        subject.flush(sync: true)
+        subject.flush
 
         expect(socket.recv[0]).to eq_with_telemetry 'foobar:-1|c|@0.5'
       end
@@ -324,7 +324,7 @@ describe Datadog::Statsd do
 
       it 'sends the decrement with the sample rate' do
         subject.decrement('foobar', 0.5)
-        subject.flush(sync: true)
+        subject.flush
 
         expect(socket.recv[0]).to eq_with_telemetry 'foobar:-1|c|@0.5'
       end
@@ -333,7 +333,7 @@ describe Datadog::Statsd do
     context 'with a decrement by' do
       it 'decrements by the number given' do
         subject.decrement('foobar', by: 5)
-        subject.flush(sync: true)
+        subject.flush
 
         expect(socket.recv[0]).to eq_with_telemetry 'foobar:-5|c'
       end
@@ -348,13 +348,13 @@ describe Datadog::Statsd do
     it_behaves_like 'a metrics method', 'foobar:123|c' do
       let(:basic_action) do
         subject.count('foobar', 123, tags: action_tags)
-        subject.flush(sync: true)
+        subject.flush
       end
     end
 
     it 'sends the count' do
       subject.count('foobar', 123)
-      subject.flush(sync: true)
+      subject.flush
 
       expect(socket.recv[0]).to eq_with_telemetry 'foobar:123|c'
     end
@@ -366,7 +366,7 @@ describe Datadog::Statsd do
 
       it 'sends the count with sample rate' do
         subject.count('foobar', 123, 0.1)
-        subject.flush(sync: true)
+        subject.flush
 
         expect(socket.recv[0]).to eq_with_telemetry 'foobar:123|c|@0.1'
       end
@@ -381,25 +381,25 @@ describe Datadog::Statsd do
     it_behaves_like 'a metrics method', 'begrutten-suffusion:536|g' do
       let(:basic_action) do
         subject.gauge('begrutten-suffusion', 536, tags: action_tags)
-        subject.flush(sync: true)
+        subject.flush
       end
     end
 
     it 'sends the gauge' do
       subject.gauge('begrutten-suffusion', 536)
-      subject.flush(sync: true)
+      subject.flush
 
       expect(socket.recv[0]).to eq_with_telemetry 'begrutten-suffusion:536|g'
     end
 
     it 'sends the gauge with sequential values' do
       subject.gauge('begrutten-suffusion', 536)
-      subject.flush(sync: true)
+      subject.flush
 
       expect(socket.recv[0]).to eq_with_telemetry 'begrutten-suffusion:536|g'
 
       subject.gauge('begrutten-suffusion', -107.3)
-      subject.flush(sync: true)
+      subject.flush
 
       expect(socket.recv[0]).to eq_with_telemetry 'begrutten-suffusion:-107.3|g', bytes_sent: 697, packets_sent: 1
     end
@@ -411,7 +411,7 @@ describe Datadog::Statsd do
 
       it 'sends the gauge with the sample rate' do
         subject.gauge('begrutten-suffusion', 536, sample_rate: 0.1)
-        subject.flush(sync: true)
+        subject.flush
 
         expect(socket.recv[0]).to eq_with_telemetry 'begrutten-suffusion:536|g|@0.1'
       end
@@ -424,7 +424,7 @@ describe Datadog::Statsd do
 
       it 'formats the message according to the statsd spec' do
         subject.gauge('begrutten-suffusion', 536, 0.1)
-        subject.flush(sync: true)
+        subject.flush
 
         expect(socket.recv[0]).to eq_with_telemetry 'begrutten-suffusion:536|g|@0.1'
       end
@@ -439,25 +439,25 @@ describe Datadog::Statsd do
     it_behaves_like 'a metrics method', 'ohmy:536|h' do
       let(:basic_action) do
         subject.histogram('ohmy', 536, tags: action_tags)
-        subject.flush(sync: true)
+        subject.flush
       end
     end
 
     it 'sends the histogram' do
       subject.histogram('ohmy', 536)
-      subject.flush(sync: true)
+      subject.flush
 
       expect(socket.recv[0]).to eq_with_telemetry 'ohmy:536|h'
     end
 
     it 'sends the histogram with sequential values' do
       subject.histogram('ohmy', 536)
-      subject.flush(sync: true)
+      subject.flush
 
       expect(socket.recv[0]).to eq_with_telemetry 'ohmy:536|h'
 
       subject.histogram('ohmy', -107.3)
-      subject.flush(sync: true)
+      subject.flush
 
       expect(socket.recv[0]).to eq_with_telemetry 'ohmy:-107.3|h', bytes_sent: 682, packets_sent: 1
     end
@@ -469,7 +469,7 @@ describe Datadog::Statsd do
 
       it 'sends the histogram with the sample rate' do
         subject.gauge('begrutten-suffusion', 536, sample_rate: 0.1)
-        subject.flush(sync: true)
+        subject.flush
 
         expect(socket.recv[0]).to eq_with_telemetry 'begrutten-suffusion:536|g|@0.1'
       end
@@ -484,13 +484,13 @@ describe Datadog::Statsd do
     it_behaves_like 'a metrics method', 'myset:536|s' do
       let(:basic_action) do
         subject.set('myset', 536, tags: action_tags)
-        subject.flush(sync: true)
+        subject.flush
       end
     end
 
     it 'sends the set' do
       subject.set('my.set', 536)
-      subject.flush(sync: true)
+      subject.flush
 
       expect(socket.recv[0]).to eq_with_telemetry 'my.set:536|s'
     end
@@ -502,7 +502,7 @@ describe Datadog::Statsd do
 
       it 'sends the set with the sample rate' do
         subject.set('my.set', 536, sample_rate: 0.5)
-        subject.flush(sync: true)
+        subject.flush
 
         expect(socket.recv[0]).to eq_with_telemetry 'my.set:536|s|@0.5'
       end
@@ -515,7 +515,7 @@ describe Datadog::Statsd do
 
       it 'sends the set with the sample rate' do
         subject.set('my.set', 536, 0.5)
-        subject.flush(sync: true)
+        subject.flush
 
         expect(socket.recv[0]).to eq_with_telemetry 'my.set:536|s|@0.5'
       end
@@ -530,13 +530,13 @@ describe Datadog::Statsd do
     it_behaves_like 'a metrics method', 'foobar:500|ms' do
       let(:basic_action) do
         subject.timing('foobar', 500, tags: action_tags)
-        subject.flush(sync: true)
+        subject.flush
       end
     end
 
     it 'sends the timing' do
       subject.timing('foobar', 500)
-      subject.flush(sync: true)
+      subject.flush
 
       expect(socket.recv[0]).to eq_with_telemetry 'foobar:500|ms'
     end
@@ -548,7 +548,7 @@ describe Datadog::Statsd do
 
       it 'sends the timing with the sample rate' do
         subject.timing('foobar', 500, sample_rate: 0.5)
-        subject.flush(sync: true)
+        subject.flush
 
         expect(socket.recv[0]).to eq_with_telemetry 'foobar:500|ms|@0.5'
       end
@@ -561,7 +561,7 @@ describe Datadog::Statsd do
 
       it 'sends the timing with the sample rate' do
         subject.timing('foobar', 500, 0.5)
-        subject.flush(sync: true)
+        subject.flush
 
         expect(socket.recv[0]).to eq_with_telemetry 'foobar:500|ms|@0.5'
       end
@@ -593,7 +593,7 @@ describe Datadog::Statsd do
           allow(Process).to receive(:clock_gettime).and_return(1) if Datadog::Statsd::PROCESS_TIME_SUPPORTED
         end
 
-        subject.flush(sync: true)
+        subject.flush
       end
     end
 
@@ -604,7 +604,7 @@ describe Datadog::Statsd do
           allow(Process).to receive(:clock_gettime).and_return(1) if Datadog::Statsd::PROCESS_TIME_SUPPORTED
         end
 
-        subject.flush(sync: true)
+        subject.flush
 
         expect(socket.recv[0]).to eq_with_telemetry 'foobar:1000|ms'
       end
@@ -618,7 +618,7 @@ describe Datadog::Statsd do
         end rescue nil
         # rubocop:enable Lint/RescueWithoutErrorClass
 
-        subject.flush(sync: true)
+        subject.flush
 
         expect(socket.recv[0]).to eq_with_telemetry 'foobar:1000|ms'
       end
@@ -655,7 +655,7 @@ describe Datadog::Statsd do
           allow(Process).to receive(:clock_gettime).and_return(1) if Datadog::Statsd::PROCESS_TIME_SUPPORTED
         end
 
-        subject.flush(sync: true)
+        subject.flush
 
         expect(socket.recv[0]).to eq_with_telemetry 'foobar:1000|ms|@0.5'
       end
@@ -672,7 +672,7 @@ describe Datadog::Statsd do
           allow(Process).to receive(:clock_gettime).and_return(1) if Datadog::Statsd::PROCESS_TIME_SUPPORTED
         end
 
-        subject.flush(sync: true)
+        subject.flush
 
         expect(socket.recv[0]).to eq_with_telemetry 'foobar:1000|ms|@0.5'
       end
@@ -687,13 +687,13 @@ describe Datadog::Statsd do
     it_behaves_like 'a metrics method', 'begrutten-suffusion:536|d' do
       let(:basic_action) do
         subject.distribution('begrutten-suffusion', 536, tags: action_tags)
-        subject.flush(sync: true)
+        subject.flush
       end
     end
 
     it 'sends the distribution' do
       subject.distribution('begrutten-suffusion', 536)
-      subject.flush(sync: true)
+      subject.flush
 
       expect(socket.recv[0]).to eq_with_telemetry 'begrutten-suffusion:536|d'
     end
@@ -705,7 +705,7 @@ describe Datadog::Statsd do
 
       it 'sends the set with the sample rate' do
         subject.distribution('begrutten-suffusion', 536, sample_rate: 0.5)
-        subject.flush(sync: true)
+        subject.flush
 
         expect(socket.recv[0]).to eq_with_telemetry 'begrutten-suffusion:536|d|@0.5'
       end
@@ -725,13 +725,13 @@ describe Datadog::Statsd do
     it_behaves_like 'a taggable method', '_e{15,21}:this is a title|this is a longer text', metrics: 0, events: 1 do
       let(:basic_action) do
         subject.event(title, text, tags: action_tags)
-        subject.flush(sync: true)
+        subject.flush
       end
     end
 
     it 'sends events with title and text' do
       subject.event(title, text)
-      subject.flush(sync: true)
+      subject.flush
 
       expect(socket.recv[0]).to eq_with_telemetry('_e{15,21}:this is a title|this is a longer text', metrics: 0, events: 1)
     end
@@ -742,7 +742,7 @@ describe Datadog::Statsd do
 
       it 'sends events with title and text' do
         subject.event(title, text)
-        subject.flush(sync: true)
+        subject.flush
 
         expect(socket.recv[0]).to eq_with_telemetry('_e{16,22}:this is a\ntitle|this is a longer\ntext', metrics: 0, events: 1)
       end
@@ -751,7 +751,7 @@ describe Datadog::Statsd do
     context 'with a known alert type' do
       it 'sends events with title and text along with a tag for the alert type' do
         subject.event(title, text, alert_type: 'warning')
-        subject.flush(sync: true)
+        subject.flush
 
         expect(socket.recv[0]).to eq_with_telemetry('_e{15,21}:this is a title|this is a longer text|t:warning', metrics: 0, events: 1)
       end
@@ -760,7 +760,7 @@ describe Datadog::Statsd do
     context 'with an unknown alert type' do
       it 'sends events with title and text along with a tag for the alert type' do
         subject.event(title, text, alert_type: 'yolo')
-        subject.flush(sync: true)
+        subject.flush
 
         expect(socket.recv[0]).to eq_with_telemetry('_e{15,21}:this is a title|this is a longer text|t:yolo', metrics: 0, events: 1)
       end
@@ -769,7 +769,7 @@ describe Datadog::Statsd do
     context 'with a known priority' do
       it 'sends events with title and text along with a tag for the priority' do
         subject.event(title, text, priority: 'low')
-        subject.flush(sync: true)
+        subject.flush
 
         expect(socket.recv[0]).to eq_with_telemetry('_e{15,21}:this is a title|this is a longer text|p:low', metrics: 0, events: 1)
       end
@@ -778,7 +778,7 @@ describe Datadog::Statsd do
     context 'with an unknown priority' do
       it 'sends events with title and text along with a tag for the priority' do
         subject.event(title, text, priority: 'yolo')
-        subject.flush(sync: true)
+        subject.flush
 
         expect(socket.recv[0]).to eq_with_telemetry('_e{15,21}:this is a title|this is a longer text|p:yolo', metrics: 0, events: 1)
       end
@@ -787,7 +787,7 @@ describe Datadog::Statsd do
     context 'with a timestamp event date' do
       it 'sends events with title and text along with a date timestamp' do
         subject.event(title, text, date_happened: timestamp)
-        subject.flush(sync: true)
+        subject.flush
 
         expect(socket.recv[0]).to eq_with_telemetry("_e{15,21}:this is a title|this is a longer text|d:#{timestamp}", metrics: 0, events: 1)
       end
@@ -796,7 +796,7 @@ describe Datadog::Statsd do
     context 'with a string event date' do
       it 'sends events with title and text along with a date timestamp' do
         subject.event(title, text, date_happened: timestamp.to_s)
-        subject.flush(sync: true)
+        subject.flush
 
         expect(socket.recv[0]).to eq_with_telemetry("_e{15,21}:this is a title|this is a longer text|d:#{timestamp}", metrics: 0, events: 1)
       end
@@ -805,7 +805,7 @@ describe Datadog::Statsd do
     context 'with a hostname' do
       it 'sends events with title and text along with a hostname' do
         subject.event(title, text, hostname: 'chihiro')
-        subject.flush(sync: true)
+        subject.flush
 
         expect(socket.recv[0]).to eq_with_telemetry("_e{15,21}:this is a title|this is a longer text|h:chihiro", metrics: 0, events: 1)
       end
@@ -814,7 +814,7 @@ describe Datadog::Statsd do
     context 'with an aggregation key' do
       it 'sends events with title and text along with the aggregation key' do
         subject.event(title, text, aggregation_key: 'key 1')
-        subject.flush(sync: true)
+        subject.flush
 
         expect(socket.recv[0]).to eq_with_telemetry("_e{15,21}:this is a title|this is a longer text|k:key 1", metrics: 0, events: 1)
       end
@@ -823,7 +823,7 @@ describe Datadog::Statsd do
     context 'with an source type name' do
       it 'sends events with title and text along with the source type name' do
         subject.event(title, text, source_type_name: 'source 1')
-        subject.flush(sync: true)
+        subject.flush
 
         expect(socket.recv[0]).to eq_with_telemetry("_e{15,21}:this is a title|this is a longer text|s:source 1", metrics: 0, events: 1)
       end
@@ -832,7 +832,7 @@ describe Datadog::Statsd do
     context 'with several parameters (hostname, alert_type, priority, source)' do
       it 'sends events with title and text along with all the parameters' do
         subject.event(title, text, hostname: 'myhost', alert_type: 'warning', priority: 'low', source_type_name: 'source')
-        subject.flush(sync: true)
+        subject.flush
 
         expect(socket.recv[0]).to eq_with_telemetry("_e{15,21}:this is a title|this is a longer text|h:myhost|p:low|s:source|t:warning", metrics: 0, events: 1)
       end
@@ -852,13 +852,13 @@ describe Datadog::Statsd do
     it_behaves_like 'a taggable method', '_sc|windmill|grinding', metrics: 0, service_checks: 1 do
       let(:basic_action) do
         subject.service_check(name, status, tags: action_tags)
-        subject.flush(sync: true)
+        subject.flush
       end
     end
 
     it 'sends service check with name and status' do
       subject.service_check(name, status)
-      subject.flush(sync: true)
+      subject.flush
 
       expect(socket.recv[0]).to eq_with_telemetry('_sc|windmill|grinding', metrics: 0, service_checks: 1)
     end
@@ -866,7 +866,7 @@ describe Datadog::Statsd do
     context 'with hostname' do
       it 'sends service check with name and status along with hostname' do
         subject.service_check(name, status, hostname: 'amsterdam')
-        subject.flush(sync: true)
+        subject.flush
 
         expect(socket.recv[0]).to eq_with_telemetry('_sc|windmill|grinding|h:amsterdam', metrics: 0, service_checks: 1)
       end
@@ -875,7 +875,7 @@ describe Datadog::Statsd do
     context 'with message' do
       it 'sends service check with name and status along with message' do
         subject.service_check(name, status, message: 'the wind is rising')
-        subject.flush(sync: true)
+        subject.flush
 
         expect(socket.recv[0]).to eq_with_telemetry('_sc|windmill|grinding|m:the wind is rising', metrics: 0, service_checks: 1)
       end
@@ -884,7 +884,7 @@ describe Datadog::Statsd do
     context 'with integer timestamp' do
       it 'sends service check with name and status along with timestamp' do
         subject.service_check(name, status, timestamp: timestamp)
-        subject.flush(sync: true)
+        subject.flush
 
         expect(socket.recv[0]).to eq_with_telemetry("_sc|windmill|grinding|d:#{timestamp}", metrics: 0, service_checks: 1)
       end
@@ -893,7 +893,7 @@ describe Datadog::Statsd do
     context 'with string timestamp' do
       it 'sends service check with name and status along with timestamp' do
         subject.service_check(name, status, timestamp: timestamp.to_s)
-        subject.flush(sync: true)
+        subject.flush
 
         expect(socket.recv[0]).to eq_with_telemetry("_sc|windmill|grinding|d:#{timestamp}", metrics: 0, service_checks: 1)
       end
@@ -902,7 +902,7 @@ describe Datadog::Statsd do
     context 'with several parameters (hostname, message, timestamp)' do
       it 'sends service check with name and status along with all parameters' do
         subject.service_check(name, status, hostanme: 'amsterdam', message: 'the wind is rising', timestamp: timestamp.to_s)
-        subject.flush(sync: true)
+        subject.flush
 
         expect(socket.recv[0]).to eq_with_telemetry("_sc|windmill|grinding|d:#{timestamp}|m:the wind is rising", metrics: 0, service_checks: 1)
       end
@@ -913,7 +913,7 @@ describe Datadog::Statsd do
     before do
       # do some writing so the socket is opened
       subject.increment('lol')
-      subject.flush(sync: true)
+      subject.flush
     end
 
     it 'closes the socket' do
@@ -933,14 +933,14 @@ describe Datadog::Statsd do
       o = double('a stat', to_s: 'yolo')
 
       subject.increment(o)
-      subject.flush(sync: true)
+      subject.flush
 
       expect(socket.recv[0]).to eq_with_telemetry('yolo:1|c')
     end
 
     it 'accepts a class name as a stat name' do
       subject.increment(Object)
-      subject.flush(sync: true)
+      subject.flush
 
       expect(socket.recv[0]).to eq_with_telemetry('Object:1|c')
     end
@@ -948,21 +948,21 @@ describe Datadog::Statsd do
     it 'replaces Ruby constants delimeter with graphite package name' do
       class Datadog::Statsd::SomeClass; end
       subject.increment(Datadog::Statsd::SomeClass)
-      subject.flush(sync: true)
+      subject.flush
 
       expect(socket.recv[0]).to eq_with_telemetry 'Datadog.Statsd.SomeClass:1|c'
     end
 
     it 'replaces statsd reserved chars in the stat name' do
       subject.increment('ray@hostname.blah|blah.blah:blah')
-      subject.flush(sync: true)
+      subject.flush
 
       expect(socket.recv[0]).to eq_with_telemetry 'ray_hostname.blah_blah.blah_blah:1|c'
     end
 
     it 'works with frozen strings' do
       subject.increment('some-stat'.freeze)
-      subject.flush(sync: true)
+      subject.flush
 
       expect(socket.recv[0]).to eq_with_telemetry('some-stat:1|c')
     end
@@ -976,21 +976,21 @@ describe Datadog::Statsd do
 
     it 'replaces reserved chars for tags' do
       subject.increment('stat', tags: ['name:foo,bar|foo'])
-      subject.flush(sync: true)
+      subject.flush
 
       expect(socket.recv[0]).to eq_with_telemetry 'stat:1|c|#name:foobarfoo'
     end
 
     it 'handles the cases when some tags are frozen strings' do
       subject.increment('stat', tags: ['first_tag'.freeze, 'second_tag'])
-      subject.flush(sync: true)
+      subject.flush
     end
 
     it 'converts all values to strings' do
       tag = double('a tag', to_s: 'yolo')
 
       subject.increment('stat', tags: [tag])
-      subject.flush(sync: true)
+      subject.flush
 
       expect(socket.recv[0]).to eq_with_telemetry 'stat:1|c|#yolo'
     end

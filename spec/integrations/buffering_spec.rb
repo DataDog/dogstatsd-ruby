@@ -23,7 +23,7 @@ describe 'Buffering integration testing' do
   end
 
   it 'does not not send anything when the buffer is empty' do
-    subject.flush(sync: true)
+    subject.flush
 
     expect(socket.recv).to be_nil
   end
@@ -31,7 +31,7 @@ describe 'Buffering integration testing' do
   it 'sends single samples in one packet' do
     subject.increment('mycounter')
 
-    subject.flush(sync: true)
+    subject.flush
 
     expect(socket.recv[0]).to eq 'mycounter:1|c'
   end
@@ -40,8 +40,6 @@ describe 'Buffering integration testing' do
     subject.increment('mycounter')
     subject.decrement('myothercounter')
     subject.decrement('anothercounter')
-
-    subject.sync_with_outbound_io
 
     expect(socket.recv[0]).to eq("mycounter:1|c\nmyothercounter:-1|c")
     # last value is still buffered
@@ -69,11 +67,9 @@ describe 'Buffering integration testing' do
         subject.increment('mycounter')
       end
 
-      subject.sync_with_outbound_io
-
       expect(socket.recv[0]).to eq theoretical_reply.join("\n")
 
-      subject.flush(sync: true)
+      subject.flush
 
       # We increment the telemetry metrics count when we receive it, not when
       # flush. This means that the last metric (who filled the buffer and triggered a
@@ -99,7 +95,7 @@ describe 'Buffering integration testing' do
       subject.service_check('sc', 0)
       subject.event('ev', 'text')
 
-      subject.flush(flush_telemetry: true, sync: true)
+      subject.flush(flush_telemetry: true)
 
       expect(socket.recv[0]).to eq "test:1|c\ntest:-1|c\ntest:21|c\ntest:21|g\ntest:21|h\ntest:21|ms\ntest:21|s\n_sc|sc|0\n_e{2,4}:ev|text"
     end
@@ -121,23 +117,21 @@ describe 'Buffering integration testing' do
       subject.gauge('mygauge', 10)
       subject.gauge('myothergauge', 20)
 
-      subject.flush(flush_telemetry: true, sync: true)
+      subject.flush(flush_telemetry: true)
 
       expect(socket.recv[0]).to eq_with_telemetry("mygauge:10|g\nmyothergauge:20|g", bytes_sent: 0, packets_sent: 0, metrics: 2)
 
       subject.increment('mycounter')
 
-      subject.flush(flush_telemetry: true, sync: true)
+      subject.flush(flush_telemetry: true)
 
       expect(socket.recv[0]).to eq_with_telemetry('mycounter:1|c', bytes_sent: 702, packets_sent: 1, metrics: 1)
 
       subject.increment('myothercounter')
 
-      subject.flush(flush_telemetry: true, sync: true)
+      subject.flush(flush_telemetry: true)
 
       subject.increment('anoothercounter')
-
-      subject.sync_with_outbound_io
 
       expect(socket.recv[0]).to eq_with_telemetry('myothercounter:1|c', bytes_sent: 687, packets_sent: 1, metrics: 1)
       # last value is still buffered
@@ -160,7 +154,7 @@ describe 'Buffering integration testing' do
         subject.service_check('sc', 0)
         subject.event('ev', 'text')
 
-        subject.flush(flush_telemetry: true, sync: true)
+        subject.flush(flush_telemetry: true)
 
         expect(socket.recv[0]).to eq_with_telemetry("test:1|c\ntest:-1|c\ntest:21|c\ntest:21|g\ntest:21|h\ntest:21|ms\ntest:21|s\n_sc|sc|0\n_e{2,4}:ev|text",
           metrics: 7,

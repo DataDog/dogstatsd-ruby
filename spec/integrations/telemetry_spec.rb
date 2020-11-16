@@ -31,7 +31,7 @@ describe 'Telemetry integration testing' do
 
     it 'does not send any telemetry' do
       subject.count("test", 21)
-      subject.flush(sync: true)
+      subject.flush
 
       expect(socket.recv[0]).to eq 'test:21|c'
     end
@@ -68,7 +68,7 @@ describe 'Telemetry integration testing' do
 
       subject.count('test', 21)
 
-      subject.flush(sync: true)
+      subject.flush
 
       expect(socket.recv[0]).to eq 'test:21|c'
     end
@@ -79,7 +79,7 @@ describe 'Telemetry integration testing' do
 
       subject.count('test', 21)
 
-      subject.flush(sync: true)
+      subject.flush
 
       expect(socket.recv[0]).to eq_with_telemetry 'test:21|c'
     end
@@ -87,39 +87,39 @@ describe 'Telemetry integration testing' do
 
   it 'handles all data type' do
     subject.increment('test', 1)
-    subject.flush(sync: true)
+    subject.flush
     expect(socket.recv[0]).to eq_with_telemetry('test:1|c', metrics: 1, packets_sent: 0, bytes_sent: 0)
 
     subject.decrement('test', 1)
-    subject.flush(sync: true)
+    subject.flush
     expect(socket.recv[0]).to eq_with_telemetry('test:-1|c', metrics: 1, packets_sent: 1, bytes_sent: 680)
 
     subject.count('test', 21)
-    subject.flush(sync: true)
+    subject.flush
     expect(socket.recv[0]).to eq_with_telemetry('test:21|c', metrics: 1, packets_sent: 1, bytes_sent: 683)
 
     subject.gauge('test', 21)
-    subject.flush(sync: true)
+    subject.flush
     expect(socket.recv[0]).to eq_with_telemetry('test:21|g', metrics: 1, packets_sent: 1, bytes_sent: 683)
 
     subject.histogram('test', 21)
-    subject.flush(sync: true)
+    subject.flush
     expect(socket.recv[0]).to eq_with_telemetry('test:21|h', metrics: 1, packets_sent: 1, bytes_sent: 683)
 
     subject.timing('test', 21)
-    subject.flush(sync: true)
+    subject.flush
     expect(socket.recv[0]).to eq_with_telemetry('test:21|ms', metrics: 1, packets_sent: 1, bytes_sent: 683)
 
     subject.set('test', 21)
-    subject.flush(sync: true)
+    subject.flush
     expect(socket.recv[0]).to eq_with_telemetry('test:21|s', metrics: 1, packets_sent: 1, bytes_sent: 684)
 
     subject.service_check('sc', 0)
-    subject.flush(sync: true)
+    subject.flush
     expect(socket.recv[0]).to eq_with_telemetry('_sc|sc|0', metrics: 0, service_checks: 1, packets_sent: 1, bytes_sent: 683)
 
     subject.event('ev', 'text')
-    subject.flush(sync: true)
+    subject.flush
     expect(socket.recv[0]).to eq_with_telemetry('_e{2,4}:ev|text', metrics: 0, events: 1, packets_sent: 1, bytes_sent: 682)
   end
 
@@ -132,7 +132,7 @@ describe 'Telemetry integration testing' do
 
     it 'handles dropped data (resets everytime)' do
       subject.gauge('test', 21)
-      subject.flush(flush_telemetry: true, sync: true)
+      subject.flush(flush_telemetry: true)
 
       expect(subject.telemetry.metrics).to eq 0
       expect(subject.telemetry.service_checks).to eq 0
@@ -143,7 +143,7 @@ describe 'Telemetry integration testing' do
       expect(subject.telemetry.bytes_dropped).to eq 1353
 
       subject.gauge('test', 21)
-      subject.flush(flush_telemetry: true, sync: true)
+      subject.flush(flush_telemetry: true)
 
       expect(subject.telemetry.metrics).to eq 0
       expect(subject.telemetry.service_checks).to eq 0
@@ -157,7 +157,7 @@ describe 'Telemetry integration testing' do
       socket.error_on_send(nil)
 
       subject.gauge('test', 21)
-      subject.flush(sync: true)
+      subject.flush
       expect(socket.recv[0]).to eq_with_telemetry('test:21|g', metrics: 1, service_checks: 0, events: 0, packets_dropped: 1, bytes_dropped: 1356)
 
       expect(subject.telemetry.metrics).to eq 0
