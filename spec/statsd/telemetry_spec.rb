@@ -83,13 +83,13 @@ describe Datadog::Statsd::Telemetry do
 
     it 'serializes the telemetry' do
       expect(subject.flush).to eq [
-        "datadog.dogstatsd.client.metrics:1|c|#client:ruby,client_version:4.8.1,client_transport:doe",
-        "datadog.dogstatsd.client.events:2|c|#client:ruby,client_version:4.8.1,client_transport:doe",
-        "datadog.dogstatsd.client.service_checks:3|c|#client:ruby,client_version:4.8.1,client_transport:doe",
-        "datadog.dogstatsd.client.bytes_sent:4|c|#client:ruby,client_version:4.8.1,client_transport:doe",
-        "datadog.dogstatsd.client.bytes_dropped:6|c|#client:ruby,client_version:4.8.1,client_transport:doe",
-        "datadog.dogstatsd.client.packets_sent:5|c|#client:ruby,client_version:4.8.1,client_transport:doe",
-        "datadog.dogstatsd.client.packets_dropped:7|c|#client:ruby,client_version:4.8.1,client_transport:doe",
+        "datadog.dogstatsd.client.metrics:1|c|#client:ruby,client_version:#{Datadog::Statsd::VERSION},client_transport:doe",
+        "datadog.dogstatsd.client.events:2|c|#client:ruby,client_version:#{Datadog::Statsd::VERSION},client_transport:doe",
+        "datadog.dogstatsd.client.service_checks:3|c|#client:ruby,client_version:#{Datadog::Statsd::VERSION},client_transport:doe",
+        "datadog.dogstatsd.client.bytes_sent:4|c|#client:ruby,client_version:#{Datadog::Statsd::VERSION},client_transport:doe",
+        "datadog.dogstatsd.client.bytes_dropped:6|c|#client:ruby,client_version:#{Datadog::Statsd::VERSION},client_transport:doe",
+        "datadog.dogstatsd.client.packets_sent:5|c|#client:ruby,client_version:#{Datadog::Statsd::VERSION},client_transport:doe",
+        "datadog.dogstatsd.client.packets_dropped:7|c|#client:ruby,client_version:#{Datadog::Statsd::VERSION},client_transport:doe",
       ]
     end
 
