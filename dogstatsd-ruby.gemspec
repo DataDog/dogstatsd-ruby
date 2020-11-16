@@ -5,10 +5,10 @@ Gem::Specification.new do |s|
   s.name = "dogstatsd-ruby"
   s.version = Datadog::Statsd::VERSION
 
-  s.authors = ["Rein Henrichs", "Karim Bogtob"]
+  s.authors = ["Rein Henrichs"]
 
   s.summary = "A Ruby DogStatsd client"
-  s.description = "A Ruby DogStatsd client"
+  s.description = "A Ruby DogStastd client"
   s.email = "code@datadoghq.com"
 
   s.metadata = {

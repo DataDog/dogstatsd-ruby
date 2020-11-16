@@ -10,10 +10,10 @@ module Datadog
       # DogStatsd unix socket path
       attr_reader :socket_path
 
-      def initialize(socket_path, **kwargs)
-        super(**kwargs)
-
+      def initialize(socket_path, logger, telemetry)
+        super(telemetry)
         @socket_path = socket_path
+        @logger = logger
       end
 
       private
