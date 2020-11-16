@@ -1,6 +1,10 @@
 # CHANGELOG
 
-[//]: # (comment: Don't forget to update lib/datadog/statsd.rb:DogStatsd::Statsd::VERSION when releasing a new version)
+[//]: # (comment: Don't forget to update lib/datadog/statsd/version.rb:DogStatsd::Statsd::VERSION when releasing a new version)
+
+## 4.8.2 / 2020.10.16
+
+* [IMPROVEMENT] The overhead of submitting metrics through `dogstatsd-ruby` has been reduced [#155][] [#156][] by [@marcotc][]
 
 ## 4.8.1 / 2020.05.25
 
@@ -246,6 +250,8 @@ Future versions are likely to introduce backward incompatibilities with < Ruby 1
 [#140]: https://github.com/DataDog/dogstatsd-ruby/issues/140
 [#143]: https://github.com/DataDog/dogstatsd-ruby/issues/143
 [#147]: https://github.com/DataDog/dogstatsd-ruby/issues/147
+[#155]: https://github.com/DataDog/dogstatsd-ruby/issues/155
+[#156]: https://github.com/DataDog/dogstatsd-ruby/issues/156
 [@AMekss]: https://github.com/AMekss
 [@abicky]: https://github.com/abicky
 [@adimitrov]: https://github.com/adimitrov
@@ -264,6 +270,7 @@ Future versions are likely to introduce backward incompatibilities with < Ruby 1
 [@janester]: https://github.com/janester
 [@jtzemp]: https://github.com/jtzemp
 [@kbogtob]: https://github.com/kbogtob
+[@marcotc]: https://github.com/marcotc
 [@misterbyrne]: https://github.com/misterbyrne
 [@nelhage]: https://github.com/nelhage
 [@olefriis]: https://github.com/olefriis
