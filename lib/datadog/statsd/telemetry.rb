@@ -11,11 +11,10 @@ module Datadog
       attr_reader :bytes_dropped
       attr_reader :packets_sent
       attr_reader :packets_dropped
+      attr_reader :estimate_max_size
 
-      # Rough estimation of maximum telemetry message size without tags
-      MAX_TELEMETRY_MESSAGE_SIZE_WT_TAGS = 50 # bytes
-
-      def initialize(flush_interval, global_tags: [], transport_type: :udp)
+      def initialize(disabled, flush_interval, global_tags: [], transport_type: :udp)
+        @disabled = disabled
         @flush_interval = flush_interval
         @global_tags = global_tags
         @transport_type = transport_type
@@ -28,10 +27,15 @@ module Datadog
           client_version: VERSION,
           client_transport: transport_type,
         ).format(global_tags)
-      end
 
-      def would_fit_in?(max_buffer_payload_size)
-        MAX_TELEMETRY_MESSAGE_SIZE_WT_TAGS + serialized_tags.size < max_buffer_payload_size
+        # estimate_max_size is an estimation or the maximum size of the
+        # telemetry payload. Since we don't want our packet to go over
+        # 'max_buffer_bytes', we have to adjust with the size of the telemetry
+        # (and any tags used). The telemetry payload size will change depending
+        # on the actual value of metrics: metrics received, packet dropped,
+        # etc. This is why we add a 63bytes margin: 9 bytes for each of the 7
+        # telemetry metrics.
+        @estimate_max_size = disabled ? 0 : flush.length + 9 * 7
       end
 
       def reset
@@ -59,28 +63,26 @@ module Datadog
         @packets_dropped += packets
       end
 
-      def should_flush?
+      def flush?
         @next_flush_time < now_in_s
       end
 
       def flush
-        [
-          sprintf(pattern, 'metrics', @metrics),
-          sprintf(pattern, 'events', @events),
-          sprintf(pattern, 'service_checks', @service_checks),
-          sprintf(pattern, 'bytes_sent', @bytes_sent),
-          sprintf(pattern, 'bytes_dropped', @bytes_dropped),
-          sprintf(pattern, 'packets_sent', @packets_sent),
-          sprintf(pattern, 'packets_dropped', @packets_dropped),
-        ]
+        return '' if @disabled
+
+        # using shorthand syntax to reduce the garbage collection
+        %Q(
+datadog.dogstatsd.client.metrics:#{@metrics}|#{COUNTER_TYPE}|##{serialized_tags}
+datadog.dogstatsd.client.events:#{@events}|#{COUNTER_TYPE}|##{serialized_tags}
+datadog.dogstatsd.client.service_checks:#{@service_checks}|#{COUNTER_TYPE}|##{serialized_tags}
+datadog.dogstatsd.client.bytes_sent:#{@bytes_sent}|#{COUNTER_TYPE}|##{serialized_tags}
+datadog.dogstatsd.client.bytes_dropped:#{@bytes_dropped}|#{COUNTER_TYPE}|##{serialized_tags}
+datadog.dogstatsd.client.packets_sent:#{@packets_sent}|#{COUNTER_TYPE}|##{serialized_tags}
+datadog.dogstatsd.client.packets_dropped:#{@packets_dropped}|#{COUNTER_TYPE}|##{serialized_tags})
       end
 
       private
       attr_reader :serialized_tags
-
-      def pattern
-        @pattern ||= "datadog.dogstatsd.client.%s:%d|#{COUNTER_TYPE}|##{serialized_tags}"
-      end
 
       if Kernel.const_defined?('Process') && Process.respond_to?(:clock_gettime)
         def now_in_s

@@ -14,11 +14,11 @@ module Datadog
       # StatsD port. Defaults to 8125.
       attr_reader :port
 
-      def initialize(host, port, **kwargs)
-        super(**kwargs)
-
+      def initialize(host, port, logger, telemetry)
+        super(telemetry)
         @host = host || ENV.fetch('DD_AGENT_HOST', DEFAULT_HOST)
         @port = port || ENV.fetch('DD_DOGSTATSD_PORT', DEFAULT_PORT).to_i
+        @logger = logger
       end
 
       private

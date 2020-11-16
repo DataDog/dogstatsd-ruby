@@ -1,14 +1,11 @@
 class FakeUDPSocket
-  def initialize(copy_message: false)
+  def initialize
     @buffer = []
     @error_on_send = nil
-    @copy_message = copy_message
   end
 
-  def send(message, *_)
+  def send(message, *)
     raise @error_on_send if @error_on_send
-    message = message.dup if @copy_message
-
     @buffer.push [message]
   end
 
