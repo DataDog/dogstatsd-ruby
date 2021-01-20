@@ -82,6 +82,7 @@ module Datadog
 
       namespace: nil,
       tags: nil,
+      socket_path: ENV['DD_DOGSTATSD_SOCKET'],
       sample_rate: nil,
 
       buffer_max_payload_size: nil,

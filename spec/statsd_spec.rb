@@ -104,6 +104,20 @@ describe Datadog::Statsd do
           'dd.internal.entity_id:04652bb7-19b7-11e9-9cc6-42010a9c016d'
         ]
       end
+
+      context 'when the socket environment variable is set' do
+        around do |example|
+          ClimateControl.modify(
+            'DD_DOGSTATSD_SOCKET' => '/some/socket',
+          ) do
+            example.run
+          end
+        end
+
+        it 'sets the socket to the environment variables value' do
+          expect(subject.connection.socket_path).to eq '/some/socket'
+        end
+      end
     end
 
     context 'when using default values' do
