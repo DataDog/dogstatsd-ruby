@@ -47,6 +47,15 @@ describe Datadog::Statsd::Serialization::EventSerializer do
           subject.format('this is a title', 'this is a longer text' * 1000)
         end.to raise_error(RuntimeError, /payload is too big/)
       end
+
+      context 'when the truncate_if_too_long option is true' do
+        let(:options) { { truncate_if_too_long: true } }
+
+        it 'truncates the overage' do
+          expect(subject.format('this is a title', 'this is a longer text' * 1000, options).bytesize)
+            .to eq Datadog::Statsd::MAX_EVENT_SIZE
+        end
+      end
     end
 
     context 'when having an alert type' do

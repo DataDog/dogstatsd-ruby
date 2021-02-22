@@ -666,6 +666,16 @@ describe Datadog::Statsd do
           subject.event(title, text)
         end.to raise_error(RuntimeError, /payload is too big/)
       end
+
+      context 'when truncate_if_too_long option is specified' do
+        let(:options) { { truncate_if_too_long: true } }
+
+        it 'does not raise error' do
+          expect do
+            subject.event(title, text, options)
+          end.not_to raise_error(RuntimeError, /payload is too big/)
+        end
+      end
     end
 
     context 'with a known alert type' do

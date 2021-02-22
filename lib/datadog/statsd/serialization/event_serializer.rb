@@ -48,7 +48,11 @@ module Datadog
             end
 
             if event.bytesize > MAX_EVENT_SIZE
-              raise "Event #{title} payload is too big (more that 8KB), event discarded"
+              if options[:truncate_if_too_long]
+                event.slice!(MAX_EVENT_SIZE..event.length)
+              else
+                raise "Event #{title} payload is too big (more that 8KB), event discarded"
+              end
             end
           end
         end
