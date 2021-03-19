@@ -86,7 +86,7 @@ statsd = Datadog::Statsd.new('localhost', 8125, buffer_max_payload_size: 4096)
 
 ## Credits
 
-dogstatsd-ruby is forked from Rien Henrichs [original Statsd
+dogstatsd-ruby is forked from Rein Henrichs [original Statsd
 client](https://github.com/reinh/statsd).
 
 Copyright (c) 2011 Rein Henrichs. See LICENSE.txt for

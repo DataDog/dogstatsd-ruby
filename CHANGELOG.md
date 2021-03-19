@@ -2,6 +2,10 @@
 
 [//]: # (comment: Don't forget to update lib/datadog/statsd/version.rb:DogStatsd::Statsd::VERSION when releasing a new version)
 
+## 4.8.3 / 2021.02.22
+
+* [FEATURE] Add `truncate_if_too_long` option to the `event` call to truncate the event if it is too long instead of raising an error [#161][] by [@kazu9su][]
+
 ## 4.8.2 / 2020.10.16
 
 * [IMPROVEMENT] The overhead of submitting metrics through `dogstatsd-ruby` has been reduced [#155][] [#156][] by [@marcotc][]
@@ -252,6 +256,7 @@ Future versions are likely to introduce backward incompatibilities with < Ruby 1
 [#147]: https://github.com/DataDog/dogstatsd-ruby/issues/147
 [#155]: https://github.com/DataDog/dogstatsd-ruby/issues/155
 [#156]: https://github.com/DataDog/dogstatsd-ruby/issues/156
+[#161]: https://github.com/DataDog/dogstatsd-ruby/issues/161
 [@AMekss]: https://github.com/AMekss
 [@abicky]: https://github.com/abicky
 [@adimitrov]: https://github.com/adimitrov
@@ -269,6 +274,7 @@ Future versions are likely to introduce backward incompatibilities with < Ruby 1
 [@jacobbednarz]: https://github.com/jacobbednarz
 [@janester]: https://github.com/janester
 [@jtzemp]: https://github.com/jtzemp
+[@kazu9su]: https://github.com/kazu9su
 [@kbogtob]: https://github.com/kbogtob
 [@marcotc]: https://github.com/marcotc
 [@misterbyrne]: https://github.com/misterbyrne

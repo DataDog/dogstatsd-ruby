@@ -289,6 +289,7 @@ module Datadog
     # @option opts [String, nil] :priority ('normal') Can be "normal" or "low"
     # @option opts [String, nil] :source_type_name (nil) Assign a source type to the event
     # @option opts [String, nil] :alert_type ('info') Can be "error", "warning", "info" or "success".
+    # @option opts [Boolean, false] :truncate_if_too_long (false) Truncate the event if it is too long
     # @option opts [Array<String>] :tags tags to be added to every metric
     # @example Report an awful event:
     #   $statsd.event('Something terrible happened', 'The end is near if we do nothing', :alert_type=>'warning', :tags=>['end_of_times','urgent'])

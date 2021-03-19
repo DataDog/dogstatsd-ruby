@@ -746,6 +746,16 @@ describe Datadog::Statsd do
 
         expect(socket.recv[0]).to eq_with_telemetry('_e{16,22}:this is a\ntitle|this is a longer\ntext', metrics: 0, events: 1)
       end
+
+      context 'when truncate_if_too_long option is specified' do
+        let(:options) { { truncate_if_too_long: true } }
+
+        it 'does not raise error' do
+          expect do
+            subject.event(title, text, options)
+          end.not_to raise_error(RuntimeError, /payload is too big/)
+        end
+      end
     end
 
     context 'with a known alert type' do
