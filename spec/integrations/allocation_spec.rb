@@ -39,21 +39,23 @@ describe 'Allocations and garbage collection' do
     before do
       # warmup
       subject.increment('foobar', tags: { something: 'a value' })
+      subject.flush(sync: true)
     end
 
     let(:expected_allocations) do
       if RUBY_VERSION < '2.4.0'
-        17
-      elsif RUBY_VERSION >= '2.4.0' && RUBY_VERSION < '2.5.0'
         16
-      else
+      elsif RUBY_VERSION >= '2.4.0' && RUBY_VERSION < '2.5.0'
         15
+      else
+        14
       end
     end
 
     it 'produces low amounts of garbage' do
       expect do
         subject.increment('foobar')
+        subject.flush(sync: true)
       end.to make_allocations(expected_allocations)
     end
 
@@ -64,7 +66,7 @@ describe 'Allocations and garbage collection' do
           sample_rate: sample_rate,
           tags: tags,
           logger: logger,
-          disable_telemetry: true,
+          telemetry_enable: false,
         )
       end
 
@@ -81,6 +83,7 @@ describe 'Allocations and garbage collection' do
       it 'produces even lower amounts of garbage' do
         expect do
           subject.increment('foobar')
+          subject.flush(sync: true)
         end.to make_allocations(expected_allocations)
       end
     end
@@ -88,17 +91,18 @@ describe 'Allocations and garbage collection' do
     context 'with tags' do
       let(:expected_allocations) do
         if RUBY_VERSION < '2.4.0'
-          26
+          25
         elsif RUBY_VERSION >= '2.4.0' && RUBY_VERSION < '2.5.0'
-          24
-        else
           23
+        else
+          22
         end
       end
 
       it 'produces low amounts of garbage' do
         expect do
           subject.increment('foobar', tags: { something: 'a value' }) { 1111 }
+          subject.flush(sync: true)
         end.to make_allocations(expected_allocations)
       end
     end
@@ -108,21 +112,23 @@ describe 'Allocations and garbage collection' do
     before do
       # warmup
       subject.time('foobar', tags: { something: 'a value' }) { 1111 }
+      subject.flush(sync: true)
     end
 
     let(:expected_allocations) do
       if RUBY_VERSION < '2.4.0'
-        17
-      elsif RUBY_VERSION >= '2.4.0' && RUBY_VERSION < '2.5.0'
         16
-      else
+      elsif RUBY_VERSION >= '2.4.0' && RUBY_VERSION < '2.5.0'
         15
+      else
+        14
       end
     end
 
     it 'produces low amounts of garbage' do
       expect do
         subject.time('foobar') { 1111 }
+        subject.flush(sync: true)
       end.to make_allocations(expected_allocations)
     end
 
@@ -133,7 +139,7 @@ describe 'Allocations and garbage collection' do
           sample_rate: sample_rate,
           tags: tags,
           logger: logger,
-          disable_telemetry: true,
+          telemetry_enable: false,
         )
       end
 
@@ -150,6 +156,7 @@ describe 'Allocations and garbage collection' do
       it 'produces even lower amounts of garbage' do
         expect do
           subject.time('foobar') { 1111 }
+          subject.flush(sync: true)
         end.to make_allocations(expected_allocations)
       end
     end
@@ -157,17 +164,18 @@ describe 'Allocations and garbage collection' do
     context 'with tags' do
       let(:expected_allocations) do
         if RUBY_VERSION < '2.4.0'
-          26
+          25
         elsif RUBY_VERSION >= '2.4.0' && RUBY_VERSION < '2.5.0'
-          24
-        else
           23
+        else
+          22
         end
       end
 
       it 'produces low amounts of garbage' do
         expect do
           subject.time('foobar', tags: { something: 'a value' }) { 1111 }
+          subject.flush(sync: true)
         end.to make_allocations(expected_allocations)
       end
     end
@@ -177,21 +185,23 @@ describe 'Allocations and garbage collection' do
     before do
       # warmup
       subject.event('foobar', 'happening', tags: { something: 'a value' })
+      subject.flush(sync: true)
     end
 
     let(:expected_allocations) do
       if RUBY_VERSION < '2.4.0'
-        19
-      elsif RUBY_VERSION >= '2.4.0' && RUBY_VERSION < '2.5.0'
         18
-      else
+      elsif RUBY_VERSION >= '2.4.0' && RUBY_VERSION < '2.5.0'
         17
+      else
+        16
       end
     end
 
     it 'produces low amounts of garbage' do
       expect do
         subject.event('foobar', 'happening')
+        subject.flush(sync: true)
       end.to make_allocations(expected_allocations)
     end
 
@@ -202,7 +212,7 @@ describe 'Allocations and garbage collection' do
           sample_rate: sample_rate,
           tags: tags,
           logger: logger,
-          disable_telemetry: true,
+          telemetry_enable: false,
         )
       end
 
@@ -219,6 +229,7 @@ describe 'Allocations and garbage collection' do
       it 'produces even lower amounts of garbage' do
         expect do
           subject.event('foobar', 'happening')
+          subject.flush(sync: true)
         end.to make_allocations(expected_allocations)
       end
     end
@@ -226,17 +237,18 @@ describe 'Allocations and garbage collection' do
     context 'with tags' do
       let(:expected_allocations) do
         if RUBY_VERSION < '2.4.0'
-          28
+          27
         elsif RUBY_VERSION >= '2.4.0' && RUBY_VERSION < '2.5.0'
-          26
-        else
           25
+        else
+          24
         end
       end
 
       it 'produces low amounts of garbage' do
         expect do
           subject.event('foobar', 'happening', tags: { something: 'a value' })
+          subject.flush(sync: true)
         end.to make_allocations(expected_allocations)
       end
     end
@@ -246,21 +258,23 @@ describe 'Allocations and garbage collection' do
     before do
       # warmup
       subject.service_check('foobar', 'happening', tags: { something: 'a value' })
+      subject.flush(sync: true)
     end
 
     let(:expected_allocations) do
       if RUBY_VERSION < '2.4.0'
-        15
-      elsif RUBY_VERSION >= '2.4.0' && RUBY_VERSION < '2.5.0'
         14
-      else
+      elsif RUBY_VERSION >= '2.4.0' && RUBY_VERSION < '2.5.0'
         13
+      else
+        12
       end
     end
 
     it 'produces low amounts of garbage' do
       expect do
         subject.service_check('foobar', 'ok')
+        subject.flush(sync: true)
       end.to make_allocations(expected_allocations)
     end
 
@@ -271,7 +285,7 @@ describe 'Allocations and garbage collection' do
           sample_rate: sample_rate,
           tags: tags,
           logger: logger,
-          disable_telemetry: true,
+          telemetry_enable: false,
         )
       end
 
@@ -288,6 +302,7 @@ describe 'Allocations and garbage collection' do
       it 'produces even lower amounts of garbage' do
         expect do
           subject.service_check('foobar', 'ok')
+          subject.flush(sync: true)
         end.to make_allocations(expected_allocations)
       end
     end
@@ -295,17 +310,18 @@ describe 'Allocations and garbage collection' do
     context 'with tags' do
       let(:expected_allocations) do
         if RUBY_VERSION < '2.4.0'
-          24
+          23
         elsif RUBY_VERSION >= '2.4.0' && RUBY_VERSION < '2.5.0'
-          22
-        else
           21
+        else
+          20
         end
       end
 
       it 'produces low amounts of garbage' do
         expect do
           subject.service_check('foobar', 'ok', tags: { something: 'a value' })
+          subject.flush(sync: true)
         end.to make_allocations(expected_allocations)
       end
     end

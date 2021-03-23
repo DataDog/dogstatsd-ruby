@@ -1,6 +1,6 @@
 require 'rspec/expectations'
 
-RSpec::Matchers.define :eq_with_telemetry do |expected, telemetry_options|
+RSpec::Matchers.define :eq_with_telemetry do |expected_message, telemetry_options|
   telemetry_options ||= {}
 
   # Appends the telemetry metrics to the metrics string passed as 'text'
@@ -17,11 +17,13 @@ RSpec::Matchers.define :eq_with_telemetry do |expected, telemetry_options|
     ].join("\n")
   end
 
-  match do |actual|
-    actual == add_telemetry(expected, **telemetry_options)
+  define_method(:expected) do
+    @expected ||= add_telemetry(expected_message, **telemetry_options)
   end
 
-  failure_message do |actual|
-    "expected that #{actual.inspect} would be equal to #{expected.inspect} with telemetry options #{telemetry_options.inspect}"
+  match do |actual|
+    actual == expected
   end
+
+  diffable
 end
