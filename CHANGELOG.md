@@ -2,6 +2,11 @@
 
 [//]: # (comment: Don't forget to update lib/datadog/statsd/version.rb:DogStatsd::Statsd::VERSION when releasing a new version)
 
+## 4.9.0 / 2021.03.23
+
+* [IMPROVEMENT] Use asynchronous IO to avoid doing IO in the hot paths of the library users [#151][] by [@kbogtob][]
+* [IMPROVEMENT] Automatic buffering/preemptive flushing for better performances [#146][] by [@kbogtob][]
+
 ## 4.8.3 / 2021.02.22
 
 * [FEATURE] Add `truncate_if_too_long` option to the `event` call to truncate the event if it is too long instead of raising an error [#161][] by [@kazu9su][]
