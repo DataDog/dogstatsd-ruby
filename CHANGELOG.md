@@ -4,8 +4,8 @@
 
 ## 4.9.0 / 2021.03.23
 
-* [IMPROVEMENT] Use asynchronous IO to avoid doing IO in the hot paths of the library users [#151][] by [@kbogtob][]
-* [IMPROVEMENT] Automatic buffering/preemptive flushing for better performances [#146][] by [@kbogtob][]
+A version 4.9.0 containing changes intended for 5.0.0 (with API breaking changes) has been released and was available on 2021-03-23.
+It has been removed on 2021-03-24 and is not available anymore: v4.8.x should be used for latest v4 version of the gem, and v5.x.x versions should be used to benefit from the latest performances improvements.
 
 ## 4.8.3 / 2021.02.22
 
