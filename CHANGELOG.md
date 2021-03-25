@@ -2,7 +2,42 @@
 
 [//]: # (comment: Don't forget to update lib/datadog/statsd/version.rb:DogStatsd::Statsd::VERSION when releasing a new version)
 
-## 4.9.0 / 2021.03.23
+## 5.0.0 / 2021.03.XX
+
+**API breaking changes**
+
+This new major version uses automatic buffering with preemptive flushing, there is no need to manually batch the metrics together anymore. The preemptive flushing part means that just before the buffer gets full, a flush is triggered. Manual flush is still possible with the `Statsd#flush` method. The `Statsd#batch` method has been removed from the API.
+
+What would have been written this way with the v4 API:
+
+```ruby
+require 'datadog/statsd'
+
+statsd = Datadog::Statsd.new('127.0.0.1', 8125)
+
+statsd.batch do |s|
+  s.increment('example_metric.increment', tags: ['environment:dev'])
+  s.gauge('example_metric.gauge', 123, tags: ['environment:dev'])
+end
+```
+
+should be written this way with the v5 API:
+
+```ruby
+require 'datadog/statsd'
+
+statsd = Datadog::Statsd.new('127.0.0.1', 8125)
+
+statsd.increment('example_metric.increment', tags: ['environment:dev'])
+statsd.gauge('example_metric.gauge', 123, tags: ['environment:dev'])
+
+# synchronous flush
+statsd.flush(sync: true)
+```
+
+`Statsd#initialize` parameter `max_buffer_bytes` has been renamed to `buffer_max_payload_size` for consistency with the new automatic batch strategy. Please note the addition of `buffer_max_pool_size` to limit the maximum amount of *messages* to buffer.
+
+Commits:
 
 * [IMPROVEMENT] Use asynchronous IO to avoid doing IO in the hot paths of the library users [#151][] by [@kbogtob][]
 * [IMPROVEMENT] Automatic buffering/preemptive flushing for better performances [#146][] by [@kbogtob][]
