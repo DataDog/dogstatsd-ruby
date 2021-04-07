@@ -2,7 +2,7 @@
 
 [//]: # (comment: Don't forget to update lib/datadog/statsd/version.rb:DogStatsd::Statsd::VERSION when releasing a new version)
 
-## 5.0.0 / 2021.03.XX
+## 5.0.0 / 2021.04.07
 
 **API breaking changes**
 
