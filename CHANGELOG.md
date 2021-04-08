@@ -2,6 +2,15 @@
 
 [//]: # (comment: Don't forget to update lib/datadog/statsd/version.rb:DogStatsd::Statsd::VERSION when releasing a new version)
 
+## 5.0.1 / 2021.04.09
+
+  * [OTHER] Re-introduce a `Statsd#batch` method to help with compatibility with v4.x versions:
+      - It is deprecated and will be removed in v6.x
+      - It does not have the exact same behavior as the batch method from v4.x versions
+      since the flush could now automatically occur while the batch block is executed if
+      the buffer has been filled. [#176][] by [@remeh][]
+  * [BUGFIX] Safely close concurrent resources on Sender [#175][] by [@marcotc][]
+
 ## 5.0.0 / 2021.04.07
 
 **API breaking changes**
@@ -294,10 +303,14 @@ Future versions are likely to introduce backward incompatibilities with < Ruby 1
 [#138]: https://github.com/DataDog/dogstatsd-ruby/issues/138
 [#140]: https://github.com/DataDog/dogstatsd-ruby/issues/140
 [#143]: https://github.com/DataDog/dogstatsd-ruby/issues/143
+[#146]: https://github.com/DataDog/dogstatsd-ruby/issues/146
 [#147]: https://github.com/DataDog/dogstatsd-ruby/issues/147
+[#151]: https://github.com/DataDog/dogstatsd-ruby/issues/151
 [#155]: https://github.com/DataDog/dogstatsd-ruby/issues/155
 [#156]: https://github.com/DataDog/dogstatsd-ruby/issues/156
 [#161]: https://github.com/DataDog/dogstatsd-ruby/issues/161
+[#175]: https://github.com/DataDog/dogstatsd-ruby/issues/175
+[#176]: https://github.com/DataDog/dogstatsd-ruby/issues/176
 [@AMekss]: https://github.com/AMekss
 [@abicky]: https://github.com/abicky
 [@adimitrov]: https://github.com/adimitrov
@@ -324,6 +337,7 @@ Future versions are likely to introduce backward incompatibilities with < Ruby 1
 [@pschambacher]: https://github.com/pschambacher
 [@ramfjord]: https://github.com/ramfjord
 [@redhotpenguin]: https://github.com/redhotpenguin
+[@remeh]: https://github.com/remeh
 [@sensadrome]: https://github.com/sensadrome
 [@sj26]: https://github.com/sj26
 [@sullerandras]: https://github.com/sullerandras
