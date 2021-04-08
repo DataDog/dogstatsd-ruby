@@ -307,6 +307,8 @@ module Datadog
     # It also means that an automatic flush could occur if the buffer is filled
     # during the execution of the batch block.
     #
+    # This method is DEPRECATED and will be removed in future v6.x API.
+    #
     # @example Send several metrics in one packet:
     #   $statsd.batch do |s|
     #      s.gauge('users.online',156)
