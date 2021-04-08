@@ -13,7 +13,11 @@ module Datadog
 
           # Convert to tag list and set
           @global_tags = to_tags_list(global_tags)
-          @global_tags_formatted = @global_tags.join(',') if @global_tags.any?
+          if @global_tags.any?
+            @global_tags_formatted = @global_tags.join(',')
+          else
+            @global_tags_formatted = nil
+          end
         end
 
         def format(message_tags)

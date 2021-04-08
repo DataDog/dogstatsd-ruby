@@ -28,6 +28,20 @@ describe 'Buffering integration testing' do
     expect(socket.recv).to be_nil
   end
 
+  it 'the batch compatility method properly uses the buffer max pool size' do
+    subject.batch do |s|
+      s.increment('mycounter')
+      s.increment('myothercounter')
+      s.decrement('anothercounter')
+      s.increment('myothercounter')
+      s.decrement('yetanothercounter')
+    end
+    # multiple reads since buffer_max_pool_size == 2
+    expect(socket.recv[0]).to eq("mycounter:1|c\nmyothercounter:1|c")
+    expect(socket.recv[0]).to eq("anothercounter:-1|c\nmyothercounter:1|c")
+    expect(socket.recv[0]).to eq("yetanothercounter:-1|c")
+  end
+
   it 'sends single samples in one packet' do
     subject.increment('mycounter')
 
@@ -51,6 +65,17 @@ describe 'Buffering integration testing' do
   context 'when testing payload size limits' do
     let(:buffer_max_pool_size) do
       nil
+    end
+
+    it 'the batch compatility method is flushing everything in one time' do
+      subject.batch do |s|
+        s.increment('mycounter')
+        s.increment('myothercounter')
+        s.decrement('anothercounter')
+        s.increment('myothercounter')
+        s.decrement('yetanothercounter')
+      end
+      expect(socket.recv[0]).to eq("mycounter:1|c\nmyothercounter:1|c\nanothercounter:-1|c\nmyothercounter:1|c\nyetanothercounter:-1|c")
     end
 
     it 'flushes when the buffer gets too big' do
