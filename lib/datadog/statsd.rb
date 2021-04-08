@@ -299,6 +299,24 @@ module Datadog
       forwarder.send_message(serializer.to_event(title, text, opts))
     end
 
+    # Send several metrics in the same packet.
+    # They will be buffered and flushed when the block finishes.
+    #
+    # This method exists for compatibility with v4.x versions, it is not needed
+    # anymore since the batching is now automatically done internally.
+    # It also means that an automatic flush could occur if the buffer is filled
+    # during the execution of the batch block.
+    #
+    # @example Send several metrics in one packet:
+    #   $statsd.batch do |s|
+    #      s.gauge('users.online',156)
+    #      s.increment('page.views')
+    #    end
+    def batch
+      yield self
+      flush(sync: true)
+    end
+
     # Close the underlying socket
     def close
       forwarder.close
