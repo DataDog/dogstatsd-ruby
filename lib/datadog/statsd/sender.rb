@@ -45,12 +45,18 @@ module Datadog
 
       if CLOSEABLE_QUEUES
         def stop(join_worker: true)
+          message_queue = @message_queue
           message_queue.close if message_queue
+
+          sender_thread = @sender_thread
           sender_thread.join if sender_thread && join_worker
         end
       else
         def stop(join_worker: true)
+          message_queue = @message_queue
           message_queue << :close if message_queue
+
+          sender_thread = @sender_thread
           sender_thread.join if sender_thread && join_worker
         end
       end
