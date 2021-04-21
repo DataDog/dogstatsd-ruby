@@ -926,10 +926,36 @@ describe Datadog::Statsd do
       subject.flush(sync: true)
     end
 
-    it 'closes the socket' do
-      expect(socket).to receive(:close)
+    context 'when not using the flush option' do
+      it 'closes the socket' do
+        expect(socket).to receive(:close)
 
-      subject.close
+        subject.close(flush: false)
+      end
+
+      it 'does not write buffered data to the socket' do
+        subject.increment('test')
+
+        expect(socket).not_to receive(:send)
+
+        subject.close(flush: false)
+      end
+    end
+
+    context 'when using the flush option' do
+      it 'closes the socket' do
+        expect(socket).to receive(:close)
+
+        subject.close
+      end
+
+      it 'writes the buffered data to the socket' do
+        subject.increment('test')
+
+        expect(socket).to receive(:send)
+
+        subject.close
+      end
     end
   end
 

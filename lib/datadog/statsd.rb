@@ -320,7 +320,10 @@ module Datadog
     end
 
     # Close the underlying socket
-    def close
+    #
+    # @param [Boolean, true] flush Should we flush the metrics before closing
+    def close(flush: true)
+      flush(sync: true) if flush
       forwarder.close
     end
 
