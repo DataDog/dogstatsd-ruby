@@ -84,6 +84,14 @@ size should be used, you can set it with the parameter `buffer_max_payload_size`
 statsd = Datadog::Statsd.new('localhost', 8125, buffer_max_payload_size: 4096)
 ```
 
+## Threading model
+
+This library uses a companion thread to write in the agent's socket so that you can call statsd in a hot path without having IO on the socket each time.
+
+Also, this new companion thread means that you can have multiple thread using the same initialized instance of `Datadog::Statsd` without issues as all the atomic code is done in the background thread.
+
+You find more details in this documentatation: [Threading model](documentation/threading_model.md)
+
 ## Credits
 
 dogstatsd-ruby is forked from Rein Henrichs [original Statsd
