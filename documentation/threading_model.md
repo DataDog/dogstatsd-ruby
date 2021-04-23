@@ -2,7 +2,7 @@
 
 On versions greater than 5.0, we changed the threading model of the library so that one instance of `Datadog::Statsd` could be shared between threads and so that the writes in the socket are non blocking.
 
-When you instanciate a `Datadog::Statsd`, a companion thread is spawn. This thread will be called the Sender thread, as it is modeled by the [Sender](../lib/datadog/statsd/sender.rb) class.
+When you instantiate a `Datadog::Statsd`, a companion thread is spawned. This thread will be called the Sender thread, as it is modeled by the [Sender](../lib/datadog/statsd/sender.rb) class.
 
 This thread is automatically stopped when you close the statsd client (`Datadog::Statsd#close`). The communication between the current thread is managed through a standard Ruby Queue.
 
@@ -34,7 +34,7 @@ There is also an implicit message which is closing the queue as it will stop blo
 
 ## Usual workflow
 
-You push metrics to the statsd client which writes them quickly to the sender message queue. The sender thread receives those message, bufferize them and flush them to the connection when close the buffer limits.
+You push metrics to the statsd client which writes them quickly to the sender message queue. The sender thread receives those message, buffers them and flushes them to the connection when the buffer limit is reached.
 
 ## Flushing
 
@@ -47,5 +47,4 @@ It is possible to ensure a message has been consumed by the sender thread and wr
 This means the current thread is going to sleep and wait for a Queue which is given to the sender thread. When the sender thread reads this queue from its own message queue, it puts a placeholder message in it so that it wakes up the calling thread.
 
 This is useful when closing the application or when checking unit tests.
-
 
