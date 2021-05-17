@@ -47,7 +47,7 @@ change concerning you is the new threading model (please see section Threading m
 In practice, it means two things:
 
 1. Now that the client is buffering metrics before sending them, you have to manually
-call the method `Datadog::Statsd#flush` if you want the metrics to be sent. Note that the companion thread will automatically flush the buffered metrics if the buffer gets full.
+call the method `Datadog::Statsd#flush` if you want the metrics to be sent. Note that the companion thread will automatically flush the buffered metrics if the buffer gets full or when you are closing the instance.
 
 2. You have to make sure you are either:
 
