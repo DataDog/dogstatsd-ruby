@@ -26,6 +26,10 @@ statsd.batch do |s|
   s.increment('example_metric.increment', tags: ['environment:dev'])
   s.gauge('example_metric.gauge', 123, tags: ['environment:dev'])
 end
+
+...
+
+statsd.close()
 ```
 should be written this way with the v5 API:
 ```ruby
@@ -38,9 +42,15 @@ statsd.gauge('example_metric.gauge', 123, tags: ['environment:dev'])
 
 # synchronous flush
 statsd.flush(sync: true)
+
+...
+
+statsd.close()
 ```
 
-2. `Statsd#initialize` parameter `max_buffer_bytes` has been renamed to `buffer_max_payload_size` for consistency with the new automatic batch strategy. Please note the addition of `buffer_max_pool_size` to limit the maximum amount of *messages* to buffer.
+2. Every instance of the client will spawn a companion thread for the new flush mechanism: it is important to close every instance using the method `Statsd#close` to avoid a thread leak.
+
+3. `Statsd#initialize` parameter `max_buffer_bytes` has been renamed to `buffer_max_payload_size` for consistency with the new automatic batch strategy. Please note the addition of `buffer_max_pool_size` to limit the maximum amount of *messages* to buffer.
 
 ### Commits
 
