@@ -42,12 +42,17 @@ Find a list of all the available options for your DogStatsD Client in the [DogSt
 ### Migrating from v4.x to v5.x
 
 If you are already using DogStatsD-ruby v4.x and you want to migrate to a version v5.x, the major
-change concerning you is the new threading model (please see section Threading model).
+change concerning you is the new threading model (please see section Threading model):
 
-In practice, it means that you have to make sure you are either:
+In practice, it means two things:
+
+1. Now that the client is buffering metrics before sending them, you have to manually
+call the method `Datadog::Statsd#flush` if you want the metrics to be sent. Note that the companion thread will automatically flush the buffered metrics if the buffer gets full.
+
+2. You have to make sure you are either:
 
   * using singletons instances of the DogStatsD client and not allocating one each time you need one, or,
-  * properly closing your DogStatsD client instance using the method `Datadog::Statsd#close` to release the resources used by the instance
+  * properly closing your DogStatsD client instance when it is not needed anymore using the method `Datadog::Statsd#close` to release the resources used by the instance and to close the socket
 
 ### Origin detection over UDP
 
