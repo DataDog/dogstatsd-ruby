@@ -24,14 +24,35 @@ require 'datadog/statsd'
 
 # Create a DogStatsD client instance.
 statsd = Datadog::Statsd.new('localhost', 8125)
+...
+# release resources used by the client instance
+statsd.close()
 ```
 Or if you want to connect over Unix Domain Socket:
 ```ruby
 # Connection over Unix Domain Socket
 statsd = Datadog::Statsd.new(socket_path: '/path/to/socket/file')
+...
+# release resources used by the client instance
+statsd.close()
 ```
 
 Find a list of all the available options for your DogStatsD Client in the [DogStatsD-ruby rubydoc](https://www.rubydoc.info/github/DataDog/dogstatsd-ruby/master/Datadog/Statsd) or in the [Datadog public DogStatsD documentation](https://docs.datadoghq.com/developers/dogstatsd/?tab=ruby#client-instantiation-parameters).
+
+### Migrating from v4.x to v5.x
+
+If you are already using DogStatsD-ruby v4.x and you want to migrate to a version v5.x, the major
+change concerning you is the new threading model (please see section Threading model):
+
+In practice, it means two things:
+
+1. Now that the client is buffering metrics before sending them, you have to manually
+call the method `Datadog::Statsd#flush` if you want to force the sending of metrics. Note that the companion thread will automatically flush the buffered metrics if the buffer gets full or when you are closing the instance.
+
+2. You have to make sure you are either:
+
+  * using singletons instances of the DogStatsD client and not allocating one each time you need one, letting the buffering mechanism flush metrics, or,
+  * properly closing your DogStatsD client instance when it is not needed anymore using the method `Datadog::Statsd#close` to release the resources used by the instance and to close the socket
 
 ### Origin detection over UDP
 
@@ -90,7 +111,9 @@ On versions greater than 5.0, we changed the threading model of the library so t
 
 When you instantiate a `Datadog::Statsd`, a companion thread is spawned. This thread will be called the Sender thread, as it is modeled by the [Sender](../lib/datadog/statsd/sender.rb) class.
 
-This thread is automatically stopped when you close the statsd client (`Datadog::Statsd#close`). The communication between the current thread is managed through a standard Ruby Queue.
+This thread is stopped when you close the statsd client (`Datadog::Statsd#close`). It also means that allocating a lot of statsd clients without closing them properly when not used anymore
+could lead to a thread leak (even though they will be sleeping, blocked on IO).
+The communication between the current thread is managed through a standard Ruby Queue.
 
 The sender thread has the following logic (Code present in the method `Datadog::Statsd::Sender#send_loop`):
 
@@ -128,7 +151,7 @@ When calling a flush, a specific control message (the `:flush` symbol) is sent t
 
 ### Rendez-vous
 
-It is possible to ensure a message has been consumed by the sender thread and written to the buffer by simply calling a rendez-vous right after. This is done when you are doing a synchronized flush (calling `Datadog::Statsd#flush` with the `sync: true` option). 
+It is possible to ensure a message has been consumed by the sender thread and written to the buffer by simply calling a rendez-vous right after. This is done when you are doing a synchronized flush (calling `Datadog::Statsd#flush` with the `sync: true` option).
 
 This means the current thread is going to sleep and wait for a Queue which is given to the sender thread. When the sender thread reads this queue from its own message queue, it puts a placeholder message in it so that it wakes up the calling thread.
 

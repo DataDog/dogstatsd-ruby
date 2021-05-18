@@ -15,7 +15,19 @@
 
 **API breaking changes**
 
-1. This new major version uses automatic buffering with preemptive flushing, there is no need to manually batch the metrics together anymore. The preemptive flushing part means that just before the buffer gets full, a flush is triggered. Manual flush is still possible with the `Statsd#flush` method. The `Statsd#batch` method has been removed from the API. What would have been written this way with the v4 API:
+1. This new major version uses automatic buffering with preemptive flushing, there is no need to manually batch the metrics together anymore.
+The preemptive flushing part means that just before the buffer gets full, a flush is triggered.
+However, manual flush is still possible with the `Statsd#flush` method and is necessary to synchronously
+send your metrics. The `Statsd#batch` method has been deprecated from the API.
+
+2. Every instance of the client will spawn a companion thread for the new flush mechanism: it is important to close every instance using the method `Statsd#close`.
+
+3. As of (1), the metrics are now buffered before being sent on the network, you have to use the `Statsd#flush`
+method to force their sending through the socket. Note that the companion thread will automatically flush the buffered metrics if the buffer gets full or when you are closing the instance.
+
+4. `Statsd#initialize` parameter `max_buffer_bytes` has been renamed to `buffer_max_payload_size` for consistency with the new automatic batch strategy. Please note the addition of `buffer_max_pool_size` to limit the maximum amount of *messages* to buffer.
+
+What would have been written this way with the v4 API:
 
 ```ruby
 require 'datadog/statsd'
@@ -26,6 +38,10 @@ statsd.batch do |s|
   s.increment('example_metric.increment', tags: ['environment:dev'])
   s.gauge('example_metric.gauge', 123, tags: ['environment:dev'])
 end
+
+...
+
+statsd.close()
 ```
 should be written this way with the v5 API:
 ```ruby
@@ -38,9 +54,11 @@ statsd.gauge('example_metric.gauge', 123, tags: ['environment:dev'])
 
 # synchronous flush
 statsd.flush(sync: true)
-```
 
-2. `Statsd#initialize` parameter `max_buffer_bytes` has been renamed to `buffer_max_payload_size` for consistency with the new automatic batch strategy. Please note the addition of `buffer_max_pool_size` to limit the maximum amount of *messages* to buffer.
+...
+
+statsd.close()
+```
 
 ### Commits
 
