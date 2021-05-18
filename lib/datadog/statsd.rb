@@ -84,6 +84,7 @@ module Datadog
       buffer_overflowing_stategy: :drop,
 
       logger: nil,
+      auto_close: false,
 
       telemetry_enable: true,
       telemetry_flush_interval: DEFAULT_TELEMETRY_FLUSH_INTERVAL
@@ -111,6 +112,8 @@ module Datadog
 
         telemetry_flush_interval: telemetry_enable ? telemetry_flush_interval : nil,
       )
+
+      self.class.subscribe_for_close_on_exit(self) if auto_close
     end
 
     # yield a new instance to a block and close it when done
@@ -384,5 +387,24 @@ module Datadog
         forwarder.send_message(full_stat)
       end
     end
+
+    class << self
+      def subscribe_for_close_on_exit(instance)
+        instances << instance
+      end
+
+      def close_instances
+        instances.each(&:close)
+      end
+
+      private
+      def instances
+        @instances ||= []
+      end
+    end
   end
+end
+
+at_exit do
+  Datadog::Statsd.close_instances
 end
