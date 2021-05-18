@@ -47,11 +47,11 @@ change concerning you is the new threading model (please see section Threading m
 In practice, it means two things:
 
 1. Now that the client is buffering metrics before sending them, you have to manually
-call the method `Datadog::Statsd#flush` if you want the metrics to be sent. Note that the companion thread will automatically flush the buffered metrics if the buffer gets full or when you are closing the instance.
+call the method `Datadog::Statsd#flush` if you want to force the sending of metrics. Note that the companion thread will automatically flush the buffered metrics if the buffer gets full or when you are closing the instance.
 
 2. You have to make sure you are either:
 
-  * using singletons instances of the DogStatsD client and not allocating one each time you need one, or,
+  * using singletons instances of the DogStatsD client and not allocating one each time you need one, letting the buffering mechanism flush metrics, or,
   * properly closing your DogStatsD client instance when it is not needed anymore using the method `Datadog::Statsd#close` to release the resources used by the instance and to close the socket
 
 ### Origin detection over UDP
@@ -112,7 +112,7 @@ On versions greater than 5.0, we changed the threading model of the library so t
 When you instantiate a `Datadog::Statsd`, a companion thread is spawned. This thread will be called the Sender thread, as it is modeled by the [Sender](../lib/datadog/statsd/sender.rb) class.
 
 This thread is stopped when you close the statsd client (`Datadog::Statsd#close`). It also means that allocating a lot of statsd clients without closing them properly when not used anymore
-could lead to a thread leak.
+could lead to a thread leak (even though they will be sleeping, blocked on IO).
 The communication between the current thread is managed through a standard Ruby Queue.
 
 The sender thread has the following logic (Code present in the method `Datadog::Statsd::Sender#send_loop`):
