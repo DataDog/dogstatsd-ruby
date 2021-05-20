@@ -2,6 +2,11 @@
 
 [//]: # (comment: Don't forget to update lib/datadog/statsd/version.rb:DogStatsd::Statsd::VERSION when releasing a new version)
 
+## 5.1.0 / 2021.05.24
+
+  * [FEATURE] Add an auto-close feature on the client instance with the new parameter `auto_close` (defaulting to false) [#181][] by [@kbogtob][]
+  * [FEATURE] Flush last metrics on `Statsd#close` [#180][] by [@kbogtob][]
+
 ## 5.0.1 / 2021.04.09
 
   * [OTHER] Re-introduce a `Statsd#batch` method to help with compatibility with v4.x versions:
@@ -329,6 +334,8 @@ Future versions are likely to introduce backward incompatibilities with < Ruby 1
 [#161]: https://github.com/DataDog/dogstatsd-ruby/issues/161
 [#175]: https://github.com/DataDog/dogstatsd-ruby/issues/175
 [#176]: https://github.com/DataDog/dogstatsd-ruby/issues/176
+[#180]: https://github.com/DataDog/dogstatsd-ruby/issues/180
+[#181]: https://github.com/DataDog/dogstatsd-ruby/issues/181
 [@AMekss]: https://github.com/AMekss
 [@abicky]: https://github.com/abicky
 [@adimitrov]: https://github.com/adimitrov
