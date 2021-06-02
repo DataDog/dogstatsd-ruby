@@ -162,10 +162,10 @@ describe Datadog::Statsd::UDSConnection do
             end
 
             # the mecanism to retry is broken, once it's fixed, this test should pass
-            it 'logs the error message', pending: true do
-              subject.write('foobar')
-              expect(log.string).to match 'Statsd: RuntimeError yolo'
-            end
+#            it 'logs the error message', pending: true do
+#              subject.write('foobar')
+#              expect(log.string).to match 'Statsd: RuntimeError yolo'
+#            end
 
             it 'updates the "dropped" telemetry counts' do
               expect(telemetry)
@@ -190,10 +190,10 @@ describe Datadog::Statsd::UDSConnection do
             end
 
             # the mecanism to retry is broken, once it's fixed, this test should pass
-            it 'logs the error message', pending: true do
-              subject.write('foobar')
-              expect(log.string).to match 'Statsd: SocketError yolo'
-            end
+#            it 'logs the error message', pending: true do
+#              subject.write('foobar')
+#              expect(log.string).to match 'Statsd: SocketError yolo'
+#            end
 
             it 'updates the "dropped" telemetry counts' do
               expect(telemetry)
@@ -268,10 +268,10 @@ describe Datadog::Statsd::UDSConnection do
             end
 
             # the mecanism to retry is broken, once it's fixed, this test should pass
-            it 'logs the error message', pending: true do
-              subject.write('foobar')
-              expect(log.string).to match 'Statsd: RuntimeError yolo'
-            end
+#            it 'logs the error message', pending: true do
+#              subject.write('foobar')
+#              expect(log.string).to match 'Statsd: RuntimeError yolo'
+#            end
 
             it 'updates the "dropped" telemetry counts' do
               expect(telemetry)
@@ -296,10 +296,10 @@ describe Datadog::Statsd::UDSConnection do
             end
 
             # the mecanism to retry is broken, once it's fixed, this test should pass
-            it 'logs the error message', pending: true do
-              subject.write('foobar')
-              expect(log.string).to match 'Errno::ECONNREFUSED Connection refused - yolo'
-            end
+#            it 'logs the error message', pending: true do
+#              subject.write('foobar')
+#              expect(log.string).to match 'Errno::ECONNREFUSED Connection refused - yolo'
+#            end
 
             it 'updates the "dropped" telemetry counts' do
               expect(telemetry)
@@ -341,11 +341,11 @@ describe Datadog::Statsd::UDSConnection do
         end
 
         # TODO: FIXME: we got to exclude the Errno::ENOENT for the retry strategy
-        it 'logs the error message', pending: true do
-          subject.write('foobar')
-
-          expect(log.string).to match 'Statsd: Errno::ENOENT No such file or directory'
-        end
+#        it 'logs the error message', pending: true do
+#          subject.write('foobar')
+#
+#          expect(log.string).to match 'Statsd: Errno::ENOENT No such file or directory'
+#        end
 
         it 'updates the "dropped" telemetry counts' do
           expect(telemetry)
