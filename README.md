@@ -56,12 +56,12 @@ call the method `Datadog::Statsd#flush` if you want to force the sending of metr
 
 ### Known incompatibility with v5.x
 
-Version v5.x of DogStatsD-ruby is using a companion thread for preemptive flushing, it brings better performances for application having a high-throughput of statsd metrics, but it comes with incompatibility with:
+Version v5.x of `dogstatsd-ruby` is using a companion thread for preemptive flushing, it brings better performances for application having a high-throughput of statsd metrics, but it comes with incompatibility with:
 
     * applications forking after having created the dogstatsd instance: forking a process can't duplicate the existing threads, meaning that one of the process won't have a companion thread to flush the metrics
     * applications creating a lot of different instances of the client without closing them. It is important to close the instance to free the thread and the socket it is using
 
-If you are using [Sidekiq](https://github.com/mperham/sidekiq), please make sure to close the client instance that are instanciated. [See this example on using DogStatsD-ruby v5.x with Sidekiq](https://github.com/DataDog/dogstatsd-ruby/blob/master/examples/sidekiq_example.rb)
+If you are using [Sidekiq](https://github.com/mperham/sidekiq), please make sure to close the client instance that are instantiated. [See this example on using DogStatsD-ruby v5.x with Sidekiq](https://github.com/DataDog/dogstatsd-ruby/blob/master/examples/sidekiq_example.rb).
 
 If you are using [Puma](https://github.com/puma/puma) or [Unicorn](https://yhbt.net/unicorn.git), please make sure to create the instance of DogStatsD in the workers, not in the main process before it forks to create its workers. See [this comment for more details](https://github.com/DataDog/dogstatsd-ruby/issues/179#issuecomment-845570345).
 
