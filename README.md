@@ -54,6 +54,19 @@ call the method `Datadog::Statsd#flush` if you want to force the sending of metr
   * using singletons instances of the DogStatsD client and not allocating one each time you need one, letting the buffering mechanism flush metrics, or,
   * properly closing your DogStatsD client instance when it is not needed anymore using the method `Datadog::Statsd#close` to release the resources used by the instance and to close the socket
 
+### Known incompatibility with v5.x
+
+Version v5.x of DogStatsD-ruby is using a companion thread for preemptive flushing, it brings better performances for application having a high-throughput of statsd metrics, but it comes with incompatibility with:
+
+    * applications forking after having created the dogstatsd instance: forking a process can't duplicate the existing threads, meaning that one of the process won't have a companion thread to flush the metrics
+    * applications creating a lot of different instances of the client without closing them. It is important to close the instance to free the thread and the socket it is using
+
+If you are using [Sidekiq](https://github.com/mperham/sidekiq), please make sure to close the client instance that are instanciated. [See this example on using DogStatsD-ruby v5.x with Sidekiq](https://github.com/DataDog/dogstatsd-ruby/blob/master/examples/sidekiq_example.rb)
+
+If you are using [Puma](https://github.com/puma/puma) or [Unicorn](https://yhbt.net/unicorn.git), please make sure to create the instance of DogStatsD in the workers, not in the main process before it forks to create its workers. See [this comment for more details](https://github.com/DataDog/dogstatsd-ruby/issues/179#issuecomment-845570345).
+
+Applications which are in these situations and don't want to/can't change their behavior should pin dogstatsd-ruby v4.x using `gem 'dogstatsd-ruby', '~> 4.0'`. Please note that we will maintain v4.x branch for these reasons until a new version fit these use-cases as well.
+
 ### Origin detection over UDP
 
 Origin detection is a method to detect which pod DogStatsD packets are coming from in order to add the pod's tags to the tag list.
