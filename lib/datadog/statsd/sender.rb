@@ -10,7 +10,8 @@ module Datadog
       end
 
       def flush(sync: false)
-        raise ArgumentError, 'Start sender first' unless message_queue
+        # don't try to flush if there is no message_queue instantiated
+        return unless message_queue
 
         message_queue.push(:flush)
 
