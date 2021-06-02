@@ -54,12 +54,12 @@ call the method `Datadog::Statsd#flush` if you want to force the sending of metr
   * using singletons instances of the DogStatsD client and not allocating one each time you need one, letting the buffering mechanism flush metrics, or,
   * properly closing your DogStatsD client instance when it is not needed anymore using the method `Datadog::Statsd#close` to release the resources used by the instance and to close the socket
 
-### Known incompatibility with v5.x
+### v5.x Common Pitfalls
 
-Version v5.x of `dogstatsd-ruby` is using a companion thread for preemptive flushing, it brings better performances for application having a high-throughput of statsd metrics, but it comes with incompatibility with:
+Version v5.x of `dogstatsd-ruby` is using a companion thread for preemptive flushing, it brings better performances for application having a high-throughput of statsd metrics, but it comes with new pitfalls:
 
-    * applications forking after having created the dogstatsd instance: forking a process can't duplicate the existing threads, meaning that one of the process won't have a companion thread to flush the metrics
-    * applications creating a lot of different instances of the client without closing them. It is important to close the instance to free the thread and the socket it is using
+    * Applications forking after having created the dogstatsd instance: forking a process can't duplicate the existing threads, meaning that one of the process won't have a companion thread to flush the metrics and will lead to missing metrics.
+    * Applications creating a lot of different instances of the client without closing them: it is important to close the instance to free the thread and the socket it is using or it would lead to thread leaks.
 
 If you are using [Sidekiq](https://github.com/mperham/sidekiq), please make sure to close the client instance that are instantiated. [See this example on using DogStatsD-ruby v5.x with Sidekiq](https://github.com/DataDog/dogstatsd-ruby/blob/master/examples/sidekiq_example.rb).
 
