@@ -958,8 +958,16 @@ describe Datadog::Statsd do
       end
     end
   end
-
   describe '.close_instances' do
+    let(:without_auto_close) do
+      described_class.new('localhost', 1234,
+        namespace: namespace,
+        sample_rate: sample_rate,
+        tags: tags,
+        logger: logger,
+        telemetry_flush_interval: -1,
+      )
+    end
     let(:with_auto_close) do
       described_class.new('localhost', 1234,
         namespace: namespace,
@@ -970,26 +978,9 @@ describe Datadog::Statsd do
         auto_close: true,
       )
     end
-
-    let(:without_auto_close) do
-      described_class.new('localhost', 1234,
-        namespace: namespace,
-        sample_rate: sample_rate,
-        tags: tags,
-        logger: logger,
-        telemetry_flush_interval: -1,
-      )
-    end
-
-    it 'closes the registered instances' do
-      expect(with_auto_close).to receive(:close).and_call_original
-
-      described_class.close_instances
-    end
-
-    it 'does not close unregistered instances' do
+    it 'does not close unregistered instances but close registered instances' do
       expect(without_auto_close).not_to receive(:close).and_call_original
-
+      expect(with_auto_close).to receive(:close).and_call_original
       described_class.close_instances
     end
   end
