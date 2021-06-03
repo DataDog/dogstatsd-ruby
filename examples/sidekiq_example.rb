@@ -28,8 +28,8 @@ class ExampleEphemeralInstance
   end
 end
 
-# This Sidekiq worker is using an single global instance created for the worker.
-# It is instanciated when the worker is instanciated. It is important to flush the
+# This Sidekiq worker is using a single global instance created for the worker.
+# It is instantiated when the worker is instantiated. It is important to flush the
 # metrics at the end of the job execution in order to push them to the Datadog intake.
 class ExampleWorkerInstance
   include Sidekiq::Worker
