@@ -2,7 +2,7 @@ require 'spec_helper'
 
 describe Datadog::Statsd::Forwarder do
   subject do
-    described_class.new(params)
+    described_class.new(**params)
   end
 
   let(:buffer_max_payload_size) do
