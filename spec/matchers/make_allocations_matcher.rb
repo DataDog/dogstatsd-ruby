@@ -9,10 +9,10 @@ RSpec::Matchers.define :make_allocations do |expected|
     end
 
     @allocations = stats.allocations.to_a.size
-    @allocations == expected
+    @allocations <= expected
   end
 
   failure_message do |_|
-    "expected that block would make #{expected} allocations but made #{@allocations}"
+    "expected that block would make at most #{expected} allocations but made #{@allocations}"
   end
 end
