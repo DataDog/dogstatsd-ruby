@@ -1,5 +1,7 @@
 source 'https://rubygems.org'
 
+gemspec
+
 gem 'rake', '>= 12.3.3'
 gem 'minitest'
 gem 'minitest-matchers'
@@ -27,6 +29,7 @@ group :development do
   gem 'rspec-its'
   gem 'timecop'
   gem 'byebug'
+  gem 'pry'
 end
 
 group :test do

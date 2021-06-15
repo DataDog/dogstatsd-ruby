@@ -54,6 +54,19 @@ call the method `Datadog::Statsd#flush` if you want to force the sending of metr
   * using singletons instances of the DogStatsD client and not allocating one each time you need one, letting the buffering mechanism flush metrics, or,
   * properly closing your DogStatsD client instance when it is not needed anymore using the method `Datadog::Statsd#close` to release the resources used by the instance and to close the socket
 
+### v5.x Common Pitfalls
+
+Version v5.x of `dogstatsd-ruby` is using a companion thread for preemptive flushing, it brings better performances for application having a high-throughput of statsd metrics, but it comes with new pitfalls:
+
+    * Applications forking after having created the dogstatsd instance: forking a process can't duplicate the existing threads, meaning that one of the processes won't have a companion thread to flush the metrics and will lead to missing metrics.
+    * Applications creating a lot of different instances of the client without closing them: it is important to close the instance to free the thread and the socket it is using or it will lead to thread leaks.
+
+If you are using [Sidekiq](https://github.com/mperham/sidekiq), please make sure to close the client instances that are instantiated. [See this example on using DogStatsD-ruby v5.x with Sidekiq](https://github.com/DataDog/dogstatsd-ruby/blob/master/examples/sidekiq_example.rb).
+
+If you are using [Puma](https://github.com/puma/puma) or [Unicorn](https://yhbt.net/unicorn.git), please make sure to create the instance of DogStatsD in the workers, not in the main process before it forks to create its workers. See [this comment for more details](https://github.com/DataDog/dogstatsd-ruby/issues/179#issuecomment-845570345).
+
+Applications that are in these situations and can't apply these recommendations should pin dogstatsd-ruby v4.x using `gem 'dogstatsd-ruby', '~> 4.0'`. Note that v4.x will continue to be maintained until a future v5.x version can more easily fit these use cases.
+
 ### Origin detection over UDP
 
 Origin detection is a method to detect which pod DogStatsD packets are coming from in order to add the pod's tags to the tag list.
