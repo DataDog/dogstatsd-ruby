@@ -5,6 +5,7 @@
 ## 5.1.0 / 2021.06.15
 
   * [FEATURE] Add an auto-close feature on the client instance with the new parameter `auto_close` (defaulting to false) [#181][] by [@kbogtob][]
+  This feature should only be used for small scripts or code not relying on `fork` (beware, frameworks such as Resque or Puma are using `fork`) since it relies in the `at_exit` method.
   * [FEATURE] Flush last metrics on `Statsd#close` [#180][] by [@kbogtob][]
   * [ENHANCEMENT] Do not try to flush where there is no available `message_queue` [#189][] by [@remeh][]
   * [OTHER] Add pry to development dependencies and enable gem in Gemfile [#192][] by [@ivoanjo][]
