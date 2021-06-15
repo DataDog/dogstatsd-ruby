@@ -10,9 +10,9 @@
   * [OTHER] Add pry to development dependencies and enable gem in Gemfile [#192][] by [@ivoanjo][]
   * [OTHER] Expand Ruby Support to Rubies 2.6, 2.7, and 3.0 [#191][] by [@laserlemon][]
 
-### Known problems
+### Known issues
 
-  * If the DogStatsD client is instanciated before a fork, the forked process won't copy the companion thread that the original client needs to flush and it won't work properly. This issue will be addressed in an upcoming version.
+  * If the DogStatsD client is instantiated before a `fork`, the forked process won't copy the companion thread that the original client needs to flush and the client won't work properly. This issue will be addressed in an upcoming version. If you are concerned by this issue, please read [this section of the README](https://github.com/DataDog/dogstatsd-ruby#v5x-common-pitfalls).
 
 ## 5.0.1 / 2021.04.09
 
