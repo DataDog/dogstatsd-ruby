@@ -2,6 +2,17 @@
 
 [//]: # (comment: Don't forget to update lib/datadog/statsd/version.rb:DogStatsd::Statsd::VERSION when releasing a new version)
 
+## 5.1.0 / 2021.06.17
+
+  * [FEATURE] Flush last metrics on `Statsd#close` [#180][] by [@kbogtob][]
+  * [ENHANCEMENT] Do not try to flush where there is no available `message_queue` [#189][] by [@remeh][]
+  * [OTHER] Add pry to development dependencies and enable gem in Gemfile [#192][] by [@ivoanjo][]
+  * [OTHER] Expand Ruby Support to Rubies 2.6, 2.7, and 3.0 [#191][] by [@laserlemon][]
+
+### Known issues
+
+  * If the DogStatsD client is instantiated before a `fork`, the forked process won't copy the companion thread that the original client needs to flush and the client won't work properly. This issue will be addressed in an upcoming version. If you are concerned by this issue, please read [this section of the README](https://github.com/DataDog/dogstatsd-ruby#v5x-common-pitfalls).
+
 ## 5.0.1 / 2021.04.09
 
   * [OTHER] Re-introduce a `Statsd#batch` method to help with compatibility with v4.x versions:
@@ -329,6 +340,9 @@ Future versions are likely to introduce backward incompatibilities with < Ruby 1
 [#161]: https://github.com/DataDog/dogstatsd-ruby/issues/161
 [#175]: https://github.com/DataDog/dogstatsd-ruby/issues/175
 [#176]: https://github.com/DataDog/dogstatsd-ruby/issues/176
+[#180]: https://github.com/DataDog/dogstatsd-ruby/issues/180
+[#181]: https://github.com/DataDog/dogstatsd-ruby/issues/181
+[#192]: https://github.com/DataDog/dogstatsd-ruby/issues/192
 [@AMekss]: https://github.com/AMekss
 [@abicky]: https://github.com/abicky
 [@adimitrov]: https://github.com/adimitrov
@@ -343,11 +357,13 @@ Future versions are likely to introduce backward incompatibilities with < Ruby 1
 [@gleseur]: https://github.com/gleseur
 [@grosser]: https://github.com/grosser
 [@hush-hush]: https://github.com/hush-hush
+[@ivoanjo]: https://github.com/ivoanjo
 [@jacobbednarz]: https://github.com/jacobbednarz
 [@janester]: https://github.com/janester
 [@jtzemp]: https://github.com/jtzemp
 [@kazu9su]: https://github.com/kazu9su
 [@kbogtob]: https://github.com/kbogtob
+[@laserlemon]: https://github.com/laserlemon
 [@marcotc]: https://github.com/marcotc
 [@misterbyrne]: https://github.com/misterbyrne
 [@nelhage]: https://github.com/nelhage
