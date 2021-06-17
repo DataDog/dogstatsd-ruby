@@ -2,7 +2,7 @@
 
 [//]: # (comment: Don't forget to update lib/datadog/statsd/version.rb:DogStatsd::Statsd::VERSION when releasing a new version)
 
-## 5.1.0 / 2021.06.15
+## 5.1.0 / 2021.06.17
 
   * [FEATURE] Flush last metrics on `Statsd#close` [#180][] by [@kbogtob][]
   * [ENHANCEMENT] Do not try to flush where there is no available `message_queue` [#189][] by [@remeh][]
