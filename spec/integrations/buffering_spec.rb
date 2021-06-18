@@ -2,16 +2,17 @@
 
 require 'spec_helper'
 
-describe 'Buffering integration testing' do
-  let(:socket) { FakeUDPSocket.new(copy_message: true) }
-
+RSpec.shared_examples 'Buffering integration testing' do |single_thread|
   subject do
     Datadog::Statsd.new('localhost', 1234,
       telemetry_flush_interval: -1,
       telemetry_enable: false,
+      single_thread: single_thread,
       buffer_max_pool_size: buffer_max_pool_size,
     )
   end
+  let(:socket) { FakeUDPSocket.new(copy_message: true) }
+
 
   let(:buffer_max_pool_size) do
     2
@@ -135,6 +136,7 @@ describe 'Buffering integration testing' do
       Datadog::Statsd.new('localhost', 1234,
         telemetry_flush_interval: 60,
         buffer_max_pool_size: buffer_max_pool_size,
+        single_thread: single_thread,
       )
     end
 
@@ -201,4 +203,12 @@ describe 'Buffering integration testing' do
       end
     end
   end
+end
+
+describe 'Single threaded mode' do
+  it_behaves_like 'Buffering integration testing', "true"
+end
+
+describe 'Multi threaded mode' do
+  it_behaves_like 'Buffering integration testing', "false"
 end
