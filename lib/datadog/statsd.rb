@@ -8,6 +8,7 @@ require_relative 'statsd/uds_connection'
 require_relative 'statsd/message_buffer'
 require_relative 'statsd/serialization'
 require_relative 'statsd/sender'
+require_relative 'statsd/single_thread_sender'
 require_relative 'statsd/forwarder'
 
 # = Datadog::Statsd: A DogStatsd client (https://www.datadoghq.com)
@@ -70,6 +71,7 @@ module Datadog
     # @option [Integer] buffer_max_pool_size max messages to buffer
     # @option [String] socket_path unix socket path
     # @option [Float] default sample rate if not overridden
+    # @option [Boolean] single_thread flushes the metrics on the main thread instead of in a companion thread
     def initialize(
       host = nil,
       port = nil,
@@ -84,6 +86,8 @@ module Datadog
       buffer_overflowing_stategy: :drop,
 
       logger: nil,
+
+      single_thread: false,
 
       telemetry_enable: true,
       telemetry_flush_interval: DEFAULT_TELEMETRY_FLUSH_INTERVAL
@@ -104,6 +108,8 @@ module Datadog
 
         global_tags: tags,
         logger: logger,
+
+        single_thread: single_thread,
 
         buffer_max_payload_size: buffer_max_payload_size,
         buffer_max_pool_size: buffer_max_pool_size,
