@@ -11,10 +11,7 @@ module Datadog
         @message_buffer.add(message)
       end
 
-      # We do not use the `sync` parameter since the `SingleThreadSender` is always
-      # synchronous. However, we still have it to have the same method signature
-      # with `Sender`.
-      def flush(sync: true)
+      def flush(*)
         @message_buffer.flush()
       end
 
