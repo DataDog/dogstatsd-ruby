@@ -61,7 +61,7 @@ If you have issues with the companion thread or the buffering mode, you can inst
 require 'datadog/statsd'
 
 # Create a DogStatsD client instance using UDP
-statsd = Datadog::Statsd.new('localhost', 8125, single_thread: true, buffer_max_payload_size: 1)
+statsd = Datadog::Statsd.new('localhost', 8125, single_thread: true, buffer_max_pool_size: 1)
 ...
 # to close the instance is not necessary in this case since metrics are flushed on submission
 # but it is still a good practice and it explicitely closes the socket
@@ -75,7 +75,7 @@ or
 require 'datadog/statsd'
 
 # Create a DogStatsD client instance using UDS
-statsd = Datadog::Statsd.new(socket_path: '/path/to/socket/file', single_thread: true, buffer_max_payload_size: 1)
+statsd = Datadog::Statsd.new(socket_path: '/path/to/socket/file', single_thread: true, buffer_max_pool_size: 1)
 ...
 # to close the instance is not necessary in this case since metrics are flushed on submission
 # but it is still a good practice and it explicitely closes the socket

@@ -27,7 +27,7 @@ Note that if you want to restore the behavior of v4.x versions, you can also con
 require 'datadog/statsd'
 
 # Create a DogStatsD client instance using UDP
-statsd = Datadog::Statsd.new('localhost', 8125, single_thread: true, buffer_max_payload_size: 1)
+statsd = Datadog::Statsd.new('localhost', 8125, single_thread: true, buffer_max_pool_size: 1)
 ```
 
 ## 5.1.0 / 2021.06.17
