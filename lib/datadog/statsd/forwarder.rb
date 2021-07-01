@@ -18,6 +18,8 @@ module Datadog
         telemetry_flush_interval: nil,
         global_tags: [],
 
+        single_thread: false,
+
         logger: nil
       )
         @transport_type = socket_path.nil? ? :udp : :uds
@@ -53,7 +55,7 @@ module Datadog
           overflowing_stategy: buffer_overflowing_stategy,
         )
 
-        @sender = Sender.new(buffer)
+        @sender = single_thread ? SingleThreadSender.new(buffer) : Sender.new(buffer)
         @sender.start
       end
 
