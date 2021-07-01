@@ -2,6 +2,34 @@
 
 [//]: # (comment: Don't forget to update lib/datadog/statsd/version.rb:DogStatsd::Statsd::VERSION when releasing a new version)
 
+
+## 5.2.0 / 2021.07.01
+
+  * [FEATURE] Add `single_thread` mode for users having issues with the companion thread. [#194][] by [@remeh][]
+
+You can use this mode to avoid spawning a companion thread while using v5.x versions:
+
+```ruby
+# Import the library
+require 'datadog/statsd'
+
+# Create a DogStatsD client instance.
+statsd = Datadog::Statsd.new('localhost', 8125, single_thread: true)
+...
+# release resources used by the client instance and flush last metrics
+statsd.close()
+```
+
+Note that if you want to restore the behavior of v4.x versions, you can also configure the buffer to flush on every metric submission:
+
+```ruby
+# Import the library
+require 'datadog/statsd'
+
+# Create a DogStatsD client instance using UDP
+statsd = Datadog::Statsd.new('localhost', 8125, single_thread: true, buffer_max_payload_size: 1)
+```
+
 ## 5.1.0 / 2021.06.17
 
   * [FEATURE] Flush last metrics on `Statsd#close` [#180][] by [@kbogtob][]
@@ -343,6 +371,7 @@ Future versions are likely to introduce backward incompatibilities with < Ruby 1
 [#180]: https://github.com/DataDog/dogstatsd-ruby/issues/180
 [#181]: https://github.com/DataDog/dogstatsd-ruby/issues/181
 [#192]: https://github.com/DataDog/dogstatsd-ruby/issues/192
+[#194]: https://github.com/DataDog/dogstatsd-ruby/issues/194
 [@AMekss]: https://github.com/AMekss
 [@abicky]: https://github.com/abicky
 [@adimitrov]: https://github.com/adimitrov
