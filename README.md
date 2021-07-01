@@ -54,7 +54,7 @@ call the method `Datadog::Statsd#flush` if you want to force the sending of metr
   * using singletons instances of the DogStatsD client and not allocating one each time you need one, letting the buffering mechanism flush metrics, or,
   * properly closing your DogStatsD client instance when it is not needed anymore using the method `Datadog::Statsd#close` to release the resources used by the instance and to close the socket
 
-If you have issues using the companion thread or the buffering mode, you can instantiate a client to behave exactly as it was in v4.x (flushing on every metric submission):
+If you have issues with the companion thread or the buffering mode, you can instantiate a client that behaves exactly as in v4.x (i.e. no companion thread and flush on every metric submission):
 
 ```ruby
 # Import the library
@@ -85,7 +85,7 @@ If you are using [Sidekiq](https://github.com/mperham/sidekiq), please make sure
 
 If you are using [Puma](https://github.com/puma/puma) or [Unicorn](https://yhbt.net/unicorn.git), please make sure to create the instance of DogStatsD in the workers, not in the main process before it forks to create its workers. See [this comment for more details](https://github.com/DataDog/dogstatsd-ruby/issues/179#issuecomment-845570345).
 
-Applications that are in these situations and can't apply these recommendations should use the `single_thread` mode which is not using any companion thread. Here is how to instantiate a client:
+Applications that are in these situations but can't apply these recommendations should enable the `single_thread` mode which does not use a companion thread. Here is how to instantiate a client in this mode:
 
 ```ruby
 # Import the library
