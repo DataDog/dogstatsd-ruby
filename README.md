@@ -51,7 +51,7 @@ call the method `Datadog::Statsd#flush` if you want to force the sending of metr
 
 2. You have to make sure you are either:
 
-  * using singletons instances of the DogStatsD client and not allocating one each time you need one, letting the buffering mechanism flush metrics, or,
+  * using singletons instances of the DogStatsD client and not allocating one each time you need one, letting the buffering mechanism flush metrics, it's still a bad solution if the process later forks (see related section below). Or,
   * properly closing your DogStatsD client instance when it is not needed anymore using the method `Datadog::Statsd#close` to release the resources used by the instance and to close the socket
 
 If you have issues with the companion thread or the buffering mode, you can instantiate a client that behaves exactly as in v4.x (i.e. no companion thread and flush on every metric submission):
@@ -62,6 +62,10 @@ require 'datadog/statsd'
 
 # Create a DogStatsD client instance using UDP
 statsd = Datadog::Statsd.new('localhost', 8125, single_thread: true, buffer_max_payload_size: 1)
+...
+# to close the instance is not necessary in this case since metrics are flushed on submission
+# but it is still a good practice and it explicitely closes the socket
+statsd.close()
 ```
 
 or
@@ -72,6 +76,10 @@ require 'datadog/statsd'
 
 # Create a DogStatsD client instance using UDS
 statsd = Datadog::Statsd.new(socket_path: '/path/to/socket/file', single_thread: true, buffer_max_payload_size: 1)
+...
+# to close the instance is not necessary in this case since metrics are flushed on submission
+# but it is still a good practice and it explicitely closes the socket
+statsd.close()
 ```
 
 ### v5.x Common Pitfalls
