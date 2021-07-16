@@ -213,6 +213,25 @@ module Datadog
       send_stats(stat, value, DISTRIBUTION_TYPE, opts)
     end
 
+    # Reports execution time of the provided block as a distribution.
+    #
+    # If the block fails, the stat is still reported, then the error
+    # is reraised
+    #
+    # @param [String] stat stat name.
+    # @param [Numeric] value distribution value.
+    # @param [Hash] opts the options to create the metric with
+    # @option opts [Numeric] :sample_rate sample rate, 1 for always
+    # @option opts [Array<String>] :tags An array of tags
+    # @example Report the time (in ms) taken to activate an account
+    #   $statsd.distribution_time('account.activate') { @account.activate! }
+    def distribution_time(stat, opts = EMPTY_OPTIONS)
+      start = now
+      yield
+    ensure
+      distribution(stat, ((now - start) * 1000).round, opts)
+    end
+
     # Sends a timing (in ms) for the given stat to the statsd server. The
     # sample_rate determines what percentage of the time this report is sent. The
     # statsd server then uses the sample_rate to correctly track the average
