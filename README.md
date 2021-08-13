@@ -77,13 +77,13 @@ Version v5.x of `dogstatsd-ruby` is using a companion thread for flushing. This 
 
 1. Applications that use `fork` after having created the dogstatsd instance: the child process will need a new dogstatsd instance, as otherwise it will be unable to send metrics.
 
-2. Applications that create multiple instances of the client without closing them: it is important to `#close` the instance to free the thread and the socket it is using or it will lead to resources leaking (threads and sockets).
+2. Applications that create multiple instances of the client without closing them: it is important to `#close` all instances to free the thread and the socket they are using otherwise you will leak those resources.
 
 If you are using [Sidekiq](https://github.com/mperham/sidekiq), please make sure to close the client instances that are instantiated. [See this example on using DogStatsD-ruby v5.x with Sidekiq](https://github.com/DataDog/dogstatsd-ruby/blob/master/examples/sidekiq_example.rb).
 
 If you are using [Puma](https://github.com/puma/puma) or [Unicorn](https://yhbt.net/unicorn.git), please make sure to create the instance of DogStatsD in the workers, not in the main process before it forks to create its workers. See [this comment for more details](https://github.com/DataDog/dogstatsd-ruby/issues/179#issuecomment-845570345).
 
-Applications that run into issues but can't apply these recommendations should use the `single_thread` mode which avoids the use of the compainion thread.
+Applications that run into issues but can't apply these recommendations should use the `single_thread` mode which disables the use of the companion thread.
 Here is how to instantiate a client in this mode:
 
 ```ruby
@@ -150,7 +150,7 @@ statsd.close()
 
 ## Threading model
 
-Starting with version 5.0, dogstatsd-ruby employs a new threading model where one instance of `Datadog::Statsd` can be shared between threads and where data sending is non-blocking (asynchronous).
+Starting with version 5.0, `dogstatsd-ruby` employs a new threading model where one instance of `Datadog::Statsd` can be shared between threads and where data sending is non-blocking (asynchronous).
 
 When you instantiate a `Datadog::Statsd`, a companion thread is spawned. This thread will be called the Sender thread, as it is modeled by the [Sender](../lib/datadog/statsd/sender.rb) class. You can make use of `single_thread: true` to disable this behavior.
 
@@ -178,7 +178,7 @@ There are three different kinds of messages:
 2. a control message to synchronize any thread with the sender thread
 3. a message to append to the buffer
 
-There is also an implicit message which is closing the queue which will cause the sender thread to finish processing and exit.
+There is also an implicit message which closes the queue which will cause the sender thread to finish processing and exit.
 
 ### Usual workflow
 
@@ -186,13 +186,13 @@ You push metrics to the statsd client which writes them quickly to the sender me
 
 ### Flushing
 
-When calling flush, a specific control message (`:flush`) is sent to the sender thread. When finding it, it flushes its internal buffer into the connection.
+When calling `Datadog::Statsd#flush`, a specific control message (`:flush`) is sent to the sender thread. When the sender thread receives it, it flushes its internal buffer into the connection.
 
 ### Rendez-vous
 
-It is possible to ensure a message has been consumed by the sender thread and written to the buffer by simply calling a rendez-vous right after. This is done when you are doing a synchronous flush: using `Datadog::Statsd#flush(sync: true)`.
+It is possible to ensure a message has been consumed by the sender thread and written to the buffer by simply calling a rendez-vous right after. This is done when you are doing a synchronous flush using `Datadog::Statsd#flush(sync: true)`.
 
-Doing so means the caller thread is blocked waiting until the data has been flushed.
+Doing so means the caller thread is blocked and waiting until the data has been flushed by the sender thread.
 
 This is useful when preparing to exit the application or when checking unit tests.
 
