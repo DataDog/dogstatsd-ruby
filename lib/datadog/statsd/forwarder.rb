@@ -24,11 +24,6 @@ module Datadog
       )
         @transport_type = socket_path.nil? ? :udp : :uds
 
-        # in order to add the telemetry metrics only in the main process
-        # note that it also means that if the main process is not submitting metrics,
-        # we won't send any telemetry data
-        @main_pid = Process.pid
-
         if telemetry_flush_interval
           @telemetry = Telemetry.new(telemetry_flush_interval,
             global_tags: global_tags,
@@ -109,8 +104,6 @@ module Datadog
       attr_reader :connection
 
       def do_flush_telemetry
-        return if Process.pid != @main_pid
-
         telemetry_snapshot = telemetry.flush
         telemetry.reset
 
