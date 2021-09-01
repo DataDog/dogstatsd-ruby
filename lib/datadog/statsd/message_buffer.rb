@@ -30,8 +30,7 @@ module Datadog
         # we are currently running in the child: we have to clean the buffer since
         # we don't want to process/flush the metrics buffered by the parent process.
         if forked?
-          buffer.clear
-          @message_count = 0
+          reset
           update_fork_pid
         end
 
@@ -54,13 +53,16 @@ module Datadog
         true
       end
 
+      def reset
+        buffer.clear
+        @message_count = 0
+      end
+
       def flush
         return if buffer.empty?
 
         connection.write(buffer)
-
-        buffer.clear
-        @message_count = 0
+        reset
       end
 
       private
