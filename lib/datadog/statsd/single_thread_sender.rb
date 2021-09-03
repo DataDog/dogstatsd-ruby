@@ -2,6 +2,10 @@
 
 module Datadog
   class Statsd
+    # The SingleThreadSender is a sender synchronously buffering messages
+    # in a `MessageBuffer`.
+    # It is using current Process.PID to check it is the result of a recent fork
+    # and it is reseting the MessageBuffer if that's the case.
     class SingleThreadSender
       def initialize(message_buffer)
         @message_buffer = message_buffer

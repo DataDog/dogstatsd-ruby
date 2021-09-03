@@ -2,6 +2,13 @@
 
 module Datadog
   class Statsd
+    # Sender is using a companion thread to flush and pack messages
+    # in a `MessageBuffer`.
+    # The communication with this thread is done using a `Queue`.
+    # If the thread is dead, it is starting a new one to avoid having a blocked
+    # Sender with no companion thread to communicate with (most of the time, having
+    # a dead companion thread means that a fork just happened and that we are
+    # running in the child process).
     class Sender
       CLOSEABLE_QUEUES = Queue.instance_methods.include?(:close)
 
