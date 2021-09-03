@@ -36,6 +36,7 @@ module Datadog
           retries += 1
           begin
             close
+            connect
             retry
           rescue StandardError => e
             boom = e
