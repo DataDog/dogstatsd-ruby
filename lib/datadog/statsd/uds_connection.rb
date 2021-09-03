@@ -19,6 +19,8 @@ module Datadog
       private
 
       def connect
+        @socket.close unless @socket == nil
+
         socket = Socket.new(Socket::AF_UNIX, Socket::SOCK_DGRAM)
         socket.connect(Socket.pack_sockaddr_un(@socket_path))
         socket

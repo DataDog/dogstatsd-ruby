@@ -35,16 +35,12 @@ module Datadog
         # if the thread does not exist, we are probably running in a forked process,
         # empty the message queue (these messages belong to parent process) and spawn
         # a new companion thread.
-        if is_companion_thread_dead?
+        if !@sender_thread.alive?
           @message_queue = nil
           start
         end
 
         @message_queue << message
-      end
-
-      def is_companion_thread_dead?
-        return @sender_thread == nil || @sender_thread.status == false || @sender_thread.status == 'dead'
       end
 
       def start
@@ -78,7 +74,7 @@ module Datadog
 
       if CLOSEABLE_QUEUES
         def send_loop
-          until is_companion_thread_dead? || ((message = @message_queue.pop).nil? && @message_queue.closed?)
+          until !@sender_thread.alive? || ((message = @message_queue.pop).nil? && @message_queue.closed?)
             # skip if message is nil, e.g. when message_queue
             # is empty and closed
             next unless message
