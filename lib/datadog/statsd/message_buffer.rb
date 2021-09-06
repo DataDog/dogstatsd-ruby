@@ -50,7 +50,6 @@ module Datadog
       def flush
         return if buffer.empty?
 
-        connection = @connection
         connection.write(buffer)
         reset
       end

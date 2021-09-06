@@ -39,6 +39,8 @@ module Datadog
       def rendez_vous()
       end
 
+      private
+
       # below are "fork management" methods to be able to clean the MessageBuffer
       # if it detects that it is running in a unknown PID.
 

@@ -26,7 +26,7 @@ module Datadog
       private
 
       def connect
-        @socket.close unless @socket == nil
+        @socket.close if @socket
 
         @socket = UDPSocket.new
         @socket.connect(host, port)

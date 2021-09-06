@@ -85,7 +85,7 @@ module Datadog
 
       if CLOSEABLE_QUEUES
         def send_loop
-          until !sender_thread.alive? || ((message = message_queue.pop).nil? && message_queue.closed?)
+          until !Thread.current.alive? || ((message = message_queue.pop).nil? && message_queue.closed?)
             # skip if message is nil, e.g. when message_queue
             # is empty and closed
             next unless message
