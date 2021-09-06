@@ -18,9 +18,9 @@ module Datadog
 
       def flush(sync: false)
         # don't try to flush if there is no message_queue instantiated
-        return unless @message_queue
+        return unless message_queue
 
-        @message_queue.push(:flush)
+        message_queue.push(:flush)
 
         rendez_vous if sync
       end
@@ -30,28 +30,28 @@ module Datadog
         queue = (Thread.current[:statsd_sync_queue] ||= Queue.new)
         # tell sender-thread to notify us in the current
         # thread's queue
-        @message_queue.push(queue)
+        message_queue.push(queue)
         # wait for the sender thread to send a message
         # once the flush is done
         queue.pop
       end
 
       def add(message)
-        raise ArgumentError, 'Start sender first' unless @message_queue
+        raise ArgumentError, 'Start sender first' unless message_queue
 
         # if the thread does not exist, we are probably running in a forked process,
         # empty the message queue (these messages belong to parent process) and spawn
         # a new companion thread.
-        if !@sender_thread.alive?
+        if !sender_thread.alive?
           @message_queue = nil
           start
         end
 
-        @message_queue << message
+        message_queue << message
       end
 
       def start
-        raise ArgumentError, 'Sender already started' if @message_queue
+        raise ArgumentError, 'Sender already started' if message_queue
 
         # initialize message queue for background thread
         @message_queue = Queue.new
@@ -79,20 +79,24 @@ module Datadog
 
       private
 
+      attr_reader :message_buffer
+      attr_reader :message_queue
+      attr_reader :sender_thread
+
       if CLOSEABLE_QUEUES
         def send_loop
-          until !@sender_thread.alive? || ((message = @message_queue.pop).nil? && @message_queue.closed?)
+          until !sender_thread.alive? || ((message = message_queue.pop).nil? && message_queue.closed?)
             # skip if message is nil, e.g. when message_queue
             # is empty and closed
             next unless message
 
             case message
             when :flush
-              @message_buffer.flush
+              message_buffer.flush
             when Queue
               message.push(:go_on)
             else
-              @message_buffer.add(message)
+              message_buffer.add(message)
             end
           end
 
@@ -102,7 +106,7 @@ module Datadog
       else
         def send_loop
           loop do
-            message = @message_queue.pop
+            message = message_queue.pop
 
             next unless message
 
@@ -110,11 +114,11 @@ module Datadog
             when :close
               break
             when :flush
-              @message_buffer.flush
+              message_buffer.flush
             when Queue
               message.push(:go_on)
             else
-              @message_buffer.add(message)
+              message_buffer.add(message)
             end
           end
 
