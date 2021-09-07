@@ -15,6 +15,7 @@ module Datadog
       def initialize(message_buffer, logger: nil)
         @message_buffer = message_buffer
         @logger = logger
+        @mx = Mutex.new
       end
 
       def flush(sync: false)
@@ -25,11 +26,10 @@ module Datadog
           return
         end
 
-        return unless message_queue && sender_thread.alive?
-
-        message_queue.push(:flush)
-
-        rendez_vous if sync
+        @mx.synchronize {
+          message_queue.push(:flush)
+          rendez_vous if sync
+        }
       end
 
       def rendez_vous
@@ -51,10 +51,12 @@ module Datadog
         # the parent process) and spawn a new companion thread.
         if !sender_thread.alive?
           @logger.warn { "Statsd: companion thread dead, re-creating one" } if @logger
-          message_queue.close if CLOSEABLE_QUEUES
-          @message_queue = nil
-          message_buffer.reset
-          start
+          @mx.synchronize {
+            message_queue.close if CLOSEABLE_QUEUES
+            @message_queue = nil
+            message_buffer.reset
+            start
+          }
         end
 
         message_queue << message
@@ -71,19 +73,23 @@ module Datadog
 
       if CLOSEABLE_QUEUES
         def stop(join_worker: true)
-          message_queue = @message_queue
-          message_queue.close if message_queue
+          @mx.synchronize {
+            message_queue = @message_queue
+            message_queue.close if message_queue
 
-          sender_thread = @sender_thread
-          sender_thread.join if sender_thread && join_worker
+            sender_thread = @sender_thread
+            sender_thread.join if sender_thread && join_worker
+          }
         end
       else
         def stop(join_worker: true)
-          message_queue = @message_queue
-          message_queue << :close if message_queue
+          @mx.synchronize {
+            message_queue = @message_queue
+            message_queue << :close if message_queue
 
-          sender_thread = @sender_thread
-          sender_thread.join if sender_thread && join_worker
+            sender_thread = @sender_thread
+            sender_thread.join if sender_thread && join_worker
+          }
         end
       end
 
@@ -95,7 +101,7 @@ module Datadog
 
       if CLOSEABLE_QUEUES
         def send_loop
-          until !Thread.current.alive? || ((message = message_queue.pop).nil? && message_queue.closed?)
+          until (message = message_queue.pop).nil? && message_queue.closed?
             # skip if message is nil, e.g. when message_queue
             # is empty and closed
             next unless message
