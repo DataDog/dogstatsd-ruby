@@ -8,16 +8,6 @@ module Datadog
         @logger = logger
       end
 
-      # Close the underlying socket
-      def close
-        begin
-          @socket && @socket.close if instance_variable_defined?(:@socket)
-        rescue StandardError => boom
-          logger.error { "Statsd: #{boom.class} #{boom}" } if logger
-        end
-        @socket = nil
-      end
-
       def write(payload)
         logger.debug { "Statsd: #{payload}" } if logger
 
@@ -49,12 +39,9 @@ module Datadog
       end
 
       private
+
       attr_reader :telemetry
       attr_reader :logger
-
-      def socket
-        @socket ||= connect
-      end
     end
   end
 end
