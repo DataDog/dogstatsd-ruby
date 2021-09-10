@@ -55,7 +55,7 @@ module Datadog
           overflowing_stategy: buffer_overflowing_stategy,
         )
 
-        @sender = single_thread ? SingleThreadSender.new(buffer) : Sender.new(buffer)
+        @sender = single_thread ? SingleThreadSender.new(buffer) : Sender.new(buffer, logger: logger)
         @sender.start
       end
 

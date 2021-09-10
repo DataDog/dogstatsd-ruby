@@ -42,13 +42,16 @@ module Datadog
         true
       end
 
+      def reset
+        buffer.clear
+        @message_count = 0
+      end
+
       def flush
         return if buffer.empty?
 
         connection.write(buffer)
-
-        buffer.clear
-        @message_count = 0
+        reset
       end
 
       private
