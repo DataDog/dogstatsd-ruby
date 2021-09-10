@@ -21,26 +21,33 @@ module Datadog
       def flush(sync: false)
         # don't try to flush if there is no message_queue instantiated or
         # no companion thread running
-        if !message_queue || !sender_thread.alive?
-          @logger.warn { "Statsd: can't flush: no message queue or sender_thread alive" } if @logger
+        if !message_queue
+          @logger.debug { "Statsd: can't flush: no message queue ready" } if @logger
+          return
+        end
+        if !sender_thread.alive?
+          @logger.debug { "Statsd: can't flush: no sender_thread alive" } if @logger
           return
         end
 
         @mx.synchronize {
           message_queue.push(:flush)
-          rendez_vous if sync
         }
+
+        rendez_vous if sync
       end
 
       def rendez_vous
-        # Initialize and get the thread's sync queue
-        queue = (Thread.current[:statsd_sync_queue] ||= Queue.new)
-        # tell sender-thread to notify us in the current
-        # thread's queue
-        message_queue.push(queue)
-        # wait for the sender thread to send a message
-        # once the flush is done
-        queue.pop
+        @mx.synchronize {
+          # Initialize and get the thread's sync queue
+          queue = (Thread.current[:statsd_sync_queue] ||= Queue.new)
+          # tell sender-thread to notify us in the current
+          # thread's queue
+          message_queue.push(queue)
+          # wait for the sender thread to send a message
+          # once the flush is done
+          queue.pop
+        }
       end
 
       def add(message)
@@ -50,8 +57,12 @@ module Datadog
         # empty the message queue and message buffers (these messages belong to
         # the parent process) and spawn a new companion thread.
         if !sender_thread.alive?
-          @logger.warn { "Statsd: companion thread dead, re-creating one" } if @logger
+          @logger.debug { "Statsd: companion thread is dead, re-creating one" } if @logger
           @mx.synchronize {
+            # a call from another thread has already re-created
+            # the companion thread before this one acquired the lock
+            break if sender_thread.alive?
+
             message_queue.close if CLOSEABLE_QUEUES
             @message_queue = nil
             message_buffer.reset
