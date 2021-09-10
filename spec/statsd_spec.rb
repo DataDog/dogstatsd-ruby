@@ -162,6 +162,7 @@ describe Datadog::Statsd do
 
         before do
           allow(Socket).to receive(:new).and_call_original
+          .with(Socket.pack_sockaddr_un('/tmp/socket')) # fake UDS socket
         end
 
         it 'uses an UDS socket' do
