@@ -26,7 +26,7 @@ module Datadog
       private
 
       def connect
-        close unless @socket == nil
+        close if @socket
 
         @socket = Socket.new(Socket::AF_UNIX, Socket::SOCK_DGRAM)
         @socket.connect(Socket.pack_sockaddr_un(@socket_path))
@@ -35,7 +35,6 @@ module Datadog
       def send_message(message)
         @socket.sendmsg_nonblock(message)
       rescue Errno::ECONNREFUSED, Errno::ECONNRESET, Errno::ENOENT => e
-        @socket = nil
         # TODO: FIXME: This error should be considered as a retryable error in the
         # Connection class. An even better solution would be to make BadSocketError inherit
         # from a specific retryable error class in the Connection class.
