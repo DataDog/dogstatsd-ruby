@@ -42,6 +42,14 @@ module Datadog
 
       attr_reader :telemetry
       attr_reader :logger
+
+      def connect
+        raise 'Should be implemented by subclass'
+      end
+
+      def close
+        raise 'Should be implemented by subclass'
+      end
     end
   end
 end
