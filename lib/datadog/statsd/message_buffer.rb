@@ -19,7 +19,7 @@ module Datadog
         @overflowing_stategy = overflowing_stategy
 
         @buffer = String.new
-        @message_count = 0
+        reset
       end
 
       def add(message)

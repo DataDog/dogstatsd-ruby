@@ -49,13 +49,12 @@ module Datadog
           raise ArgumentError, "buffer_max_payload_size is not high enough to use telemetry (tags=(#{global_tags.inspect}))"
         end
 
-        @buffer = MessageBuffer.new(@connection,
+        buffer = MessageBuffer.new(@connection,
           max_payload_size: buffer_max_payload_size,
           max_pool_size: buffer_max_pool_size || DEFAULT_BUFFER_POOL_SIZE,
           overflowing_stategy: buffer_overflowing_stategy,
         )
-
-        @sender = single_thread ? SingleThreadSender.new(buffer) : Sender.new(buffer, logger: logger)
+        @sender = (single_thread ? SingleThreadSender : Sender).new(buffer, logger: logger)
         @sender.start
       end
 
@@ -99,7 +98,6 @@ module Datadog
       end
 
       private
-      attr_reader :buffer
       attr_reader :sender
       attr_reader :connection
 
