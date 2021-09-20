@@ -47,6 +47,10 @@ module Datadog
         @message_count = 0
       end
 
+      def reset_telemetry
+        connection.reset_telemetry
+      end
+
       def flush
         return if buffer.empty?
 
@@ -55,6 +59,7 @@ module Datadog
       end
 
       private
+
       attr :max_payload_size
       attr :max_pool_size
 

@@ -67,6 +67,7 @@ module Datadog
             message_queue.close if CLOSEABLE_QUEUES
             @message_queue = nil
             message_buffer.reset
+            message_buffer.reset_telemetry
             start
           }
         end

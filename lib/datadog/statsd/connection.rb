@@ -8,8 +8,15 @@ module Datadog
         @logger = logger
       end
 
+      def reset_telemetry
+        telemetry.reset
+      end
+
       # Close the underlying socket
       def close
+        # NOTE(remy): we do not want to automatically reset the telemetry object
+        # here because the retry mechanism may automatically re-create the connection
+        # in this case, we want to keep the data for the telemetry
         begin
           @socket && @socket.close if instance_variable_defined?(:@socket)
         rescue StandardError => boom
