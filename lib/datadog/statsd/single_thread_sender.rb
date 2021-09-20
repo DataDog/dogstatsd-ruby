@@ -21,6 +21,7 @@ module Datadog
           # not send, they belong to the parent process, let's clear the buffer.
           if forked?
             @message_buffer.reset
+            @message_buffer.reset_telemetry
             update_fork_pid
           end
           @message_buffer.add(message)
