@@ -84,6 +84,9 @@ module Datadog
       end
 
       if CLOSEABLE_QUEUES
+        # when calling stop, make sure that no other threads is trying
+        # to close the sender nor trying to continue to `#add` more message
+        # into the sender.
         def stop(join_worker: true)
           message_queue = @message_queue
           message_queue.close if message_queue
@@ -92,6 +95,9 @@ module Datadog
           sender_thread.join if sender_thread && join_worker
         end
       else
+        # when calling stop, make sure that no other threads is trying
+        # to close the sender nor trying to continue to `#add` more message
+        # into the sender.
         def stop(join_worker: true)
           message_queue = @message_queue
           message_queue << :close if message_queue
