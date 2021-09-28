@@ -19,18 +19,26 @@ module Datadog
 
         @host = host || ENV.fetch('DD_AGENT_HOST', DEFAULT_HOST)
         @port = port || ENV.fetch('DD_DOGSTATSD_PORT', DEFAULT_PORT).to_i
+        @socket = nil
+        connect
+      end
+
+      def close
+        @socket.close if @socket
+        @socket = nil
       end
 
       private
 
       def connect
-        UDPSocket.new.tap do |socket|
-          socket.connect(host, port)
-        end
+        close if @socket
+
+        @socket = UDPSocket.new
+        @socket.connect(host, port)
       end
 
       def send_message(message)
-        socket.send(message, 0)
+        @socket.send(message, 0)
       end
     end
   end

@@ -12,19 +12,6 @@ module Datadog
         telemetry.reset
       end
 
-      # Close the underlying socket
-      def close
-        # NOTE(remy): we do not want to automatically reset the telemetry object
-        # here because the retry mechanism may automatically re-create the connection
-        # in this case, we want to keep the data for the telemetry
-        begin
-          @socket && @socket.close if instance_variable_defined?(:@socket)
-        rescue StandardError => boom
-          logger.error { "Statsd: #{boom.class} #{boom}" } if logger
-        end
-        @socket = nil
-      end
-
       def write(payload)
         logger.debug { "Statsd: #{payload}" } if logger
 
@@ -43,6 +30,7 @@ module Datadog
           retries += 1
           begin
             close
+            connect
             retry
           rescue StandardError => e
             boom = e
@@ -55,11 +43,16 @@ module Datadog
       end
 
       private
+
       attr_reader :telemetry
       attr_reader :logger
 
-      def socket
-        @socket ||= connect
+      def connect
+        raise 'Should be implemented by subclass'
+      end
+
+      def close
+        raise 'Should be implemented by subclass'
       end
     end
   end
