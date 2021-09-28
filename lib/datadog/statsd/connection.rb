@@ -8,6 +8,10 @@ module Datadog
         @logger = logger
       end
 
+      def reset_telemetry
+        telemetry.reset
+      end
+
       def write(payload)
         logger.debug { "Statsd: #{payload}" } if logger
 

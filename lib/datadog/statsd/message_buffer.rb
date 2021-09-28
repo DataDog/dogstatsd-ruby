@@ -19,7 +19,7 @@ module Datadog
         @overflowing_stategy = overflowing_stategy
 
         @buffer = String.new
-        @message_count = 0
+        clear_buffer
       end
 
       def add(message)
@@ -42,16 +42,20 @@ module Datadog
         true
       end
 
+      def reset
+        clear_buffer
+        connection.reset_telemetry
+      end
+
       def flush
         return if buffer.empty?
 
         connection.write(buffer)
-
-        buffer.clear
-        @message_count = 0
+        clear_buffer
       end
 
       private
+
       attr :max_payload_size
       attr :max_pool_size
 
@@ -64,6 +68,11 @@ module Datadog
         return true if buffer.bytesize + 1 + message_size >= max_payload_size
 
         false
+      end
+
+      def clear_buffer
+        buffer.clear
+        @message_count = 0
       end
 
       def preemptive_flush?

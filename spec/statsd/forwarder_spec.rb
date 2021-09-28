@@ -105,7 +105,7 @@ describe Datadog::Statsd::Forwarder do
       it 'builds the sender' do
         expect(Datadog::Statsd::Sender)
           .to receive(:new)
-          .with(message_buffer)
+          .with(message_buffer, logger: logger)
           .exactly(1)
 
         subject
@@ -283,7 +283,7 @@ describe Datadog::Statsd::Forwarder do
       it 'builds the sender' do
         expect(Datadog::Statsd::Sender)
           .to receive(:new)
-          .with(message_buffer)
+          .with(message_buffer, logger: logger)
           .exactly(1)
 
         subject

@@ -2,23 +2,45 @@
 
 module Datadog
   class Statsd
+    # Sender is using a companion thread to flush and pack messages
+    # in a `MessageBuffer`.
+    # The communication with this thread is done using a `Queue`.
+    # If the thread is dead, it is starting a new one to avoid having a blocked
+    # Sender with no companion thread to communicate with (most of the time, having
+    # a dead companion thread means that a fork just happened and that we are
+    # running in the child process).
     class Sender
       CLOSEABLE_QUEUES = Queue.instance_methods.include?(:close)
 
-      def initialize(message_buffer)
+      def initialize(message_buffer, logger: nil)
         @message_buffer = message_buffer
+        @logger = logger
+        @mx = Mutex.new
       end
 
       def flush(sync: false)
-        # don't try to flush if there is no message_queue instantiated
-        return unless message_queue
+        # keep a copy around in case another thread is calling #stop while this method is running
+        current_message_queue = message_queue
 
-        message_queue.push(:flush)
+        # don't try to flush if there is no message_queue instantiated or
+        # no companion thread running
+        if !current_message_queue
+          @logger.debug { "Statsd: can't flush: no message queue ready" } if @logger
+          return
+        end
+        if !sender_thread.alive?
+          @logger.debug { "Statsd: can't flush: no sender_thread alive" } if @logger
+          return
+        end
 
+        current_message_queue.push(:flush)
         rendez_vous if sync
       end
 
       def rendez_vous
+        # could happen if #start hasn't be called
+        return unless message_queue
+
         # Initialize and get the thread's sync queue
         queue = (Thread.current[:statsd_sync_queue] ||= Queue.new)
         # tell sender-thread to notify us in the current
@@ -32,19 +54,39 @@ module Datadog
       def add(message)
         raise ArgumentError, 'Start sender first' unless message_queue
 
+        # if the thread does not exist, we assume we are running in a forked process,
+        # empty the message queue and message buffers (these messages belong to
+        # the parent process) and spawn a new companion thread.
+        if !sender_thread.alive?
+          @mx.synchronize {
+            # a call from another thread has already re-created
+            # the companion thread before this one acquired the lock
+            break if sender_thread.alive?
+            @logger.debug { "Statsd: companion thread is dead, re-creating one" } if @logger
+
+            message_queue.close if CLOSEABLE_QUEUES
+            @message_queue = nil
+            message_buffer.reset
+            start
+          }
+        end
+
         message_queue << message
       end
 
       def start
         raise ArgumentError, 'Sender already started' if message_queue
 
-        # initialize message queue for background thread
+        # initialize a new message queue for the background thread
         @message_queue = Queue.new
         # start background thread
         @sender_thread = Thread.new(&method(:send_loop))
       end
 
       if CLOSEABLE_QUEUES
+        # when calling stop, make sure that no other threads is trying
+        # to close the sender nor trying to continue to `#add` more message
+        # into the sender.
         def stop(join_worker: true)
           message_queue = @message_queue
           message_queue.close if message_queue
@@ -53,6 +95,9 @@ module Datadog
           sender_thread.join if sender_thread && join_worker
         end
       else
+        # when calling stop, make sure that no other threads is trying
+        # to close the sender nor trying to continue to `#add` more message
+        # into the sender.
         def stop(join_worker: true)
           message_queue = @message_queue
           message_queue << :close if message_queue
@@ -65,7 +110,6 @@ module Datadog
       private
 
       attr_reader :message_buffer
-
       attr_reader :message_queue
       attr_reader :sender_thread
 
