@@ -48,7 +48,6 @@ workflows:
   version: 2
   check_compile:
     jobs:
-      - test-ruby-2.0
       - test-ruby-2.1
       - test-ruby-2.2
       - test-ruby-2.3
