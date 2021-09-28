@@ -43,3 +43,17 @@ jobs:
         <<: *dockerbuild
         docker:
           - image: circleci/ruby:3.0-node
+
+workflows:
+  version: 2
+  check_compile:
+    jobs:
+      - test-ruby-2.0
+      - test-ruby-2.1
+      - test-ruby-2.2
+      - test-ruby-2.3
+      - test-ruby-2.4
+      - test-ruby-2.5
+      - test-ruby-2.6
+      - test-ruby-2.7
+      - test-ruby-3.0
