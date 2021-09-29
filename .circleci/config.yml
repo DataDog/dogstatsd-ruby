@@ -1,12 +1,24 @@
 version: 2
 
+x-dockerbuild-ruby20: &dockerbuild-ruby20
+  steps:
+    - run: apt update
+    - run: apt install git gcc make
+    - checkout
+    - run: bundle install --with development
+    - run: bundle exec rake spec
+
 x-dockerbuild: &dockerbuild
   steps:
     - checkout
-    - run: bundle install
+    - run: bundle install --with development
     - run: bundle exec rake spec
 
 jobs:
+    test-ruby-2.0:
+        <<: *dockerbuild-ruby20
+        docker:
+          - image: ruby:2.0-slim
     test-ruby-2.1:
         <<: *dockerbuild
         docker:
@@ -44,6 +56,7 @@ workflows:
   version: 2
   check_compile:
     jobs:
+      - test-ruby-2.0
       - test-ruby-2.1
       - test-ruby-2.2
       - test-ruby-2.3
