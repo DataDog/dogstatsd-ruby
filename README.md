@@ -209,6 +209,10 @@ This means the current thread is going to sleep and wait for a Queue which is gi
 
 This is useful when closing the application or when checking unit tests.
 
+## Versioning
+
+This Ruby gem is using [Semantic Versioning](https://guides.rubygems.org/patterns/#semantic-versioning) but please note that supported Ruby versions can change in a minor release of this library. As much as possible, we will add a "future deprecation" message in the minor release preceding the one dropping the support.
+
 ## Credits
 
 dogstatsd-ruby is forked from Rein Henrichs [original Statsd
