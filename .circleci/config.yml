@@ -3,7 +3,7 @@ version: 2
 x-dockerbuild-ruby20: &dockerbuild-ruby20
   steps:
     - run: apt update
-    - run: apt install git gcc make
+    - run: apt install -y git gcc make
     - checkout
     - run: bundle install --with development
     - run: bundle exec rake spec
