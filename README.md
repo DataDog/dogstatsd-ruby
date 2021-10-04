@@ -154,7 +154,7 @@ Starting with version 5.0, `dogstatsd-ruby` employs a new threading model where 
 
 When you instantiate a `Datadog::Statsd`, a companion thread is spawned. This thread will be called the Sender thread, as it is modeled by the [Sender](../lib/datadog/statsd/sender.rb) class. You can make use of `single_thread: true` to disable this behavior.
 
-This thread is stopped when you close the statsd client (`Datadog::Statsd#close`). Allocating a lot of statsd clients without calling `#close` after they are not needed anymore can lead to threads being leaked.
+This thread is stopped when you close the statsd client (`Datadog::Statsd#close`). Instantiation a lot of statsd clients without calling `#close` after they are not needed anymore will most likely lead to threads being leaked.
 
 The sender thread has the following logic (from `Datadog::Statsd::Sender#send_loop`):
 
