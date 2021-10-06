@@ -2,7 +2,7 @@
 
 [//]: # (comment: Don't forget to update lib/datadog/statsd/version.rb:DogStatsd::Statsd::VERSION when releasing a new version)
 
-## 5.3.0 / 2021.08.04
+## 5.3.0 / 2021.10.06
 
   * [ENHANCEMENT] Automatically re-allocate resources (e.g. background thread) if `dogstatsd-ruby` is used in an application using forks [#205][] by [@remeh][]
 
