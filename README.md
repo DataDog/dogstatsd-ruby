@@ -75,7 +75,7 @@ statsd.close()
 
 Version v5.x of `dogstatsd-ruby` is using a companion thread for flushing. This provides better performance, but you need to consider the following pitfalls:
 
-1. Applications that use `fork` after having created the dogstatsd instance: the child process will need a new dogstatsd instance, as otherwise it will be unable to send metrics.
+1. Applications that use `fork` after having created the dogstatsd instance: the child process will automatically spawn a new companion thread to flush metrics.
 
 2. Applications that create multiple instances of the client without closing them: it is important to `#close` all instances to free the thread and the socket they are using otherwise you will leak those resources.
 
@@ -154,7 +154,7 @@ Starting with version 5.0, `dogstatsd-ruby` employs a new threading model where 
 
 When you instantiate a `Datadog::Statsd`, a companion thread is spawned. This thread will be called the Sender thread, as it is modeled by the [Sender](../lib/datadog/statsd/sender.rb) class. You can make use of `single_thread: true` to disable this behavior.
 
-This thread is stopped when you close the statsd client (`Datadog::Statsd#close`). Instantiation a lot of statsd clients without calling `#close` after they are not needed anymore will most likely lead to threads being leaked.
+This thread is stopped when you close the statsd client (`Datadog::Statsd#close`). Instantiating a lot of statsd clients without calling `#close` after they are not needed anymore will most likely lead to threads being leaked.
 
 The sender thread has the following logic (from `Datadog::Statsd::Sender#send_loop`):
 
