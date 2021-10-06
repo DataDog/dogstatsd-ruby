@@ -2,6 +2,15 @@
 
 [//]: # (comment: Don't forget to update lib/datadog/statsd/version.rb:DogStatsd::Statsd::VERSION when releasing a new version)
 
+## 5.3.0 / 2021.08.04
+
+  * [ENHANCEMENT] Automatically re-allocate resources (e.g. background thread) if `dogstatsd-ruby` is used in an application using forks [#205][] by [@remeh][]
+
+    This will help in scenarios where applications are not handling cleanup/re-creation of the dogstatsd-ruby instances in forked processes.
+    If you are an user of v4.x versions of `dogstatsd-ruby` and want to migrate to v5.x, please make sure to go through [this section of the README](https://github.com/DataDog/dogstatsd-ruby#v5x-common-pitfalls) and through the [migration guide](https://github.com/DataDog/dogstatsd-ruby#migrating-from-v4x-to-v5x).
+  * [BUGFIX] Fix client telemetry in applications using forks [#205][] by [@remeh][]
+
+Please note that this version will emit a deprecation message if you are using `ruby < 2.1`: we plan to drop support for ruby 2.0 in a future minor release.
 
 ## 5.2.0 / 2021.07.01
 
@@ -372,6 +381,7 @@ Future versions are likely to introduce backward incompatibilities with < Ruby 1
 [#181]: https://github.com/DataDog/dogstatsd-ruby/issues/181
 [#192]: https://github.com/DataDog/dogstatsd-ruby/issues/192
 [#194]: https://github.com/DataDog/dogstatsd-ruby/issues/194
+[#205]: https://github.com/DataDog/dogstatsd-ruby/issues/205
 [@AMekss]: https://github.com/AMekss
 [@abicky]: https://github.com/abicky
 [@adimitrov]: https://github.com/adimitrov

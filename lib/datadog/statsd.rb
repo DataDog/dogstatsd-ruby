@@ -11,6 +11,9 @@ require_relative 'statsd/sender'
 require_relative 'statsd/single_thread_sender'
 require_relative 'statsd/forwarder'
 
+$deprecation_message_mutex = Mutex.new
+$deprecation_message_done = false
+
 # = Datadog::Statsd: A DogStatsd client (https://www.datadoghq.com)
 #
 # @example Set up a global Statsd client for a server on localhost:8125
@@ -100,6 +103,19 @@ module Datadog
       @prefix = @namespace ? "#{@namespace}.".freeze : nil
       @serializer = Serialization::Serializer.new(prefix: @prefix, global_tags: tags)
       @sample_rate = sample_rate
+
+      # deprecation message for ruby < 2.1.0 users as we will drop support for ruby 2.0
+      # in dogstatsd-ruby 5.4.0
+      # TODO(remy): remove this message and the two global vars used in dogstatd-ruby 5.4.0
+      if RUBY_VERSION < '2.1.0' && $deprecation_message_mutex.try_lock && !$deprecation_message_done
+        if logger != nil
+          logger.warn { "deprecation: dogstatsd-ruby will drop support of Ruby < 2.1.0 in a next minor release" }
+        else
+          puts("warning: deprecation: dogstatsd-ruby will drop support of Ruby < 2.1.0 in a next minor release")
+        end
+        $deprecation_message_done = true
+        $deprecation_message_mutex.unlock
+      end
 
       @forwarder = Forwarder.new(
         host: host,
