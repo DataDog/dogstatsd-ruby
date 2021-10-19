@@ -12,7 +12,7 @@ module Datadog
         telemetry.reset
       end
 
-      # not thread safe
+      # not thread safe: callers from multiple threads must synchronize calls to this method
       def write(payload)
         logger.debug { "Statsd: #{payload}" } if logger
 
