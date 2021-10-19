@@ -580,3 +580,35 @@ describe Datadog::Statsd::UDPConnection do
     end
   end
 end
+
+
+# This instance is only about testing when the connection is opened
+
+describe Datadog::Statsd::UDPConnection do
+  subject do
+    described_class.new(host, port, logger: logger, telemetry: telemetry)
+  end
+  let(:host) do
+    'fakedomain'
+  end
+  let(:port) do
+    4567
+  end
+  let(:logger) do
+    Logger.new(STDOUT)
+  end
+  let(:telemetry) do
+    instance_double(Datadog::Statsd::Telemetry, sent: true, dropped: true)
+  end
+  describe '#initialize' do
+    it 'is not immediately opening the connection' do
+      expect(subject).not_to receive(:connect)
+    end
+  end
+  describe '#write' do
+    it 'is opening the connection' do
+      expect(subject).to receive(:connect)
+      subject.write("hello")
+    end
+  end
+end

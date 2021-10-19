@@ -15,7 +15,6 @@ module Datadog
 
         @socket_path = socket_path
         @socket = nil
-        connect
       end
 
       def close
@@ -33,6 +32,7 @@ module Datadog
       end
 
       def send_message(message)
+        connect unless @socket
         @socket.sendmsg_nonblock(message)
       rescue Errno::ECONNREFUSED, Errno::ECONNRESET, Errno::ENOENT => e
         # TODO: FIXME: This error should be considered as a retryable error in the

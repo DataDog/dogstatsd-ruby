@@ -20,7 +20,6 @@ module Datadog
         @host = host || ENV.fetch('DD_AGENT_HOST', DEFAULT_HOST)
         @port = port || ENV.fetch('DD_DOGSTATSD_PORT', DEFAULT_PORT).to_i
         @socket = nil
-        connect
       end
 
       def close
@@ -38,6 +37,7 @@ module Datadog
       end
 
       def send_message(message)
+        connect unless @socket
         @socket.send(message, 0)
       end
     end
