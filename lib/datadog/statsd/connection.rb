@@ -12,6 +12,7 @@ module Datadog
         telemetry.reset
       end
 
+      # not thread safe
       def write(payload)
         logger.debug { "Statsd: #{payload}" } if logger
 

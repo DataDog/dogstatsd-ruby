@@ -31,6 +31,10 @@ module Datadog
         @socket.connect(Socket.pack_sockaddr_un(@socket_path))
       end
 
+      # send_message is writing the message in the socket, it may create the socket if nil
+      # It is not thread-safe but since it is called by either the Sender bg thread or the
+      # SingleThreadSender (which is using a mutex while Flushing), only one thread should call
+      # it at a time.
       def send_message(message)
         connect unless @socket
         @socket.sendmsg_nonblock(message)
