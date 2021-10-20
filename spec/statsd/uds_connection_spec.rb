@@ -34,6 +34,10 @@ describe Datadog::Statsd::UDSConnection do
     it 'uses the provided socket_path' do
       expect(subject.socket_path).to eq '/tmp/socket'
     end
+    it 'does not immediately connect' do
+      expect(Socket).to_not receive(:new)
+      subject
+    end
   end
 
   describe '#write' do
@@ -402,41 +406,6 @@ describe Datadog::Statsd::UDSConnection do
           subject.write('test')
         end
       end
-    end
-  end
-end
-
-
-# This instance is only about testing _when_ the connection is opened
-
-describe Datadog::Statsd::UDSConnection do
-  subject do
-    described_class.new(socket_path, logger: logger, telemetry: telemetry)
-  end
-  let(:socket_path) do
-    '/tmp/socket'
-  end
-  let(:logger) do
-    Logger.new(log).tap do |logger|
-      logger.level = Logger::DEBUG
-    end
-  end
-  let(:log) { StringIO.new }
-  let(:telemetry) do
-    instance_double(Datadog::Statsd::Telemetry, sent: true, dropped: true)
-  end
-  let(:uds_socket) do
-    instance_double(Socket, connect: true, sendmsg_nonblock: true)
-  end
-  describe '#initialize' do
-    it 'is not immediately opening the connection' do
-      expect(subject).not_to receive(:connect)
-    end
-  end
-  describe '#write' do
-    it 'is opening the connection' do
-      expect(subject).to receive(:connect)
-      subject.write("hello")
     end
   end
 end
