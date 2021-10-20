@@ -46,14 +46,14 @@ change concerning you is the new [threading model](#threading-model):
 
 In practice, it means two things:
 
-1. Now that the client is buffering metrics before sending them, you have to call `Datadog::Statsd#flush(sync: true)` if you want synchronous behavior. In most cases, this is not needed, as the companion thread will automatically flush the buffered metrics if the buffer gets full or when you are closing the instance.
+1. Now that the client is buffering metrics before sending them, you have to call `Datadog::Statsd#flush(sync: true)` if you want synchronous behavior. In most cases, this is not needed, as the sender thread will automatically flush the buffered metrics if the buffer gets full or when you are closing the instance.
 
 2. You have to make sure you are either:
 
   * Using a singleton instance of the DogStatsD client instead of creating a new instance whenever you need one; this will let the buffering mechanism flush metrics regularly
   * Or properly disposing of the DogStatsD client instance when it is not needed anymore using the method `Datadog::Statsd#close`
 
-If you have issues with the companion thread or the buffering mode, you can instantiate a client that behaves exactly as in v4.x (i.e. no companion thread and flush on every metric submission):
+If you have issues with the sender thread or the buffering mode, you can instantiate a client that behaves exactly as in v4.x (i.e. no sender thread and flush on every metric submission):
 
 ```ruby
 # Create a DogStatsD client instance using UDP
@@ -73,9 +73,9 @@ statsd.close()
 
 ### v5.x Common Pitfalls
 
-Version v5.x of `dogstatsd-ruby` is using a companion thread for flushing. This provides better performance, but you need to consider the following pitfalls:
+Version v5.x of `dogstatsd-ruby` is using a sender thread for flushing. This provides better performance, but you need to consider the following pitfalls:
 
-1. Applications that use `fork` after having created the dogstatsd instance: the child process will automatically spawn a new companion thread to flush metrics.
+1. Applications that use `fork` after having created the dogstatsd instance: the child process will automatically spawn a new sender thread to flush metrics.
 
 2. Applications that create multiple instances of the client without closing them: it is important to `#close` all instances to free the thread and the socket they are using otherwise you will leak those resources.
 
@@ -83,7 +83,7 @@ If you are using [Sidekiq](https://github.com/mperham/sidekiq), please make sure
 
 If you are using [Puma](https://github.com/puma/puma) or [Unicorn](https://yhbt.net/unicorn.git), please make sure to create the instance of DogStatsD in the workers, not in the main process before it forks to create its workers. See [this comment for more details](https://github.com/DataDog/dogstatsd-ruby/issues/179#issuecomment-845570345).
 
-Applications that run into issues but can't apply these recommendations should use the `single_thread` mode which disables the use of the companion thread.
+Applications that run into issues but can't apply these recommendations should use the `single_thread` mode which disables the use of the sender thread.
 Here is how to instantiate a client in this mode:
 
 ```ruby
@@ -152,7 +152,7 @@ statsd.close()
 
 Starting with version 5.0, `dogstatsd-ruby` employs a new threading model where one instance of `Datadog::Statsd` can be shared between threads and where data sending is non-blocking (asynchronous).
 
-When you instantiate a `Datadog::Statsd`, a companion thread is spawned. This thread will be called the Sender thread, as it is modeled by the [Sender](../lib/datadog/statsd/sender.rb) class. You can make use of `single_thread: true` to disable this behavior.
+When you instantiate a `Datadog::Statsd`, a sender thread is spawned. This thread will be called the Sender thread, as it is modeled by the [Sender](../lib/datadog/statsd/sender.rb) class. You can make use of `single_thread: true` to disable this behavior.
 
 This thread is stopped when you close the statsd client (`Datadog::Statsd#close`). Instantiating a lot of statsd clients without calling `#close` after they are not needed anymore will most likely lead to threads being leaked.
 
@@ -195,6 +195,10 @@ It is possible to ensure a message has been consumed by the sender thread and wr
 Doing so means the caller thread is blocked and waiting until the data has been flushed by the sender thread.
 
 This is useful when preparing to exit the application or when checking unit tests.
+
+### Thread-safety
+
+Changes since version `5.0` and more specificially the introduction of the sender thread have improved the thread-safety but `dogstatsd-ruby` can't be considered completely thread-safe yet: as of version 5.3.0, the `#close` method is theoretically subject to race.
 
 ## Versioning
 
