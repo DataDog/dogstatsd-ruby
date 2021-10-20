@@ -198,7 +198,9 @@ This is useful when preparing to exit the application or when checking unit test
 
 ### Thread-safety
 
-Changes since version `5.0` and more specificially the introduction of the sender thread have improved the thread-safety but `dogstatsd-ruby` can't be considered completely thread-safe yet: as of version 5.3.0, the `#close` method is theoretically subject to race.
+By default, instances of `Datadog::Statsd` are thread-safe and we recommend that a single instance be reused by all application threads (even in applications that employ forking). The sole exception is the `#close` method — this method is not yet thread safe (work in progress here [#209](https://github.com/DataDog/dogstatsd-ruby/pull/209)).
+
+When using the `single_thread: true` mode, instances of `Datadog::Statsd` are still thread-safe, but you may run into contention on heavily-threaded applications, so we don’t recommend (for performance reasons) reusing these instances.
 
 ## Versioning
 
