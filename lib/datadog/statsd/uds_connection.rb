@@ -15,7 +15,6 @@ module Datadog
 
         @socket_path = socket_path
         @socket = nil
-        connect
       end
 
       def close
@@ -32,7 +31,12 @@ module Datadog
         @socket.connect(Socket.pack_sockaddr_un(@socket_path))
       end
 
+      # send_message is writing the message in the socket, it may create the socket if nil
+      # It is not thread-safe but since it is called by either the Sender bg thread or the
+      # SingleThreadSender (which is using a mutex while Flushing), only one thread must call
+      # it at a time.
       def send_message(message)
+        connect unless @socket
         @socket.sendmsg_nonblock(message)
       rescue Errno::ECONNREFUSED, Errno::ECONNRESET, Errno::ENOENT => e
         # TODO: FIXME: This error should be considered as a retryable error in the

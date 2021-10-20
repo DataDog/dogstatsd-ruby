@@ -34,6 +34,10 @@ describe Datadog::Statsd::UDSConnection do
     it 'uses the provided socket_path' do
       expect(subject.socket_path).to eq '/tmp/socket'
     end
+    it 'does not immediately connect' do
+      expect(Socket).to_not receive(:new)
+      subject
+    end
   end
 
   describe '#write' do

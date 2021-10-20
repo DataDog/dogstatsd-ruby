@@ -20,7 +20,6 @@ module Datadog
         @host = host || ENV.fetch('DD_AGENT_HOST', DEFAULT_HOST)
         @port = port || ENV.fetch('DD_DOGSTATSD_PORT', DEFAULT_PORT).to_i
         @socket = nil
-        connect
       end
 
       def close
@@ -37,7 +36,12 @@ module Datadog
         @socket.connect(host, port)
       end
 
+      # send_message is writing the message in the socket, it may create the socket if nil
+      # It is not thread-safe but since it is called by either the Sender bg thread or the
+      # SingleThreadSender (which is using a mutex while Flushing), only one thread must call
+      # it at a time.
       def send_message(message)
+        connect unless @socket
         @socket.send(message, 0)
       end
     end

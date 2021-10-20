@@ -43,6 +43,11 @@ describe Datadog::Statsd::UDPConnection do
       expect(subject.port).to eq 4567
     end
 
+    it 'does not immediately connect' do
+      expect(UDPSocket).to_not receive(:new)
+      subject
+    end
+
     context 'when no host is provided' do
       let(:host) do
         nil

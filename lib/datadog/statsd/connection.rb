@@ -12,6 +12,7 @@ module Datadog
         telemetry.reset
       end
 
+      # not thread safe: `Sender` instances that use this are required to properly synchronize or sequence calls to this method
       def write(payload)
         logger.debug { "Statsd: #{payload}" } if logger
 
