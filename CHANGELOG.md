@@ -2,7 +2,7 @@
 
 [//]: # (comment: Don't forget to update lib/datadog/statsd/version.rb:DogStatsd::Statsd::VERSION when releasing a new version)
 
-## 5.3.1 / 2021.10.20
+## 5.3.1 / 2021.10.21
 
   * [OTHER] restore connection opening behavior from before 5.3.0 (connections not opened on client instantiation but on the first write instead) [#214]][] by [@remeh][]
 
