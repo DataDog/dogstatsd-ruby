@@ -2,6 +2,10 @@
 
 [//]: # (comment: Don't forget to update lib/datadog/statsd/version.rb:DogStatsd::Statsd::VERSION when releasing a new version)
 
+## 5.3.1 / 2021.10.21
+
+  * [OTHER] restore connection opening behavior from before 5.3.0 (connections not opened on client instantiation but on the first write instead) [#214]][] by [@remeh][]
+
 ## 5.3.0 / 2021.10.06
 
   * [ENHANCEMENT] Automatically re-allocate resources (e.g. background thread) if `dogstatsd-ruby` is used in an application using forks [#205][] by [@remeh][]
@@ -382,6 +386,7 @@ Future versions are likely to introduce backward incompatibilities with < Ruby 1
 [#192]: https://github.com/DataDog/dogstatsd-ruby/issues/192
 [#194]: https://github.com/DataDog/dogstatsd-ruby/issues/194
 [#205]: https://github.com/DataDog/dogstatsd-ruby/issues/205
+[#214]: https://github.com/DataDog/dogstatsd-ruby/issues/214
 [@AMekss]: https://github.com/AMekss
 [@abicky]: https://github.com/abicky
 [@adimitrov]: https://github.com/adimitrov
