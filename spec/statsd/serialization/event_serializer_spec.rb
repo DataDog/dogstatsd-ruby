@@ -28,6 +28,14 @@ describe Datadog::Statsd::Serialization::EventSerializer do
         .to eq '_e{15,21}:this is a title|this is a longer text'
     end
 
+    it 'serializes events containing non-ascii characters correctly' do
+      # the _e{..,..} syntax measures in bytes, not characters
+      # 🎈 is f09f8e88 in utf-8
+      # 🤡 is f09fa4a1 in utf-8
+      expect(subject.format('🎈', '🤡'))
+        .to eq '_e{4,4}:🎈|🤡'
+    end
+
     context 'when there are global tags' do
       before do
         allow(tag_serializer)
