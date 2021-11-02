@@ -11,6 +11,12 @@ Gem::Specification.new do |s|
   s.description = "A Ruby DogStatsd client"
   s.email = "code@datadoghq.com"
 
+  s.post_install_message = %q{
+If you are upgrading from v4.x of the dogstatsd-ruby library, note the major change to the threading model:
+https://github.com/DataDog/dogstatsd-ruby#migrating-from-v4x-to-v5x
+
+}
+
   s.metadata = {
     "bug_tracker_uri"   => "https://github.com/DataDog/dogstatsd-ruby/issues",
     "changelog_uri"     => "https://github.com/DataDog/dogstatsd-ruby/blob/v#{s.version}/CHANGELOG.md",
