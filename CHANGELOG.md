@@ -2,6 +2,10 @@
 
 [//]: # (comment: Don't forget to update lib/datadog/statsd/version.rb:DogStatsd::Statsd::VERSION when releasing a new version)
 
+## 5.3.2 / 2021.11.03
+
+  * [OTHER] add a warning message for the v5.x update on install #222 by @djmitche
+
 ## 5.3.1 / 2021.10.21
 
   * [OTHER] restore connection opening behavior from before 5.3.0 (connections not opened on client instantiation but on the first write instead) [#214]][] by [@remeh][]
