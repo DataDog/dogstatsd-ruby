@@ -81,6 +81,7 @@ module Datadog
         @message_queue = Queue.new
         # start background thread
         @sender_thread = Thread.new(&method(:send_loop))
+        @sender_thread.name = "Statsd Sender" unless Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.3')
       end
 
       if CLOSEABLE_QUEUES
