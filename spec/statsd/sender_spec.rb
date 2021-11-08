@@ -20,6 +20,21 @@ describe Datadog::Statsd::Sender do
       end.to change { Thread.list.size }.by(1)
     end
 
+    context 'on Ruby >= 2.3' do
+      before do
+        if Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.3')
+          skip 'Thread names not supported on old Rubies'
+        end
+      end
+
+      it 'names the sender thread' do
+        subject.start
+        expect(Thread.list).to satisfy {
+          |thds| thds.any? { |t| t.name == "Statsd Sender" }
+        }
+      end
+    end
+
     context 'when the sender is started' do
       before do
         subject.start
