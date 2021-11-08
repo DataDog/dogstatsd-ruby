@@ -78,11 +78,10 @@ module Datadog
     def initialize(
       host = nil,
       port = nil,
-      socket_path: nil,
+      socket_path: ENV['DD_DOGSTATSD_SOCKET'],
 
       namespace: nil,
       tags: nil,
-      socket_path: ENV['DD_DOGSTATSD_SOCKET'],
       sample_rate: nil,
 
       buffer_max_payload_size: nil,
