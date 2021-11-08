@@ -47,50 +47,6 @@ describe Datadog::Statsd::UDPConnection do
       expect(UDPSocket).to_not receive(:new)
       subject
     end
-
-    context 'when no host is provided' do
-      let(:host) do
-        nil
-      end
-
-      it 'uses the default host' do
-        expect(subject.host).to eq Datadog::Statsd::UDPConnection::DEFAULT_HOST
-      end
-
-      context 'when DD_AGENT_HOST env var is provided' do
-        around do |example|
-          ClimateControl.modify('DD_AGENT_HOST' => 'myhost') do
-            example.run
-          end
-        end
-
-        it 'uses the environment variable DD_AGENT_HOST to set the host' do
-          expect(subject.host).to eq 'myhost'
-        end
-      end
-    end
-
-    context 'when no port is provided' do
-      let(:port) do
-        nil
-      end
-
-      it 'uses the default port' do
-        expect(subject.port).to eq Datadog::Statsd::UDPConnection::DEFAULT_PORT
-      end
-
-      context 'when DD_DOGSTATSD_PORT env var is provided' do
-        around do |example|
-          ClimateControl.modify('DD_DOGSTATSD_PORT' => '1337') do
-            example.run
-          end
-        end
-
-        it 'uses the environment variable DD_DOGSTATSD_PORT to set the port' do
-          expect(subject.port).to eq 1337
-        end
-      end
-    end
   end
 
   describe '#write' do

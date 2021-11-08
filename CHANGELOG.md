@@ -2,6 +2,9 @@
 
 [//]: # (comment: Don't forget to update lib/datadog/statsd/version.rb:DogStatsd::Statsd::VERSION when releasing a new version)
 
+  * [ENHANCEMENT] The client can now be configured to use UDS via the `DD_DOGSTATSD_SOCKET` environment variable.
+    This variable does not take precedence over any explicit parameters passed to the Statsd constructor.
+
 ## 5.3.2 / 2021.11.03
 
   * [OTHER] add a warning message for the v5.x update on install #222 by @djmitche
