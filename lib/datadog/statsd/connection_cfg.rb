@@ -10,28 +10,31 @@ module Datadog
       DEFAULT_PORT = 8125
 
       def initialize(host: nil, port: nil, socket_path: nil)
-
-        # Try with constructor args
-        if setup_with(host, port, socket_path)
-          return
-        end
-
-        # Try with env vars
-        if setup_with(
-            ENV['DD_AGENT_HOST'],
-            ENV['DD_DOGSTATSD_PORT'].nil? ? nil : ENV['DD_DOGSTATSD_PORT'].to_i,
-            ENV['DD_DOGSTATSD_SOCKET'])
-          return
-        end
-
-        # Fall back to defaults
-        setup_with(DEFAULT_HOST, DEFAULT_PORT, nil)
+        initialize_with_constructor_args(host, port, socket_path) || initialize_with_env_vars || initialize_with_defaults
       end
 
-      # set up the configuration with the given values; this is a helper for #initialize
-      def setup_with(host, port, socket_path)
+      def initialize_with_constructor_args(host, port, socket_path)
+        try_initialize_with(host, port, socket_path,
+          "Both host/port and socket_path constructor arguments are set.  Set only one or the other.",
+          )
+      end
+
+      def initialize_with_env_vars()
+        try_initialize_with(
+          ENV['DD_AGENT_HOST'],
+          ENV['DD_DOGSTATSD_PORT'].nil? ? nil : ENV['DD_DOGSTATSD_PORT'].to_i,
+          ENV['DD_DOGSTATSD_SOCKET'],
+          "Both $DD_AGENT_HOST/$DD_DOGSTATSD_PORT and $DD_DOGSTATSD_SOCKET are set.  Set only one or the other.",
+          )
+      end
+
+      def initialize_with_defaults()
+        try_initialize_with(DEFAULT_HOST, DEFAULT_PORT, nil, "")
+      end
+
+      def try_initialize_with(host, port, socket_path, not_both_error_message)
         if (host || port) && socket_path
-          raise ArgumentError, "Do not set both host/port and socket_path"
+          raise ArgumentError, not_both_error_message
         end
 
         if host || port 

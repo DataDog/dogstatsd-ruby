@@ -55,7 +55,9 @@ describe Datadog::Statsd::ConnectionCfg do
       it 'raises an exception' do
         expect do
           subject.new(host: host, port: port, socket_path: socket_path)
-        end.to raise_error(ArgumentError, 'Do not set both host/port and socket_path')
+        end.to raise_error(
+          ArgumentError,
+          'Both host/port and socket_path constructor arguments are set.  Set only one or the other.')
       end
     end
 
@@ -149,7 +151,9 @@ describe Datadog::Statsd::ConnectionCfg do
       it 'raises an exception' do
         expect do
           subject.new(host: host, port: port, socket_path: socket_path)
-        end.to raise_error(ArgumentError, 'Do not set both host/port and socket_path')
+        end.to raise_error(
+          ArgumentError,
+          'Both $DD_AGENT_HOST/$DD_DOGSTATSD_PORT and $DD_DOGSTATSD_SOCKET are set.  Set only one or the other.')
       end
     end
 
@@ -184,10 +188,7 @@ describe Datadog::Statsd::ConnectionCfg do
       let(:host) { 'my-agent' }
       let(:port) { 1234 }
       let(:udp_connection) do
-        instance_double(Datadog::Statsd::UDPConnection,
-          host: host,
-          port: port
-        )
+        instance_double(Datadog::Statsd::UDPConnection)
       end
 
       it 'creates a UDP connection, passing along params' do
