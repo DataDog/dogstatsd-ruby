@@ -57,7 +57,7 @@ describe Datadog::Statsd::ConnectionCfg do
           subject.new(host: host, port: port, socket_path: socket_path)
         end.to raise_error(
           ArgumentError,
-          'Both host/port and socket_path constructor arguments are set.  Set only one or the other.')
+          "Both UDP: (host/port my-agent:1234) and UDS (socket_path /some/socket) constructor arguments were given.  Use only one or the other.")
       end
     end
 
@@ -153,7 +153,7 @@ describe Datadog::Statsd::ConnectionCfg do
           subject.new(host: host, port: port, socket_path: socket_path)
         end.to raise_error(
           ArgumentError,
-          'Both $DD_AGENT_HOST/$DD_DOGSTATSD_PORT and $DD_DOGSTATSD_SOCKET are set.  Set only one or the other.')
+          'Both UDP (DD_AGENT_HOST/DD_DOGSTATSD_PORT some-host:) and UDS (DD_DOGSTATSD_SOCKET /some/socket) environment variables are set.  Set only one or the other.')
       end
     end
 
