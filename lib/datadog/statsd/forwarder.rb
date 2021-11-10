@@ -7,7 +7,7 @@ module Datadog
       attr_reader :transport_type
 
       def initialize(
-        connection_cfg:,
+        connection_cfg: nil,
 
         buffer_max_payload_size: nil,
         buffer_max_pool_size: nil,

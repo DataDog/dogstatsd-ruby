@@ -26,7 +26,7 @@ module Datadog
       DEFAULT_HOST = '127.0.0.1'
       DEFAULT_PORT = 8125
 
-      def initialize_with_constructor_args(host:, port:, socket_path:)
+      def initialize_with_constructor_args(host: nil, port: nil, socket_path: nil)
         try_initialize_with(host: host, port: port, socket_path: socket_path,
           not_both_error_message: 
             "Both UDP: (host/port %s:%s) and UDS (socket_path %s) constructor arguments were given.  Use only one or the other." %
@@ -48,7 +48,7 @@ module Datadog
         try_initialize_with(host: DEFAULT_HOST, port: DEFAULT_PORT)
       end
 
-      def try_initialize_with(host:, port:, socket_path: nil, not_both_error_message: "")
+      def try_initialize_with(host: nil, port: nil, socket_path: nil, not_both_error_message: "")
         if (host || port) && socket_path
           raise ArgumentError, not_both_error_message
         end
