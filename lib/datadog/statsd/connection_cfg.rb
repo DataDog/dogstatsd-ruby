@@ -29,8 +29,8 @@ module Datadog
       def initialize_with_constructor_args(host: nil, port: nil, socket_path: nil)
         try_initialize_with(host: host, port: port, socket_path: socket_path,
           not_both_error_message: 
-            "Both UDP: (host/port %s:%s) and UDS (socket_path %s) constructor arguments were given.  Use only one or the other." %
-            [host, port, socket_path],
+            "Both UDP: (host/port #{host}:#{port}) and UDS (socket_path #{socket_path}) " +
+            "constructor arguments were given. Use only one or the other.",
           )
       end
 
@@ -40,7 +40,9 @@ module Datadog
           port: ENV['DD_DOGSTATSD_PORT'] && ENV['DD_DOGSTATSD_PORT'].to_i,
           socket_path: ENV['DD_DOGSTATSD_SOCKET'],
           not_both_error_message:
-            "Both UDP (DD_AGENT_HOST/DD_DOGSTATSD_PORT %s:%s) and UDS (DD_DOGSTATSD_SOCKET %s) environment variables are set.  Set only one or the other." %
+            "Both UDP (DD_AGENT_HOST/DD_DOGSTATSD_PORT #{ENV['DD_AGENT_HOST']}:#{ENV['DD_DOGSTATSD_PORT']}) " +
+            "and UDS (DD_DOGSTATSD_SOCKET #{ENV['DD_DOGSTATSD_SOCKET']}) environment variables are set. " +
+            "Set only one or the other." %
             [ENV['DD_AGENT_HOST'], ENV['DD_DOGSTATSD_PORT'], ENV['DD_DOGSTATSD_SOCKET']])
       end
 
