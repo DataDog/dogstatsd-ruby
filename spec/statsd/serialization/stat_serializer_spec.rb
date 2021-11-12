@@ -95,10 +95,6 @@ describe Datadog::Statsd::Serialization::StatSerializer do
   end
 
   context 'benchmark' do
-    before do
-      skip 'Ruby too old' if RUBY_VERSION < '2.1.0'
-    end
-
     before { skip("Benchmarks results are currently not used by CI") if ENV.key?('CI') }
 
     def benchmark_setup(x)

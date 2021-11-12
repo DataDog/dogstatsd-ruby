@@ -42,7 +42,7 @@ describe Datadog::Statsd::Telemetry do
   describe '#should_flush?' do
     before do
       Timecop.freeze(DateTime.new(2020, 2, 22, 12, 12, 12))
-      allow(Process).to receive(:clock_gettime).and_return(0) if Datadog::Statsd::PROCESS_TIME_SUPPORTED
+      allow(Process).to receive(:clock_gettime).and_return(0)
 
       subject
     end
@@ -54,7 +54,7 @@ describe Datadog::Statsd::Telemetry do
     context 'before the delay' do
       before do
         Timecop.freeze(DateTime.new(2020, 2, 22, 12, 12, 13))
-        allow(Process).to receive(:clock_gettime).and_return(1) if Datadog::Statsd::PROCESS_TIME_SUPPORTED
+        allow(Process).to receive(:clock_gettime).and_return(1)
       end
 
       it 'returns false' do
@@ -65,7 +65,7 @@ describe Datadog::Statsd::Telemetry do
     context 'after the delay' do
       before do
         Timecop.freeze(DateTime.new(2020, 2, 22, 12, 12, 15))
-        allow(Process).to receive(:clock_gettime).and_return(3) if Datadog::Statsd::PROCESS_TIME_SUPPORTED
+        allow(Process).to receive(:clock_gettime).and_return(3)
       end
 
       it 'returns true' do
@@ -109,7 +109,7 @@ describe Datadog::Statsd::Telemetry do
   describe '#reset' do
     before do
       Timecop.freeze(DateTime.new(2020, 2, 22, 12, 12, 12))
-      allow(Process).to receive(:clock_gettime).and_return(0) if Datadog::Statsd::PROCESS_TIME_SUPPORTED
+      allow(Process).to receive(:clock_gettime).and_return(0)
 
       subject.sent(metrics: 1, events: 2, service_checks: 3, bytes: 4, packets: 5)
       subject.dropped(bytes: 6, packets: 7)
@@ -121,7 +121,7 @@ describe Datadog::Statsd::Telemetry do
 
     it 'resets the flush time' do
       Timecop.freeze(DateTime.new(2020, 2, 22, 12, 12, 15))
-      allow(Process).to receive(:clock_gettime).and_return(3) if Datadog::Statsd::PROCESS_TIME_SUPPORTED
+      allow(Process).to receive(:clock_gettime).and_return(3)
 
       expect do
         subject.reset

@@ -2,6 +2,7 @@
 
 [//]: # (comment: Don't forget to update lib/datadog/statsd/version.rb:DogStatsd::Statsd::VERSION when releasing a new version)
 
+  * [OTHER] Ruby versions earlier than 2.1.0 are no longer supported.  Ruby-2.0 was EOL as of 2016-02-24.
   * [ENHANCEMENT] The client can now be configured to use UDS via the `DD_DOGSTATSD_SOCKET` environment variable.
     This variable does not take precedence over any explicit parameters passed to the Statsd constructor.
 

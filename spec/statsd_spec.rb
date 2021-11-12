@@ -579,14 +579,14 @@ describe Datadog::Statsd do
 
     before do
       Timecop.freeze(before_date)
-      allow(Process).to receive(:clock_gettime).and_return(0) if Datadog::Statsd::PROCESS_TIME_SUPPORTED
+      allow(Process).to receive(:clock_gettime).and_return(0)
     end
 
     it_behaves_like 'a metrics method', 'foobar:1000|ms' do
       let(:basic_action) do
         subject.time('foobar', tags: action_tags) do
           Timecop.travel(after_date)
-          allow(Process).to receive(:clock_gettime).and_return(1) if Datadog::Statsd::PROCESS_TIME_SUPPORTED
+          allow(Process).to receive(:clock_gettime).and_return(1)
         end
 
         subject.flush(sync: true)
@@ -597,7 +597,7 @@ describe Datadog::Statsd do
       it 'sends the timing' do
         subject.time('foobar') do
           Timecop.travel(after_date)
-          allow(Process).to receive(:clock_gettime).and_return(1) if Datadog::Statsd::PROCESS_TIME_SUPPORTED
+          allow(Process).to receive(:clock_gettime).and_return(1)
         end
 
         subject.flush(sync: true)
@@ -609,7 +609,7 @@ describe Datadog::Statsd do
         # rubocop:disable Lint/RescueWithoutErrorClass
         subject.time('foobar') do
           Timecop.travel(after_date)
-          allow(Process).to receive(:clock_gettime).and_return(1) if Datadog::Statsd::PROCESS_TIME_SUPPORTED
+          allow(Process).to receive(:clock_gettime).and_return(1)
           raise 'stop'
         end rescue nil
         # rubocop:enable Lint/RescueWithoutErrorClass
@@ -648,7 +648,7 @@ describe Datadog::Statsd do
       it 'sends the timing with the sample rate' do
         subject.time('foobar', sample_rate: 0.5) do
           Timecop.travel(after_date)
-          allow(Process).to receive(:clock_gettime).and_return(1) if Datadog::Statsd::PROCESS_TIME_SUPPORTED
+          allow(Process).to receive(:clock_gettime).and_return(1)
         end
 
         subject.flush(sync: true)
@@ -665,7 +665,7 @@ describe Datadog::Statsd do
       it 'sends the timing with the sample rate' do
         subject.time('foobar', 0.5) do
           Timecop.travel(after_date)
-          allow(Process).to receive(:clock_gettime).and_return(1) if Datadog::Statsd::PROCESS_TIME_SUPPORTED
+          allow(Process).to receive(:clock_gettime).and_return(1)
         end
 
         subject.flush(sync: true)
