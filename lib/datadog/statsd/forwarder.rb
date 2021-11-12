@@ -7,9 +7,7 @@ module Datadog
       attr_reader :transport_type
 
       def initialize(
-        host: nil,
-        port: nil,
-        socket_path: nil,
+        connection_cfg: nil,
 
         buffer_max_payload_size: nil,
         buffer_max_pool_size: nil,
@@ -22,24 +20,20 @@ module Datadog
 
         logger: nil
       )
-        @transport_type = socket_path.nil? ? :udp : :uds
+        @transport_type = connection_cfg.transport_type
 
         if telemetry_flush_interval
           @telemetry = Telemetry.new(telemetry_flush_interval,
             global_tags: global_tags,
-            transport_type: transport_type
+            transport_type: @transport_type
           )
         end
 
-        @connection = case transport_type
-                      when :udp
-                        UDPConnection.new(host, port, logger: logger, telemetry: telemetry)
-                      when :uds
-                        UDSConnection.new(socket_path, logger: logger, telemetry: telemetry)
-                      end
+        @connection = connection_cfg.make_connection(logger: logger, telemetry: telemetry)
 
         # Initialize buffer
-        buffer_max_payload_size ||= (transport_type == :udp ? UDP_DEFAULT_BUFFER_SIZE : UDS_DEFAULT_BUFFER_SIZE)
+        buffer_max_payload_size ||= (@transport_type == :udp ?
+                                     UDP_DEFAULT_BUFFER_SIZE : UDS_DEFAULT_BUFFER_SIZE)
 
         if buffer_max_payload_size <= 0
           raise ArgumentError, 'buffer_max_payload_size cannot be <= 0'

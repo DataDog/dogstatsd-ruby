@@ -5,20 +5,17 @@ require_relative 'connection'
 module Datadog
   class Statsd
     class UDPConnection < Connection
-      DEFAULT_HOST = '127.0.0.1'
-      DEFAULT_PORT = 8125
-
-      # StatsD host. Defaults to 127.0.0.1.
+      # StatsD host.
       attr_reader :host
 
-      # StatsD port. Defaults to 8125.
+      # StatsD port.
       attr_reader :port
 
       def initialize(host, port, **kwargs)
         super(**kwargs)
 
-        @host = host || ENV.fetch('DD_AGENT_HOST', DEFAULT_HOST)
-        @port = port || ENV.fetch('DD_DOGSTATSD_PORT', DEFAULT_PORT).to_i
+        @host = host
+        @port = port
         @socket = nil
       end
 

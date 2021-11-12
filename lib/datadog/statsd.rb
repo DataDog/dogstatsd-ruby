@@ -5,6 +5,7 @@ require_relative 'statsd/version'
 require_relative 'statsd/telemetry'
 require_relative 'statsd/udp_connection'
 require_relative 'statsd/uds_connection'
+require_relative 'statsd/connection_cfg'
 require_relative 'statsd/message_buffer'
 require_relative 'statsd/serialization'
 require_relative 'statsd/sender'
@@ -118,9 +119,11 @@ module Datadog
       end
 
       @forwarder = Forwarder.new(
-        host: host,
-        port: port,
-        socket_path: socket_path,
+        connection_cfg: ConnectionCfg.new(
+          host: host,
+          port: port,
+          socket_path: socket_path,
+        ),
 
         global_tags: tags,
         logger: logger,
