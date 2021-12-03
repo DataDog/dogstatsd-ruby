@@ -48,7 +48,9 @@ module Datadog
           max_pool_size: buffer_max_pool_size || DEFAULT_BUFFER_POOL_SIZE,
           overflowing_stategy: buffer_overflowing_stategy,
         )
-        @sender = (single_thread ? SingleThreadSender : Sender).new(buffer, logger: logger)
+        @sender = single_thread ?
+          SingleThreadSender.new(buffer, logger: logger) :
+          Sender.new(buffer, logger: logger)
         @sender.start
       end
 

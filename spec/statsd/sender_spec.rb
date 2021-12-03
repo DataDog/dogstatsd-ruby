@@ -1,8 +1,27 @@
 require 'spec_helper'
 
+class Waiter
+  def initialize()
+    @mx = Mutex.new
+    @cv = ConditionVariable.new
+    @sig = false
+  end
+
+  def wait()
+    @mx.synchronize { @cv.wait(@mx) until @sig }
+  end
+
+  def signal()
+    @mx.synchronize {
+      @sig = true
+      @cv.signal
+    }
+  end
+end
+
 describe Datadog::Statsd::Sender do
   subject do
-    described_class.new(message_buffer)
+    described_class.new(message_buffer, queue_size: 64)
   end
 
   let(:message_buffer) do
@@ -84,6 +103,30 @@ describe Datadog::Statsd::Sender do
           .with('sample message')
 
         subject.add('sample message')
+
+        subject.rendez_vous
+      end
+
+      it 'adds only messages up to queue_size bytes' do
+        # keep the sender thread busy handling a flush
+        waiter = Waiter.new
+        expect(message_buffer)
+          .to receive(:flush) { waiter.wait }
+        subject.flush
+
+        sixtyFourBytes = 'abcd' * 16
+
+        expect(message_buffer)
+          .to receive(:add)
+          .with(sixtyFourBytes)
+          .exactly(1).times
+
+        subject.add(sixtyFourBytes)
+        subject.add(sixtyFourBytes) # (dropped)
+        subject.add(sixtyFourBytes) # (dropped)
+
+        # resume the sender thread again
+        waiter.signal
 
         subject.rendez_vous
       end
