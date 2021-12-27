@@ -21,7 +21,7 @@ end
 
 describe Datadog::Statsd::Sender do
   subject do
-    described_class.new(message_buffer, queue_size: 64)
+    described_class.new(message_buffer, queue_size: 5)
   end
 
   let(:message_buffer) do
@@ -88,7 +88,7 @@ describe Datadog::Statsd::Sender do
       end
     end
 
-    context 'when starting and stopping' do
+    context 'when started' do
       before do
         subject.start
       end
@@ -107,25 +107,25 @@ describe Datadog::Statsd::Sender do
         subject.rendez_vous
       end
 
-      it 'adds only messages up to queue_size bytes' do
+      it 'adds only messages up to queue_size messages' do
         # keep the sender thread busy handling a flush
         waiter = Waiter.new
         expect(message_buffer)
           .to receive(:flush) { waiter.wait }
         subject.flush
 
-        sixtyFourBytes = 'abcd' * 16
+        # send six messages; sixth is dropped
+        for i in 0..6 do
+          subject.add('message')
+        end
 
         expect(message_buffer)
           .to receive(:add)
-          .with(sixtyFourBytes)
-          .exactly(1).times
+          .with('message')
+          .exactly(5).times
 
-        subject.add(sixtyFourBytes)
-        subject.add(sixtyFourBytes) # (dropped)
-        subject.add(sixtyFourBytes) # (dropped)
-
-        # resume the sender thread again
+        # resume the sender thread again to receive those six
+        # messages
         waiter.signal
 
         subject.rendez_vous

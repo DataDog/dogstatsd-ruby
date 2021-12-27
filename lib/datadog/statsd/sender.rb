@@ -12,7 +12,7 @@ module Datadog
     class Sender
       CLOSEABLE_QUEUES = Queue.instance_methods.include?(:close)
 
-      def initialize(message_buffer, queue_size: 0, logger: nil)
+      def initialize(message_buffer, queue_size: 2048, logger: nil)
         @message_buffer = message_buffer
         @queue_size = queue_size
         @logger = logger
@@ -72,15 +72,11 @@ module Datadog
           }
         end
 
-        @mx.synchronize {
-          new_size = @message_queue_bytesize + message.bytesize
-          if @queue_size == 0 || new_size <= @queue_size
-            @message_queue_bytesize = new_size
-            message_queue << message
-          else
-            @logger.info { "Statsd: dropping message due to backlog in sender queue" } if @logger
-          end
-        }
+        if message_queue.length <= @queue_size
+          message_queue << message
+        else
+          @logger.debug { "Sender queue full; dropping" } if @logger # TODO: tlm instead of log
+        end
       end
 
       def start
@@ -88,7 +84,6 @@ module Datadog
 
         # initialize a new message queue for the background thread
         @message_queue = Queue.new
-        @message_queue_bytesize = 0
         # start background thread
         @sender_thread = Thread.new(&method(:send_loop))
         @sender_thread.name = "Statsd Sender" unless Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.3')
@@ -138,14 +133,10 @@ module Datadog
               message.push(:go_on)
             else
               message_buffer.add(message)
-              @mx.synchronize {
-                @message_queue_bytesize -= message.bytesize
-              }
             end
           end
 
           @message_queue = nil
-          @message_queue_bytesize = nil
           @sender_thread = nil
         end
       else
@@ -163,15 +154,11 @@ module Datadog
             when Queue
               message.push(:go_on)
             else
-              @mx.synchronize {
-                @message_queue_bytesize -= message.bytesize
-              }
               message_buffer.add(message)
             end
           end
 
           @message_queue = nil
-          @message_queue_bytesize = nil
           @sender_thread = nil
         end
       end
