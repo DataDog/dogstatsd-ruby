@@ -9,8 +9,10 @@ module Datadog
       attr_reader :service_checks
       attr_reader :bytes_sent
       attr_reader :bytes_dropped
+      attr_reader :bytes_dropped_writer
       attr_reader :packets_sent
       attr_reader :packets_dropped
+      attr_reader :packets_dropped_writer
 
       # Rough estimation of maximum telemetry message size without tags
       MAX_TELEMETRY_MESSAGE_SIZE_WT_TAGS = 50 # bytes
@@ -40,8 +42,10 @@ module Datadog
         @service_checks = 0
         @bytes_sent = 0
         @bytes_dropped = 0
+        @bytes_dropped_writer = 0
         @packets_sent = 0
         @packets_dropped = 0
+        @packets_dropped_writer = 0
         @next_flush_time = now_in_s + @flush_interval
       end
 
@@ -54,9 +58,11 @@ module Datadog
         @packets_sent += packets
       end
 
-      def dropped(bytes: 0, packets: 0)
+      def dropped_writer(bytes: 0, packets: 0)
         @bytes_dropped += bytes
+        @bytes_dropped_writer += bytes
         @packets_dropped += packets
+        @packets_dropped_writer += packets
       end
 
       def should_flush?
@@ -70,8 +76,10 @@ module Datadog
           sprintf(pattern, 'service_checks', @service_checks),
           sprintf(pattern, 'bytes_sent', @bytes_sent),
           sprintf(pattern, 'bytes_dropped', @bytes_dropped),
+          sprintf(pattern, 'bytes_dropped_writer', @bytes_dropped_writer),
           sprintf(pattern, 'packets_sent', @packets_sent),
           sprintf(pattern, 'packets_dropped', @packets_dropped),
+          sprintf(pattern, 'packets_dropped_writer', @packets_dropped_writer),
         ]
       end
 

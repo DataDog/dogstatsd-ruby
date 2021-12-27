@@ -42,7 +42,7 @@ describe Datadog::Statsd::UDSConnection do
 
   describe '#write' do
     let(:telemetry) do
-      instance_double(Datadog::Statsd::Telemetry, sent: true, dropped: true)
+      instance_double(Datadog::Statsd::Telemetry, sent: true, dropped_writer: true)
     end
 
     it 'builds the socket in the right mode' do
@@ -142,9 +142,9 @@ describe Datadog::Statsd::UDSConnection do
             expect(log.string).to match 'Statsd: Datadog::Statsd::UDSConnection::BadSocketError Errno::ECONNRESET: Connection reset by peer'
           end
 
-          it 'updates the "dropped" telemetry counts' do
+          it 'updates the "dropped_writer" telemetry counts' do
             expect(telemetry)
-              .to receive(:dropped)
+              .to receive(:dropped_writer)
               .with(bytes: 4, packets: 1)
 
             subject.write('test')
@@ -171,9 +171,9 @@ describe Datadog::Statsd::UDSConnection do
               expect(log.string).to match 'Statsd: RuntimeError yolo'
             end
 
-            it 'updates the "dropped" telemetry counts' do
+            it 'updates the "dropped_writer" telemetry counts' do
               expect(telemetry)
-                .to receive(:dropped)
+                .to receive(:dropped_writer)
                 .with(bytes: 4, packets: 1)
 
               subject.write('test')
@@ -199,9 +199,9 @@ describe Datadog::Statsd::UDSConnection do
               expect(log.string).to match 'Statsd: SocketError yolo'
             end
 
-            it 'updates the "dropped" telemetry counts' do
+            it 'updates the "dropped_writer" telemetry counts' do
               expect(telemetry)
-                .to receive(:dropped)
+                .to receive(:dropped_writer)
                 .with(bytes: 4, packets: 1)
 
               subject.write('test')
@@ -248,9 +248,9 @@ describe Datadog::Statsd::UDSConnection do
             expect(log.string).to match 'Statsd: Datadog::Statsd::UDSConnection::BadSocketError Errno::ECONNREFUSED: Connection refused - closed stream'
           end
 
-          it 'updates the "dropped" telemetry counts' do
+          it 'updates the "dropped_writer" telemetry counts' do
             expect(telemetry)
-              .to receive(:dropped)
+              .to receive(:dropped_writer)
               .with(bytes: 4, packets: 1)
 
             subject.write('test')
@@ -277,9 +277,9 @@ describe Datadog::Statsd::UDSConnection do
               expect(log.string).to match 'Statsd: RuntimeError yolo'
             end
 
-            it 'updates the "dropped" telemetry counts' do
+            it 'updates the "dropped_writer" telemetry counts' do
               expect(telemetry)
-                .to receive(:dropped)
+                .to receive(:dropped_writer)
                 .with(bytes: 4, packets: 1)
 
               subject.write('test')
@@ -305,9 +305,9 @@ describe Datadog::Statsd::UDSConnection do
               expect(log.string).to match 'Errno::ECONNREFUSED Connection refused - yolo'
             end
 
-            it 'updates the "dropped" telemetry counts' do
+            it 'updates the "dropped_writer" telemetry counts' do
               expect(telemetry)
-                .to receive(:dropped)
+                .to receive(:dropped_writer)
                 .with(bytes: 4, packets: 1)
 
               subject.write('test')
@@ -351,9 +351,9 @@ describe Datadog::Statsd::UDSConnection do
           expect(log.string).to match 'Statsd: Errno::ENOENT No such file or directory'
         end
 
-        it 'updates the "dropped" telemetry counts' do
+        it 'updates the "dropped_writer" telemetry counts' do
           expect(telemetry)
-            .to receive(:dropped)
+            .to receive(:dropped_writer)
             .with(bytes: 4, packets: 1)
 
           subject.write('test')
@@ -398,9 +398,9 @@ describe Datadog::Statsd::UDSConnection do
           expect(log.string).to match 'Statsd: IO::EAGAINWaitWritable Resource temporarily unavailable'
         end
 
-        it 'updates the "dropped" telemetry counts' do
+        it 'updates the "dropped_writer" telemetry counts' do
           expect(telemetry)
-            .to receive(:dropped)
+            .to receive(:dropped_writer)
             .with(bytes: 4, packets: 1)
 
           subject.write('test')

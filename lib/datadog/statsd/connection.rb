@@ -38,7 +38,7 @@ module Datadog
           end
         end
 
-        telemetry.dropped(packets: 1, bytes: payload.length) if telemetry
+        telemetry.dropped_writer(packets: 1, bytes: payload.length) if telemetry
         logger.error { "Statsd: #{boom.class} #{boom}" } if logger
         nil
       end
