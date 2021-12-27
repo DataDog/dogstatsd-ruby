@@ -10,9 +10,11 @@ RSpec::Matchers.define :eq_with_telemetry do |expected_message, telemetry_option
                     service_checks: 0,
                     bytes_sent: 0,
                     bytes_dropped: 0,
+                    bytes_dropped_queue: 0,
                     bytes_dropped_writer: 0,
                     packets_sent: 0,
                     packets_dropped: 0,
+                    packets_dropped_queue: 0,
                     packets_dropped_writer: 0,
                     transport: 'udp')
     [
@@ -22,9 +24,11 @@ RSpec::Matchers.define :eq_with_telemetry do |expected_message, telemetry_option
       "datadog.dogstatsd.client.service_checks:#{service_checks}|c|#client:ruby,client_version:#{Datadog::Statsd::VERSION},client_transport:#{transport}",
       "datadog.dogstatsd.client.bytes_sent:#{bytes_sent}|c|#client:ruby,client_version:#{Datadog::Statsd::VERSION},client_transport:#{transport}",
       "datadog.dogstatsd.client.bytes_dropped:#{bytes_dropped}|c|#client:ruby,client_version:#{Datadog::Statsd::VERSION},client_transport:#{transport}",
+      "datadog.dogstatsd.client.bytes_dropped_queue:#{bytes_dropped_queue}|c|#client:ruby,client_version:#{Datadog::Statsd::VERSION},client_transport:#{transport}",
       "datadog.dogstatsd.client.bytes_dropped_writer:#{bytes_dropped_writer}|c|#client:ruby,client_version:#{Datadog::Statsd::VERSION},client_transport:#{transport}",
       "datadog.dogstatsd.client.packets_sent:#{packets_sent}|c|#client:ruby,client_version:#{Datadog::Statsd::VERSION},client_transport:#{transport}",
       "datadog.dogstatsd.client.packets_dropped:#{packets_dropped}|c|#client:ruby,client_version:#{Datadog::Statsd::VERSION},client_transport:#{transport}",
+      "datadog.dogstatsd.client.packets_dropped_queue:#{packets_dropped_queue}|c|#client:ruby,client_version:#{Datadog::Statsd::VERSION},client_transport:#{transport}",
       "datadog.dogstatsd.client.packets_dropped_writer:#{packets_dropped_writer}|c|#client:ruby,client_version:#{Datadog::Statsd::VERSION},client_transport:#{transport}",
     ].join("\n")
   end
