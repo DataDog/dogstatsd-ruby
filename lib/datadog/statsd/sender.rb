@@ -12,8 +12,9 @@ module Datadog
     class Sender
       CLOSEABLE_QUEUES = Queue.instance_methods.include?(:close)
 
-      def initialize(message_buffer, queue_size: 2048, logger: nil)
+      def initialize(message_buffer, telemetry: nil, queue_size: 2048, logger: nil)
         @message_buffer = message_buffer
+        @telemetry = telemetry
         @queue_size = queue_size
         @logger = logger
         @mx = Mutex.new
@@ -75,7 +76,7 @@ module Datadog
         if message_queue.length <= @queue_size
           message_queue << message
         else
-          @logger.debug { "Sender queue full; dropping" } if @logger # TODO: tlm instead of log
+          @telemetry.dropped_queue(packets: 1, bytes: message.bytesize) if @telemetry
         end
       end
 

@@ -107,7 +107,8 @@ describe Datadog::Statsd::Forwarder do
           .with(message_buffer,
                 logger: logger,
                 queue_size:
-                Datadog::Statsd::UDP_DEFAULT_SENDER_QUEUE_SIZE)
+                Datadog::Statsd::UDP_DEFAULT_SENDER_QUEUE_SIZE,
+                telemetry: telemetry)
           .exactly(1)
 
         subject
@@ -287,7 +288,8 @@ describe Datadog::Statsd::Forwarder do
           .to receive(:new)
           .with(message_buffer,
                 logger: logger,
-                queue_size: Datadog::Statsd::UDS_DEFAULT_SENDER_QUEUE_SIZE)
+                queue_size: Datadog::Statsd::UDS_DEFAULT_SENDER_QUEUE_SIZE,
+                telemetry: telemetry)
           .exactly(1)
 
         subject

@@ -56,7 +56,7 @@ module Datadog
 
         @sender = single_thread ?
           SingleThreadSender.new(buffer, logger: logger) :
-          Sender.new(buffer, logger: logger, queue_size: sender_queue_size)
+          Sender.new(buffer, telemetry: @telemetry, logger: logger, queue_size: sender_queue_size)
         @sender.start
       end
 
