@@ -58,7 +58,7 @@ module Datadog
 
       def reset
         @mon.synchronize {
-          clear_buffer
+          close
           connection.reset_telemetry
           @flush_thread = create_flush_thread if @flush_interval
           @closed = false
