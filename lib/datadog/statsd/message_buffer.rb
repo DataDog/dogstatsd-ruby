@@ -19,6 +19,10 @@ module Datadog
         @max_pool_size = max_pool_size
         @overflowing_stategy = overflowing_stategy
         @flush_interval = flush_interval
+
+        # This monitor prevents the buffer from being cleared by a thread while it is beging
+        # flushed by another thread, or the threads from writing the socket at the same time.
+        # One thread is "Statsd Sender" and the other is "Statsd MessageBuffer."
         @mon = Monitor.new
         @cv = @mon.new_cond
         @closed = false
