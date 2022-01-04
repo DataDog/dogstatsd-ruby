@@ -126,7 +126,7 @@ module Datadog
 
       def create_flush_thread
         flush_thread = Thread.new(&method(:flush_loop))
-        flush_thread.name = 'Statsd MessageBuffer' if flush_thread.respond_to?(:name=)
+        flush_thread.name = 'Statsd MessageBuffer' unless Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.3')
         flush_thread
       end
 
