@@ -1,31 +1,25 @@
 require 'spec_helper'
 
-class Waiter
-  def initialize()
-    @mx = Mutex.new
-    @cv = ConditionVariable.new
-    @sig = false
-  end
-
-  def wait()
-    @mx.synchronize { @cv.wait(@mx) until @sig }
-  end
-
-  def signal()
-    @mx.synchronize {
-      @sig = true
-      @cv.signal
-    }
-  end
-end
-
 describe Datadog::Statsd::Sender do
   subject do
-    described_class.new(message_buffer, queue_size: 5)
+    described_class.new(
+      message_buffer,
+      telemetry: telemetry,
+      queue_size: queue_size,
+      queue_class: queue_class,
+      thread_class: thread_class)
   end
+
+  let(:queue_size) { 5 }
+  let(:queue_class) { Queue }
+  let(:thread_class) { Thread }
 
   let(:message_buffer) do
     instance_double(Datadog::Statsd::MessageBuffer)
+  end
+
+  let(:telemetry) do
+    instance_double(Datadog::Statsd::Telemetry)
   end
 
   describe '#start' do
@@ -107,28 +101,54 @@ describe Datadog::Statsd::Sender do
         subject.rendez_vous
       end
 
-      it 'adds only messages up to queue_size messages' do
-        # keep the sender thread busy handling a flush
-        waiter = Waiter.new
-        expect(message_buffer)
-          .to receive(:flush) { waiter.wait }
-        subject.flush
-
-        # send six messages; sixth is dropped
-        for i in 0..6 do
-          subject.add('message')
+      context 'with fake queue and fake sender thread' do
+        let(:fake_queue) do
+          if Queue.instance_methods.include?(:close)
+            instance_double(Queue, { "length" => fake_queue_length, "<<" => true, "close" => true })
+          else
+            instance_double(Queue, { "length" => fake_queue_length, "<<" => true })
+          end
         end
 
-        expect(message_buffer)
-          .to receive(:add)
-          .with('message')
-          .exactly(5).times
+        let(:queue_class) do
+          class_double(Queue, new: fake_queue)
+        end
 
-        # resume the sender thread again to receive those six
-        # messages
-        waiter.signal
+        let(:thread_class) do
+          if Thread.instance_methods.include?(:name=)
+            fake_thread = instance_double(Thread, { "alive?" => true, "name=" => true, "join" => true })
+          else
+            fake_thread = instance_double(Thread, { "alive?" => true, "join" => true })
+          end
+          class_double(Thread, new: fake_thread)
+        end
 
-        subject.rendez_vous
+        context 'with fewer messages in queue than queue_size' do
+          let(:fake_queue_length) { queue_size }
+
+          it 'adds only messages up to queue_size messages' do
+            expect(fake_queue).to receive(:<<).with('message')
+            if not Queue.instance_methods.include?(:close)
+              expect(fake_queue).to receive(:<<).with(:close)
+            end
+            expect(telemetry).not_to receive(:dropped_queue)
+            subject.add('message')
+          end
+        end
+
+        context 'with more messages in queue than queue_size' do
+          let(:fake_queue_length) { queue_size + 1 }
+
+          it 'adds only messages up to queue_size messages' do
+            if Queue.instance_methods.include?(:close)
+              expect(fake_queue).not_to receive(:<<)
+            else
+              expect(fake_queue).to receive(:<<).with(:close)
+            end
+            expect(telemetry).to receive(:dropped_queue).with(bytes: 7, packets: 1)
+            subject.add('message')
+          end
+        end
       end
     end
   end
