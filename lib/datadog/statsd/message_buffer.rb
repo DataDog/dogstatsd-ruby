@@ -136,8 +136,8 @@ module Datadog
 
       def flush_loop
         last_flush_time = current_time
-        until @closed
-          @mon.synchronize do
+        @mon.synchronize do
+          until @closed
             @cv.wait(flush_interval - (current_time - last_flush_time))
             last_flush_time = current_time
             flush
