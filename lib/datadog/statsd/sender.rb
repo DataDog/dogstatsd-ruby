@@ -12,10 +12,13 @@ module Datadog
     class Sender
       CLOSEABLE_QUEUES = Queue.instance_methods.include?(:close)
 
-      def initialize(message_buffer, logger: nil)
+      def initialize(message_buffer, logger: nil, flush_interval: nil)
         @message_buffer = message_buffer
         @logger = logger
         @mx = Mutex.new
+        if flush_interval
+          @flush_timer = Datadog::Statsd::Timer.new(flush_interval) { flush(sync: true) }
+        end
       end
 
       def flush(sync: false)
@@ -68,6 +71,7 @@ module Datadog
             @message_queue = nil
             message_buffer.reset
             start
+            @flush_timer.start if @flush_timer && @flush_timer.stop?
           }
         end
 
@@ -82,6 +86,7 @@ module Datadog
         # start background thread
         @sender_thread = Thread.new(&method(:send_loop))
         @sender_thread.name = "Statsd Sender" unless Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.3')
+        @flush_timer.start if @flush_timer
       end
 
       if CLOSEABLE_QUEUES
@@ -92,6 +97,7 @@ module Datadog
           message_queue = @message_queue
           message_queue.close if message_queue
 
+          @flush_timer.stop if @flush_timer
           sender_thread = @sender_thread
           sender_thread.join if sender_thread && join_worker
         end
@@ -103,6 +109,7 @@ module Datadog
           message_queue = @message_queue
           message_queue << :close if message_queue
 
+          @flush_timer.stop if @flush_timer
           sender_thread = @sender_thread
           sender_thread.join if sender_thread && join_worker
         end

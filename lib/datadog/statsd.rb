@@ -11,6 +11,7 @@ require_relative 'statsd/serialization'
 require_relative 'statsd/sender'
 require_relative 'statsd/single_thread_sender'
 require_relative 'statsd/forwarder'
+require_relative 'statsd/timer'
 
 $deprecation_message_mutex = Mutex.new
 $deprecation_message_done = false
@@ -73,6 +74,7 @@ module Datadog
     # @option [Logger] logger for debugging
     # @option [Integer] buffer_max_payload_size max bytes to buffer
     # @option [Integer] buffer_max_pool_size max messages to buffer
+    # @option [Numeric] buffer_flush_interval interval in second to flush buffer
     # @option [String] socket_path unix socket path
     # @option [Float] default sample rate if not overridden
     # @option [Boolean] single_thread flushes the metrics on the main thread instead of in a companion thread
@@ -88,6 +90,7 @@ module Datadog
       buffer_max_payload_size: nil,
       buffer_max_pool_size: nil,
       buffer_overflowing_stategy: :drop,
+      buffer_flush_interval: nil,
 
       logger: nil,
 
@@ -133,6 +136,7 @@ module Datadog
         buffer_max_payload_size: buffer_max_payload_size,
         buffer_max_pool_size: buffer_max_pool_size,
         buffer_overflowing_stategy: buffer_overflowing_stategy,
+        buffer_flush_interval: buffer_flush_interval,
 
         telemetry_flush_interval: telemetry_enable ? telemetry_flush_interval : nil,
       )
