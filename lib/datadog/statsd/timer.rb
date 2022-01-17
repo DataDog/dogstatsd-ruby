@@ -19,7 +19,8 @@ module Datadog
           last_execution_time = current_time
           @mx.synchronize do
             until @stop
-              @cv.wait(@mx, @interval - (current_time - last_execution_time))
+              timeout = @interval - (current_time - last_execution_time)
+              @cv.wait(@mx, timeout > 0 ? timeout : 0)
               last_execution_time = current_time
               @callback.call
             end
