@@ -27,8 +27,16 @@ describe Datadog::Statsd::SingleThreadSender do
       it 'starts flush timer thread' do
         mutex = Mutex.new
         cv = ConditionVariable.new
-        expect(subject).to receive(:flush).and_wrap_original do
-          mutex.synchronize { cv.broadcast }
+        flush_called = false
+
+        # #flush can be called multiple times before #stop is called.
+        # It is also called in #stop, which is executed in the after callback,
+        # so "expect(subject).to receive(:flush).at_least(:once)" doesn't work.
+        allow(subject).to receive(:flush) do
+          mutex.synchronize do
+            flush_called = true
+            cv.broadcast
+          end
         end
 
         expect do
@@ -36,10 +44,11 @@ describe Datadog::Statsd::SingleThreadSender do
         end.to change { Thread.list.size }.by(1)
 
         # wait a second or until #flush is called
-        mutex.synchronize { cv.wait(mutex, 1) }
+        mutex.synchronize do
+          cv.wait(mutex, 1) unless flush_called
+        end
 
-        # subject.stop calls #flush
-        allow(subject).to receive(:flush)
+        expect(flush_called).to be true
       end
     end
   end
