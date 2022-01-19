@@ -180,6 +180,8 @@ There are three different kinds of messages:
 
 There is also an implicit message which closes the queue which will cause the sender thread to finish processing and exit.
 
+The `buffer_flush_interval`, if enabled, is implemented with an additional thread which manages the timing of those flushes.  This additional thread is used even if `single_thread: true`.
+
 ### Usual workflow
 
 You push metrics to the statsd client which writes them quickly to the sender message queue. The sender thread receives those message, buffers them and flushes them to the connection when the buffer limit is reached.
