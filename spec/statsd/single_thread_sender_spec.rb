@@ -62,6 +62,7 @@ describe Datadog::Statsd::SingleThreadSender do
       let(:flush_interval) { 15 }
 
       it 'stops the flush timer thread' do
+        allow(subject).to receive(:flush)
         expect do
           subject.stop
         end.to change { Thread.list.size }.by(-1)
