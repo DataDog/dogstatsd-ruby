@@ -62,7 +62,7 @@ describe Datadog::Statsd::Timer do
     before do
       subject.start
       # sleep a little for the thread to call ConditionVariable#wait
-      sleep 0.000001
+      sleep 0.01
     end
 
     it 'stops the timer thread after calling the callback' do
