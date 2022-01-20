@@ -17,6 +17,10 @@ describe Datadog::Statsd::Forwarder do
     :anything
   end
 
+  let(:buffer_flush_interval) do
+    15
+  end
+
   let(:telemetry_flush_interval) do
     42
   end
@@ -84,6 +88,7 @@ describe Datadog::Statsd::Forwarder do
         buffer_max_payload_size: buffer_max_payload_size,
         buffer_max_pool_size: buffer_max_pool_size,
         buffer_overflowing_stategy: buffer_overflowing_stategy,
+        buffer_flush_interval: buffer_flush_interval,
 
         telemetry_flush_interval: telemetry_flush_interval,
 
@@ -104,7 +109,7 @@ describe Datadog::Statsd::Forwarder do
       it 'builds the sender' do
         expect(Datadog::Statsd::Sender)
           .to receive(:new)
-          .with(message_buffer, logger: logger)
+          .with(message_buffer, logger: logger, flush_interval: flush_interval)
           .exactly(1)
 
         subject
@@ -262,6 +267,7 @@ describe Datadog::Statsd::Forwarder do
         buffer_max_payload_size: buffer_max_payload_size,
         buffer_max_pool_size: buffer_max_pool_size,
         buffer_overflowing_stategy: buffer_overflowing_stategy,
+        buffer_flush_interval: buffer_flush_interval,
 
         telemetry_flush_interval: telemetry_flush_interval,
 
@@ -282,7 +288,7 @@ describe Datadog::Statsd::Forwarder do
       it 'builds the sender' do
         expect(Datadog::Statsd::Sender)
           .to receive(:new)
-          .with(message_buffer, logger: logger)
+          .with(message_buffer, logger: logger, flush_interval: flush_interval)
           .exactly(1)
 
         subject
