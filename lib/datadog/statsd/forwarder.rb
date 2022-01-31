@@ -12,6 +12,7 @@ module Datadog
         buffer_max_payload_size: nil,
         buffer_max_pool_size: nil,
         buffer_overflowing_stategy: :drop,
+        buffer_flush_interval: nil,
 
         sender_queue_size: nil,
 
@@ -55,8 +56,16 @@ module Datadog
                                UDP_DEFAULT_SENDER_QUEUE_SIZE : UDS_DEFAULT_SENDER_QUEUE_SIZE)
 
         @sender = single_thread ?
-          SingleThreadSender.new(buffer, logger: logger) :
-          Sender.new(buffer, telemetry: @telemetry, logger: logger, queue_size: sender_queue_size)
+          SingleThreadSender.new(
+            buffer,
+            logger: logger,
+            flush_interval: buffer_flush_interval) :
+          Sender.new(
+            buffer,
+            logger: logger,
+            flush_interval: buffer_flush_interval,
+            telemetry: @telemetry,
+            queue_size: sender_queue_size)
         @sender.start
       end
 

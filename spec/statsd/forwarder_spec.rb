@@ -17,6 +17,10 @@ describe Datadog::Statsd::Forwarder do
     :anything
   end
 
+  let(:buffer_flush_interval) do
+    15
+  end
+
   let(:telemetry_flush_interval) do
     42
   end
@@ -84,6 +88,7 @@ describe Datadog::Statsd::Forwarder do
         buffer_max_payload_size: buffer_max_payload_size,
         buffer_max_pool_size: buffer_max_pool_size,
         buffer_overflowing_stategy: buffer_overflowing_stategy,
+        buffer_flush_interval: buffer_flush_interval,
 
         telemetry_flush_interval: telemetry_flush_interval,
 
@@ -106,8 +111,8 @@ describe Datadog::Statsd::Forwarder do
           .to receive(:new)
           .with(message_buffer,
                 logger: logger,
-                queue_size:
-                Datadog::Statsd::UDP_DEFAULT_SENDER_QUEUE_SIZE,
+                flush_interval: buffer_flush_interval,
+                queue_size: Datadog::Statsd::UDP_DEFAULT_SENDER_QUEUE_SIZE,
                 telemetry: telemetry)
           .exactly(1)
 
@@ -266,6 +271,7 @@ describe Datadog::Statsd::Forwarder do
         buffer_max_payload_size: buffer_max_payload_size,
         buffer_max_pool_size: buffer_max_pool_size,
         buffer_overflowing_stategy: buffer_overflowing_stategy,
+        buffer_flush_interval: buffer_flush_interval,
 
         telemetry_flush_interval: telemetry_flush_interval,
 
@@ -288,6 +294,7 @@ describe Datadog::Statsd::Forwarder do
           .to receive(:new)
           .with(message_buffer,
                 logger: logger,
+                flush_interval: buffer_flush_interval,
                 queue_size: Datadog::Statsd::UDS_DEFAULT_SENDER_QUEUE_SIZE,
                 telemetry: telemetry)
           .exactly(1)

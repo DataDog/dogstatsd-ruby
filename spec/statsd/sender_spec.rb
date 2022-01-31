@@ -4,6 +4,7 @@ describe Datadog::Statsd::Sender do
   subject do
     described_class.new(
       message_buffer,
+      flush_interval: flush_interval,
       telemetry: telemetry,
       queue_size: queue_size,
       queue_class: queue_class,
@@ -17,6 +18,7 @@ describe Datadog::Statsd::Sender do
   let(:message_buffer) do
     instance_double(Datadog::Statsd::MessageBuffer)
   end
+  let(:flush_interval) { nil }
 
   let(:telemetry) do
     instance_double(Datadog::Statsd::Telemetry)
@@ -59,6 +61,37 @@ describe Datadog::Statsd::Sender do
         end.to raise_error(ArgumentError, /Sender already started/)
       end
     end
+
+    context 'when flush_interval is set' do
+      let(:flush_interval) { 0.001 }
+
+      it 'starts a worker thread and a flush timer thread' do
+        mutex = Mutex.new
+        cv = ConditionVariable.new
+        flush_called = false
+
+        # #flush can be called multiple times before #stop is called.
+        # It is also called in #stop, which is executed in the after callback,
+        # so "expect(subject).to receive(:flush).at_least(:once)" doesn't work.
+        allow(subject).to receive(:flush) do
+          mutex.synchronize do
+            flush_called = true
+            cv.broadcast
+          end
+        end
+
+        expect do
+          subject.start
+        end.to change { Thread.list.size }.by(2)
+
+        # wait a second or until #flush is called
+        mutex.synchronize do
+          cv.wait(mutex, 1) unless flush_called
+        end
+
+        expect(flush_called).to be true
+      end
+    end
   end
 
   describe '#stop' do
@@ -66,10 +99,22 @@ describe Datadog::Statsd::Sender do
       subject.start
     end
 
-    it 'stops the worker thread' do
-      expect do
-        subject.stop
-      end.to change { Thread.list.size }.by(-1)
+    context 'when flush_interval is not set' do
+      it 'stops the worker thread' do
+        expect do
+          subject.stop
+        end.to change { Thread.list.size }.by(-1)
+      end
+    end
+
+    context 'when flush_interval is set' do
+      let(:flush_interval) { 15 }
+
+      it 'stops the worker thread and the flush timer thread' do
+        expect do
+          subject.stop
+        end.to change { Thread.list.size }.by(-2)
+      end
     end
   end
 

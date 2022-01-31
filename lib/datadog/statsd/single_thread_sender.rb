@@ -7,10 +7,13 @@ module Datadog
     # It is using current Process.PID to check it is the result of a recent fork
     # and it is reseting the MessageBuffer if that's the case.
     class SingleThreadSender
-      def initialize(message_buffer, logger: nil)
+      def initialize(message_buffer, logger: nil, flush_interval: nil)
         @message_buffer = message_buffer
         @logger = logger
         @mx = Mutex.new
+        if flush_interval
+          @flush_timer = Datadog::Statsd::Timer.new(flush_interval) { flush }
+        end
         # store the pid for which this sender has been created
         update_fork_pid
       end
@@ -21,6 +24,7 @@ module Datadog
           # not send, they belong to the parent process, let's clear the buffer.
           if forked?
             @message_buffer.reset
+            @flush_timer.start if @flush_timer && @flush_timer.stop?
             update_fork_pid
           end
           @message_buffer.add(message)
@@ -33,12 +37,12 @@ module Datadog
         }
       end
 
-      # Compatibility with `Sender`
       def start()
+        @flush_timer.start if @flush_timer
       end
 
-      # Compatibility with `Sender`
       def stop()
+        @flush_timer.stop if @flush_timer
       end
 
       # Compatibility with `Sender`
