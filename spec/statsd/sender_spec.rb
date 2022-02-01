@@ -2,13 +2,27 @@ require 'spec_helper'
 
 describe Datadog::Statsd::Sender do
   subject do
-    described_class.new(message_buffer, flush_interval: flush_interval)
+    described_class.new(
+      message_buffer,
+      flush_interval: flush_interval,
+      telemetry: telemetry,
+      queue_size: queue_size,
+      queue_class: queue_class,
+      thread_class: thread_class)
   end
+
+  let(:queue_size) { 5 }
+  let(:queue_class) { Queue }
+  let(:thread_class) { Thread }
 
   let(:message_buffer) do
     instance_double(Datadog::Statsd::MessageBuffer)
   end
   let(:flush_interval) { nil }
+
+  let(:telemetry) do
+    instance_double(Datadog::Statsd::Telemetry)
+  end
 
   describe '#start' do
     after do
@@ -113,7 +127,7 @@ describe Datadog::Statsd::Sender do
       end
     end
 
-    context 'when starting and stopping' do
+    context 'when started' do
       before do
         subject.start
       end
@@ -130,6 +144,56 @@ describe Datadog::Statsd::Sender do
         subject.add('sample message')
 
         subject.rendez_vous
+      end
+
+      context 'with fake queue and fake sender thread' do
+        let(:fake_queue) do
+          if Queue.instance_methods.include?(:close)
+            instance_double(Queue, { "length" => fake_queue_length, "<<" => true, "close" => true })
+          else
+            instance_double(Queue, { "length" => fake_queue_length, "<<" => true })
+          end
+        end
+
+        let(:queue_class) do
+          class_double(Queue, new: fake_queue)
+        end
+
+        let(:thread_class) do
+          if Thread.instance_methods.include?(:name=)
+            fake_thread = instance_double(Thread, { "alive?" => true, "name=" => true, "join" => true })
+          else
+            fake_thread = instance_double(Thread, { "alive?" => true, "join" => true })
+          end
+          class_double(Thread, new: fake_thread)
+        end
+
+        context 'with fewer messages in queue than queue_size' do
+          let(:fake_queue_length) { queue_size }
+
+          it 'adds only messages up to queue_size messages' do
+            expect(fake_queue).to receive(:<<).with('message')
+            if not Queue.instance_methods.include?(:close)
+              expect(fake_queue).to receive(:<<).with(:close)
+            end
+            expect(telemetry).not_to receive(:dropped_queue)
+            subject.add('message')
+          end
+        end
+
+        context 'with more messages in queue than queue_size' do
+          let(:fake_queue_length) { queue_size + 1 }
+
+          it 'adds only messages up to queue_size messages' do
+            if Queue.instance_methods.include?(:close)
+              expect(fake_queue).not_to receive(:<<)
+            else
+              expect(fake_queue).to receive(:<<).with(:close)
+            end
+            expect(telemetry).to receive(:dropped_queue).with(bytes: 7, packets: 1)
+            subject.add('message')
+          end
+        end
       end
     end
   end

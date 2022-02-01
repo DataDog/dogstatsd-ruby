@@ -12,10 +12,14 @@ module Datadog
     class Sender
       CLOSEABLE_QUEUES = Queue.instance_methods.include?(:close)
 
-      def initialize(message_buffer, logger: nil, flush_interval: nil)
+      def initialize(message_buffer, telemetry: nil, queue_size: UDP_DEFAULT_BUFFER_SIZE, logger: nil, flush_interval: nil, queue_class: Queue, thread_class: Thread)
         @message_buffer = message_buffer
+        @telemetry = telemetry
+        @queue_size = queue_size
         @logger = logger
         @mx = Mutex.new
+        @queue_class = queue_class
+        @thread_class = thread_class
         if flush_interval
           @flush_timer = Datadog::Statsd::Timer.new(flush_interval) { flush(sync: true) }
         end
@@ -45,7 +49,7 @@ module Datadog
         return unless message_queue
 
         # Initialize and get the thread's sync queue
-        queue = (Thread.current[:statsd_sync_queue] ||= Queue.new)
+        queue = (@thread_class.current[:statsd_sync_queue] ||= @queue_class.new)
         # tell sender-thread to notify us in the current
         # thread's queue
         message_queue.push(queue)
@@ -75,16 +79,20 @@ module Datadog
           }
         end
 
-        message_queue << message
+        if message_queue.length <= @queue_size
+          message_queue << message
+        else
+          @telemetry.dropped_queue(packets: 1, bytes: message.bytesize) if @telemetry
+        end
       end
 
       def start
         raise ArgumentError, 'Sender already started' if message_queue
 
         # initialize a new message queue for the background thread
-        @message_queue = Queue.new
+        @message_queue = @queue_class.new
         # start background thread
-        @sender_thread = Thread.new(&method(:send_loop))
+        @sender_thread = @thread_class.new(&method(:send_loop))
         @sender_thread.name = "Statsd Sender" unless Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.3')
         @flush_timer.start if @flush_timer
       end
@@ -131,7 +139,7 @@ module Datadog
             case message
             when :flush
               message_buffer.flush
-            when Queue
+            when @queue_class
               message.push(:go_on)
             else
               message_buffer.add(message)
@@ -153,7 +161,7 @@ module Datadog
               break
             when :flush
               message_buffer.flush
-            when Queue
+            when @queue_class
               message.push(:go_on)
             else
               message_buffer.add(message)

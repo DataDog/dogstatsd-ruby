@@ -51,7 +51,7 @@ describe Datadog::Statsd::UDPConnection do
 
   describe '#write' do
     let(:telemetry) do
-      instance_double(Datadog::Statsd::Telemetry, sent: true, dropped: true)
+      instance_double(Datadog::Statsd::Telemetry, sent: true, dropped_writer: true)
     end
 
     it 'connects to the right host and port' do
@@ -108,9 +108,9 @@ describe Datadog::Statsd::UDPConnection do
           subject.write('test')
         end
 
-        it 'updates the "dropped" telemetry counts' do
+        it 'updates the "dropped_writer" telemetry counts' do
           expect(telemetry)
-            .to receive(:dropped)
+            .to receive(:dropped_writer)
             .with(bytes: 4, packets: 1)
 
           subject.write('test')
@@ -262,9 +262,9 @@ describe Datadog::Statsd::UDPConnection do
               subject.write('test')
             end
 
-            it 'updates the "dropped" telemetry counts' do
+            it 'updates the "dropped_writer" telemetry counts' do
               expect(telemetry)
-                .to receive(:dropped)
+                .to receive(:dropped_writer)
                 .with(bytes: 4, packets: 1)
 
               subject.write('test')
@@ -289,9 +289,9 @@ describe Datadog::Statsd::UDPConnection do
               expect(log.string).to match 'Statsd: SocketError yolo'
             end
 
-            it 'updates the "dropped" telemetry counts' do
+            it 'updates the "dropped_writer" telemetry counts' do
               expect(telemetry)
-                .to receive(:dropped)
+                .to receive(:dropped_writer)
                 .with(bytes: 4, packets: 1)
 
               subject.write('test')
@@ -336,9 +336,9 @@ describe Datadog::Statsd::UDPConnection do
               subject.write('test')
             end
 
-            it 'updates the "dropped" telemetry counts' do
+            it 'updates the "dropped_writer" telemetry counts' do
               expect(telemetry)
-                .to receive(:dropped)
+                .to receive(:dropped_writer)
                 .with(bytes: 4, packets: 1)
 
               subject.write('test')
@@ -463,9 +463,9 @@ describe Datadog::Statsd::UDPConnection do
               subject.write('test')
             end
 
-            it 'updates the "dropped" telemetry counts' do
+            it 'updates the "dropped_writer" telemetry counts' do
               expect(telemetry)
-                .to receive(:dropped)
+                .to receive(:dropped_writer)
                 .with(bytes: 4, packets: 1)
 
               subject.write('test')
@@ -528,9 +528,9 @@ describe Datadog::Statsd::UDPConnection do
               subject.write('test')
             end
 
-            it 'updates the "dropped" telemetry counts' do
+            it 'updates the "dropped_writer" telemetry counts' do
               expect(telemetry)
-                .to receive(:dropped)
+                .to receive(:dropped_writer)
                 .with(bytes: 4, packets: 1)
 
               subject.write('test')
