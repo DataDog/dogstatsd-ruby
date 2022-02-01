@@ -12,7 +12,7 @@ module Datadog
     class Sender
       CLOSEABLE_QUEUES = Queue.instance_methods.include?(:close)
 
-      def initialize(message_buffer, telemetry: nil, queue_size: 2048, logger: nil, flush_interval: nil, queue_class: Queue, thread_class: Thread)
+      def initialize(message_buffer, telemetry: nil, queue_size: UDP_DEFAULT_BUFFER_SIZE, logger: nil, flush_interval: nil, queue_class: Queue, thread_class: Thread)
         @message_buffer = message_buffer
         @telemetry = telemetry
         @queue_size = queue_size
