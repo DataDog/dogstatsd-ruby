@@ -98,16 +98,11 @@ describe Datadog::Statsd::Telemetry do
       ]
     end
 
-    context do
-      before do
-        skip 'Ruby too old' if RUBY_VERSION < '2.3.0'
-      end
-
-      it 'makes only 10 allocations' do
-        expect do
-          subject.flush
-        end.to make_allocations(12)
-      end
+    it do
+      skip 'Ruby too old' if RUBY_VERSION < '2.3.0'
+      expect do
+        subject.flush
+      end.to make_allocations(12)
     end
   end
 
