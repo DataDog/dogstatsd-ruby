@@ -77,7 +77,8 @@ describe Datadog::Statsd::Telemetry do
   describe '#flush' do
     before do
       subject.sent(metrics: 1, events: 2, service_checks: 3, bytes: 4, packets: 5)
-      subject.dropped(bytes: 6, packets: 7)
+      subject.dropped_writer(bytes: 6, packets: 7)
+      subject.dropped_queue(bytes: 9, packets: 8)
       subject.flush
     end
 
@@ -87,22 +88,21 @@ describe Datadog::Statsd::Telemetry do
         "datadog.dogstatsd.client.events:2|c|#client:ruby,client_version:#{Datadog::Statsd::VERSION},client_transport:doe",
         "datadog.dogstatsd.client.service_checks:3|c|#client:ruby,client_version:#{Datadog::Statsd::VERSION},client_transport:doe",
         "datadog.dogstatsd.client.bytes_sent:4|c|#client:ruby,client_version:#{Datadog::Statsd::VERSION},client_transport:doe",
-        "datadog.dogstatsd.client.bytes_dropped:6|c|#client:ruby,client_version:#{Datadog::Statsd::VERSION},client_transport:doe",
+        "datadog.dogstatsd.client.bytes_dropped:15|c|#client:ruby,client_version:#{Datadog::Statsd::VERSION},client_transport:doe",
+        "datadog.dogstatsd.client.bytes_dropped_queue:9|c|#client:ruby,client_version:#{Datadog::Statsd::VERSION},client_transport:doe",
+        "datadog.dogstatsd.client.bytes_dropped_writer:6|c|#client:ruby,client_version:#{Datadog::Statsd::VERSION},client_transport:doe",
         "datadog.dogstatsd.client.packets_sent:5|c|#client:ruby,client_version:#{Datadog::Statsd::VERSION},client_transport:doe",
-        "datadog.dogstatsd.client.packets_dropped:7|c|#client:ruby,client_version:#{Datadog::Statsd::VERSION},client_transport:doe",
+        "datadog.dogstatsd.client.packets_dropped:15|c|#client:ruby,client_version:#{Datadog::Statsd::VERSION},client_transport:doe",
+        "datadog.dogstatsd.client.packets_dropped_queue:8|c|#client:ruby,client_version:#{Datadog::Statsd::VERSION},client_transport:doe",
+        "datadog.dogstatsd.client.packets_dropped_writer:7|c|#client:ruby,client_version:#{Datadog::Statsd::VERSION},client_transport:doe",
       ]
     end
 
-    context do
-      before do
-        skip 'Ruby too old' if RUBY_VERSION < '2.3.0'
-      end
-
-      it 'makes only 8 allocations' do
-        expect do
-          subject.flush
-        end.to make_allocations(8)
-      end
+    it do
+      skip 'Ruby too old' if RUBY_VERSION < '2.3.0'
+      expect do
+        subject.flush
+      end.to make_allocations(12)
     end
   end
 
@@ -112,7 +112,8 @@ describe Datadog::Statsd::Telemetry do
       allow(Process).to receive(:clock_gettime).and_return(0)
 
       subject.sent(metrics: 1, events: 2, service_checks: 3, bytes: 4, packets: 5)
-      subject.dropped(bytes: 6, packets: 7)
+      subject.dropped_writer(bytes: 6, packets: 7)
+      subject.dropped_queue(bytes: 9, packets: 7)
     end
 
     after do
@@ -161,13 +162,37 @@ describe Datadog::Statsd::Telemetry do
     it 'resets the bytes_dropped' do
       expect do
         subject.reset
-      end.to change { subject.bytes_dropped }.from(6).to(0)
+      end.to change { subject.bytes_dropped}.from(15).to(0)
+    end
+
+    it 'resets the bytes_dropped_queue' do
+      expect do
+        subject.reset
+      end.to change { subject.bytes_dropped_queue }.from(9).to(0)
+    end
+
+    it 'resets the bytes_dropped_writer' do
+      expect do
+        subject.reset
+      end.to change { subject.bytes_dropped_writer }.from(6).to(0)
     end
 
     it 'resets the packets_dropped' do
       expect do
         subject.reset
-      end.to change { subject.packets_dropped }.from(7).to(0)
+      end.to change { subject.packets_dropped}.from(14).to(0)
+    end
+
+    it 'resets the packets_dropped_queue' do
+      expect do
+        subject.reset
+      end.to change { subject.packets_dropped_queue }.from(7).to(0)
+    end
+
+    it 'resets the packets_dropped_writer' do
+      expect do
+        subject.reset
+      end.to change { subject.packets_dropped_writer }.from(7).to(0)
     end
   end
 
@@ -213,19 +238,61 @@ describe Datadog::Statsd::Telemetry do
     end
   end
 
-  describe '#dropped' do
+  describe '#dropped_queue' do
     context 'when bumping bytes' do
+      it 'has bumped bytes_dropped_queue by the right amount' do
+        expect do
+          subject.dropped_queue(bytes: 3)
+        end.to change { subject.bytes_dropped_queue }.from(0).to(3)
+      end
+
       it 'has bumped bytes_dropped by the right amount' do
         expect do
-          subject.dropped(bytes: 3)
+          subject.dropped_queue(bytes: 3)
         end.to change { subject.bytes_dropped }.from(0).to(3)
       end
     end
 
     context 'when bumping packets' do
+      it 'has bumped packets_dropped_queue by the right amount' do
+        expect do
+          subject.dropped_queue(packets: 3)
+        end.to change { subject.packets_dropped_queue }.from(0).to(3)
+      end
+
       it 'has bumped packets_dropped by the right amount' do
         expect do
-          subject.dropped(packets: 3)
+          subject.dropped_queue(packets: 3)
+        end.to change { subject.packets_dropped }.from(0).to(3)
+      end
+    end
+  end
+
+  describe '#dropped_writer' do
+    context 'when bumping bytes' do
+      it 'has bumped bytes_dropped_writer by the right amount' do
+        expect do
+          subject.dropped_writer(bytes: 3)
+        end.to change { subject.bytes_dropped_writer }.from(0).to(3)
+      end
+
+      it 'has bumped bytes_dropped by the right amount' do
+        expect do
+          subject.dropped_writer(bytes: 3)
+        end.to change { subject.bytes_dropped }.from(0).to(3)
+      end
+    end
+
+    context 'when bumping packets' do
+      it 'has bumped packets_dropped_writer by the right amount' do
+        expect do
+          subject.dropped_writer(packets: 3)
+        end.to change { subject.packets_dropped_writer }.from(0).to(3)
+      end
+
+      it 'has bumped packets_dropped by the right amount' do
+        expect do
+          subject.dropped_writer(packets: 3)
         end.to change { subject.packets_dropped }.from(0).to(3)
       end
     end

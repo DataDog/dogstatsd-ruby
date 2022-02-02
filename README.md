@@ -180,6 +180,15 @@ There are three different kinds of messages:
 
 There is also an implicit message which closes the queue which will cause the sender thread to finish processing and exit.
 
+
+```ruby
+statsd = Datadog::Statsd.new('localhost', 8125)
+```
+
+The message queue's maximum size (in messages) is given by the `sender_queue_size` argument, and has appropriate defaults for UDP (2048) and UDS (512).
+
+The `buffer_flush_interval`, if enabled, is implemented with an additional thread which manages the timing of those flushes.  This additional thread is used even if `single_thread: true`.
+
 ### Usual workflow
 
 You push metrics to the statsd client which writes them quickly to the sender message queue. The sender thread receives those message, buffers them and flushes them to the connection when the buffer limit is reached.

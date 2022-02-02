@@ -11,6 +11,7 @@ require_relative 'statsd/serialization'
 require_relative 'statsd/sender'
 require_relative 'statsd/single_thread_sender'
 require_relative 'statsd/forwarder'
+require_relative 'statsd/timer'
 
 # = Datadog::Statsd: A DogStatsd client (https://www.datadoghq.com)
 #
@@ -41,7 +42,12 @@ module Datadog
     UDP_DEFAULT_BUFFER_SIZE = 1_432
     UDS_DEFAULT_BUFFER_SIZE = 8_192
     DEFAULT_BUFFER_POOL_SIZE = Float::INFINITY
+
+    UDP_DEFAULT_SENDER_QUEUE_SIZE = 2048
+    UDS_DEFAULT_SENDER_QUEUE_SIZE = 512
+
     MAX_EVENT_SIZE = 8 * 1_024
+
     # minimum flush interval for the telemetry in seconds
     DEFAULT_TELEMETRY_FLUSH_INTERVAL = 10
 
@@ -70,6 +76,8 @@ module Datadog
     # @option [Logger] logger for debugging
     # @option [Integer] buffer_max_payload_size max bytes to buffer
     # @option [Integer] buffer_max_pool_size max messages to buffer
+    # @option [Integer] sender_queue_size size of the sender queue in number of buffers (multi-thread only)
+    # @option [Numeric] buffer_flush_interval interval in second to flush buffer
     # @option [String] socket_path unix socket path
     # @option [Float] default sample rate if not overridden
     # @option [Boolean] single_thread flushes the metrics on the main thread instead of in a companion thread
@@ -85,6 +93,9 @@ module Datadog
       buffer_max_payload_size: nil,
       buffer_max_pool_size: nil,
       buffer_overflowing_stategy: :drop,
+      buffer_flush_interval: nil,
+
+      sender_queue_size: nil,
 
       logger: nil,
 
@@ -117,6 +128,9 @@ module Datadog
         buffer_max_payload_size: buffer_max_payload_size,
         buffer_max_pool_size: buffer_max_pool_size,
         buffer_overflowing_stategy: buffer_overflowing_stategy,
+        buffer_flush_interval: buffer_flush_interval,
+
+        sender_queue_size: sender_queue_size,
 
         telemetry_flush_interval: telemetry_enable ? telemetry_flush_interval : nil,
       )
