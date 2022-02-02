@@ -2,6 +2,8 @@
 
 [//]: # (comment: Don't forget to update lib/datadog/statsd/version.rb:DogStatsd::Statsd::VERSION when releasing a new version)
 
+  * [OTHER] Ruby versions earlier than 2.1.0 are no longer supported.  Ruby-2.0 was EOL as of 2016-02-24.
+
 ## 5.3.3 / 2022.02.02
 
   * [IMPROVEMENT] Add option "buffer_flush_interval" to flush buffered metrics [#231][] by [@abicky][]
@@ -9,6 +11,7 @@
   * [IMPROVEMENT] Add Sender.queue_size limits to limit number of buffered metrics [#232][] by [@djmitche][]
 
   * [IMPROVEMENT] The client can now be configured to use UDS via the `DD_DOGSTATSD_SOCKET` environment variable.
+>>>>>>> master
     This variable does not take precedence over any explicit parameters passed to the Statsd constructor.
     [#227][] by [@djmitche][]
 

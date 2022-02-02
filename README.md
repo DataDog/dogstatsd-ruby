@@ -213,7 +213,13 @@ When using the `single_thread: true` mode, instances of `Datadog::Statsd` are st
 
 ## Versioning
 
-This Ruby gem is using [Semantic Versioning](https://guides.rubygems.org/patterns/#semantic-versioning) but please note that supported Ruby versions can change in a minor release of this library. As much as possible, we will add a "future deprecation" message in the minor release preceding the one dropping the support.
+This Ruby gem is using [Semantic Versioning](https://guides.rubygems.org/patterns/#semantic-versioning) but please note that supported Ruby versions can change in a minor release of this library.
+As much as possible, we will add a "future deprecation" message in the minor release preceding the one dropping the support.
+
+## Ruby Versions
+
+This gem supports and is tested on Ruby minor versions 2.1 through 3.0.
+Support for Ruby 2.0 was dropped in version 5.4.0.
 
 ## Credits
 

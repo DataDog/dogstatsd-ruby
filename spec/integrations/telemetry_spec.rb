@@ -48,7 +48,7 @@ describe 'Telemetry integration testing' do
   context 'when flushing only every 2 seconds' do
     before do
       Timecop.freeze(DateTime.new(2020, 2, 22, 12, 12, 12))
-      allow(Process).to receive(:clock_gettime).and_return(0) if Datadog::Statsd::PROCESS_TIME_SUPPORTED
+      allow(Process).to receive(:clock_gettime).and_return(0)
       subject
     end
 
@@ -64,7 +64,7 @@ describe 'Telemetry integration testing' do
 
     it 'does not send telemetry before the delay' do
       Timecop.freeze(DateTime.new(2020, 2, 22, 12, 12, 13))
-      allow(Process).to receive(:clock_gettime).and_return(1) if Datadog::Statsd::PROCESS_TIME_SUPPORTED
+      allow(Process).to receive(:clock_gettime).and_return(1)
 
       subject.count('test', 21)
 
@@ -75,7 +75,7 @@ describe 'Telemetry integration testing' do
 
     it 'sends telemetry after the delay' do
       Timecop.freeze(DateTime.new(2020, 2, 22, 12, 12, 15))
-      allow(Process).to receive(:clock_gettime).and_return(3) if Datadog::Statsd::PROCESS_TIME_SUPPORTED
+      allow(Process).to receive(:clock_gettime).and_return(3)
 
       subject.count('test', 21)
 

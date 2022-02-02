@@ -31,6 +31,6 @@ https://github.com/DataDog/dogstatsd-ruby#migrating-from-v4x-to-v5x
   s.files = Dir["LICENSE.txt", "README.md", "lib/**/*.rb",]
   s.homepage = "https://github.com/DataDog/dogstatsd-ruby"
   s.licenses = ["MIT"]
-  s.required_ruby_version = '>= 2.0.0'
+  s.required_ruby_version = '>= 2.1.0'
 end
 
