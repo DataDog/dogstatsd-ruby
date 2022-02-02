@@ -2,16 +2,24 @@
 
 [//]: # (comment: Don't forget to update lib/datadog/statsd/version.rb:DogStatsd::Statsd::VERSION when releasing a new version)
 
-  * [ENHANCEMENT] The client can now be configured to use UDS via the `DD_DOGSTATSD_SOCKET` environment variable.
+## 5.3.3 / 2022.02.02
+
+  * [IMPROVEMENT] Add option "buffer_flush_interval" to flush buffered metrics [#231][] by [@abicky][]
+
+  * [IMPROVEMENT] Add Sender.queue_size limits to limit number of buffered metrics [#232][] by [@djmitche][]
+
+  * [IMPROVEMENT] The client can now be configured to use UDS via the `DD_DOGSTATSD_SOCKET` environment variable.
     This variable does not take precedence over any explicit parameters passed to the Statsd constructor.
+    [#227][] by [@djmitche][]
+
 
 ## 5.3.2 / 2021.11.03
 
-  * [OTHER] add a warning message for the v5.x update on install #222 by @djmitche
+  * [OTHER] add a warning message for the v5.x update on install [#222][] by [@djmitche][]
 
 ## 5.3.1 / 2021.10.21
 
-  * [OTHER] restore connection opening behavior from before 5.3.0 (connections not opened on client instantiation but on the first write instead) [#214]][] by [@remeh][]
+  * [OTHER] restore connection opening behavior from before 5.3.0 (connections not opened on client instantiation but on the first write instead) [#214][] by [@remeh][]
 
 ## 5.3.0 / 2021.10.06
 
@@ -394,6 +402,9 @@ Future versions are likely to introduce backward incompatibilities with < Ruby 1
 [#194]: https://github.com/DataDog/dogstatsd-ruby/issues/194
 [#205]: https://github.com/DataDog/dogstatsd-ruby/issues/205
 [#214]: https://github.com/DataDog/dogstatsd-ruby/issues/214
+[#222]: https://github.com/DataDog/dogstatsd-ruby/issues/222
+[#231]: https://github.com/DataDog/dogstatsd-ruby/issues/231
+[#232]: https://github.com/DataDog/dogstatsd-ruby/issues/232
 [@AMekss]: https://github.com/AMekss
 [@abicky]: https://github.com/abicky
 [@adimitrov]: https://github.com/adimitrov
@@ -402,6 +413,7 @@ Future versions are likely to introduce backward incompatibilities with < Ruby 1
 [@claytono]: https://github.com/claytono
 [@degemer]: https://github.com/degemer
 [@devleoper]: https://github.com/devleoper
+[@djmitche]: https://github.com/djmitche
 [@djpate]: https://github.com/djpate
 [@f3ndot]: https://github.com/f3ndot
 [@fimmtiu]: https://github.com/fimmtiu
