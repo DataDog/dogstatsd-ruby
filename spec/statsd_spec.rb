@@ -271,6 +271,19 @@ describe Datadog::Statsd do
       end
     end
 
+    context 'with pre sampling' do
+      before do
+        allow(subject).to receive(:rand).and_return(1)
+      end
+
+      it 'sends the sample rate without additional sampling' do
+        subject.increment('foobar', sample_rate: 0.5, pre_sampled: true)
+        subject.flush(sync: true)
+
+        expect(socket.recv[0]).to eq_with_telemetry 'foobar:1|c|@0.5'
+      end
+    end
+
     context 'with a increment by' do
       it 'increments by the number given' do
         subject.increment('foobar', by: 5)
@@ -326,6 +339,19 @@ describe Datadog::Statsd do
       end
     end
 
+    context 'with pre sampling' do
+      before do
+        allow(subject).to receive(:rand).and_return(1)
+      end
+
+      it 'sends the sample rate without additional sampling' do
+        subject.decrement('foobar', sample_rate: 0.5, pre_sampled: true)
+        subject.flush(sync: true)
+
+        expect(socket.recv[0]).to eq_with_telemetry 'foobar:-1|c|@0.5'
+      end
+    end
+
     context 'with a decrement by' do
       it 'decrements by the number given' do
         subject.decrement('foobar', by: 5)
@@ -362,6 +388,19 @@ describe Datadog::Statsd do
 
       it 'sends the count with sample rate' do
         subject.count('foobar', 123, 0.1)
+        subject.flush(sync: true)
+
+        expect(socket.recv[0]).to eq_with_telemetry 'foobar:123|c|@0.1'
+      end
+    end
+
+    context 'with pre sampling' do
+      before do
+        allow(subject).to receive(:rand).and_return(1)
+      end
+
+      it 'sends the sample rate without additional sampling' do
+        subject.count('foobar', 123, sample_rate: 0.1, pre_sampled: true)
         subject.flush(sync: true)
 
         expect(socket.recv[0]).to eq_with_telemetry 'foobar:123|c|@0.1'
@@ -425,6 +464,19 @@ describe Datadog::Statsd do
         expect(socket.recv[0]).to eq_with_telemetry 'begrutten-suffusion:536|g|@0.1'
       end
     end
+
+    context 'with pre sampling' do
+      before do
+        allow(subject).to receive(:rand).and_return(1)
+      end
+
+      it 'sends the sample rate without additional sampling' do
+        subject.gauge('begrutten-suffusion', 536, sample_rate: 0.1, pre_sampled: true)
+        subject.flush(sync: true)
+
+        expect(socket.recv[0]).to eq_with_telemetry 'begrutten-suffusion:536|g|@0.1'
+      end
+    end
   end
 
   describe '#histogram' do
@@ -468,6 +520,19 @@ describe Datadog::Statsd do
         subject.flush(sync: true)
 
         expect(socket.recv[0]).to eq_with_telemetry 'begrutten-suffusion:536|g|@0.1'
+      end
+    end
+
+    context 'with pre sampling' do
+      before do
+        allow(subject).to receive(:rand).and_return(1)
+      end
+
+      it 'sends the sample rate without additional sampling' do
+        subject.histogram('ohmy', 536, sample_rate: 0.1, pre_sampled: true)
+        subject.flush(sync: true)
+
+        expect(socket.recv[0]).to eq_with_telemetry 'ohmy:536|h|@0.1'
       end
     end
   end
@@ -516,6 +581,19 @@ describe Datadog::Statsd do
         expect(socket.recv[0]).to eq_with_telemetry 'my.set:536|s|@0.5'
       end
     end
+
+    context 'with pre sampling' do
+      before do
+        allow(subject).to receive(:rand).and_return(1)
+      end
+
+      it 'sends the sample rate without additional sampling' do
+        subject.set('my.set', 536, sample_rate: 0.5, pre_sampled: true)
+        subject.flush(sync: true)
+
+        expect(socket.recv[0]).to eq_with_telemetry 'my.set:536|s|@0.5'
+      end
+    end
   end
 
   describe '#timing' do
@@ -557,6 +635,19 @@ describe Datadog::Statsd do
 
       it 'sends the timing with the sample rate' do
         subject.timing('foobar', 500, 0.5)
+        subject.flush(sync: true)
+
+        expect(socket.recv[0]).to eq_with_telemetry 'foobar:500|ms|@0.5'
+      end
+    end
+
+    context 'with pre sampling' do
+      before do
+        allow(subject).to receive(:rand).and_return(1)
+      end
+
+      it 'sends the sample rate without additional sampling' do
+        subject.timing('foobar', 500, sample_rate: 0.5, pre_sampled: true)
         subject.flush(sync: true)
 
         expect(socket.recv[0]).to eq_with_telemetry 'foobar:500|ms|@0.5'
@@ -673,6 +764,23 @@ describe Datadog::Statsd do
         expect(socket.recv[0]).to eq_with_telemetry 'foobar:1000|ms|@0.5'
       end
     end
+
+    context 'with pre sampling' do
+      before do
+        allow(subject).to receive(:rand).and_return(1)
+      end
+
+      it 'sends the sample rate without additional sampling' do
+        subject.time('foobar', sample_rate: 0.5, pre_sampled: true) do
+          Timecop.travel(after_date)
+          allow(Process).to receive(:clock_gettime).and_return(1)
+        end
+
+        subject.flush(sync: true)
+
+        expect(socket.recv[0]).to eq_with_telemetry 'foobar:1000|ms|@0.5'
+      end
+    end
   end
 
   describe '#distribution' do
@@ -701,6 +809,19 @@ describe Datadog::Statsd do
 
       it 'sends the set with the sample rate' do
         subject.distribution('begrutten-suffusion', 536, sample_rate: 0.5)
+        subject.flush(sync: true)
+
+        expect(socket.recv[0]).to eq_with_telemetry 'begrutten-suffusion:536|d|@0.5'
+      end
+    end
+
+    context 'with pre sampling' do
+      before do
+        allow(subject).to receive(:rand).and_return(1)
+      end
+
+      it 'sends the sample rate without additional sampling' do
+        subject.distribution('begrutten-suffusion', 536, sample_rate: 0.5, pre_sampled: true)
         subject.flush(sync: true)
 
         expect(socket.recv[0]).to eq_with_telemetry 'begrutten-suffusion:536|d|@0.5'
