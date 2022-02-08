@@ -186,7 +186,7 @@ module Datadog
       send_stats(stat, count, COUNTER_TYPE, opts)
     end
 
-    # Sends an arbitary gauge value for the given stat to the statsd server.
+    # Sends an arbitrary gauge value for the given stat to the statsd server.
     #
     # This is useful for recording things like available disk space,
     # memory usage, and the like, which have different semantics than
