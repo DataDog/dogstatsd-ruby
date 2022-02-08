@@ -464,10 +464,10 @@ describe Datadog::Statsd do
       end
 
       it 'sends the histogram with the sample rate' do
-        subject.gauge('begrutten-suffusion', 536, sample_rate: 0.1)
+        subject.histogram('ohmy', 536, sample_rate: 0.1)
         subject.flush(sync: true)
 
-        expect(socket.recv[0]).to eq_with_telemetry 'begrutten-suffusion:536|g|@0.1'
+        expect(socket.recv[0]).to eq_with_telemetry 'ohmy:536|h|@0.1'
       end
     end
   end
