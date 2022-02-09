@@ -32,4 +32,6 @@ RSpec.configure do |config|
   end
 
   config.expose_dsl_globally = true
+
+  config.warnings = true
 end
