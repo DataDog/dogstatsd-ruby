@@ -42,8 +42,8 @@ module Datadog
           not_both_error_message:
             "Both UDP (DD_AGENT_HOST/DD_DOGSTATSD_PORT #{ENV['DD_AGENT_HOST']}:#{ENV['DD_DOGSTATSD_PORT']}) " +
             "and UDS (DD_DOGSTATSD_SOCKET #{ENV['DD_DOGSTATSD_SOCKET']}) environment variables are set. " +
-            "Set only one or the other." %
-            [ENV['DD_AGENT_HOST'], ENV['DD_DOGSTATSD_PORT'], ENV['DD_DOGSTATSD_SOCKET']])
+            "Set only one or the other.",
+        )
       end
 
       def initialize_with_defaults()
