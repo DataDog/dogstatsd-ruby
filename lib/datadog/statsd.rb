@@ -138,8 +138,9 @@ module Datadog
 
     # yield a new instance to a block and close it when done
     # for short-term use-cases that don't want to close the socket manually
-    def self.open(*args)
-      instance = new(*args)
+    # TODO: replace with ... once we are on ruby 2.7
+    def self.open(*args, **kwargs)
+      instance = new(*args, **kwargs)
 
       yield instance
     ensure

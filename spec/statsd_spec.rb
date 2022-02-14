@@ -229,6 +229,11 @@ describe Datadog::Statsd do
         described_class.open(1,2,3,4,5) {}
       end.to raise_error(ArgumentError)
     end
+
+    # TODO: this test does not work since .new is stubbed
+    it 'can pass kwargs' do
+      described_class.open(1, 2, namespace: "foo") { }
+    end
   end
 
   describe '#increment' do
