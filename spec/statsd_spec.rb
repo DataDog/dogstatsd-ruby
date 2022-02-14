@@ -214,7 +214,6 @@ describe Datadog::Statsd do
       described_class.open {}
     end
 
-
     it 'ensures the statsd instance is closed' do
       expect(fake_statsd).to receive(:close)
 
@@ -223,6 +222,12 @@ describe Datadog::Statsd do
         raise 'stop'
       end rescue nil
       # rubocop:enable Lint/RescueWithoutErrorClass
+    end
+
+    it 'does not hide creation errors' do
+      expect do
+        described_class.open(1,2,3,4,5) {}
+      end.to raise_error(ArgumentError)
     end
   end
 
