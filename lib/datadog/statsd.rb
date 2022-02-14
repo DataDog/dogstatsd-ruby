@@ -143,7 +143,7 @@ module Datadog
 
       yield instance
     ensure
-      instance.close
+      instance&.close
     end
 
     # Sends an increment (count = 1) for the given stat to the statsd server.
