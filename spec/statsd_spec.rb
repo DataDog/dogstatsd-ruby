@@ -177,13 +177,10 @@ describe Datadog::Statsd do
 
   describe '#open' do
     before do
-      allow(described_class)
+      # avoid initializing Forwarder, but call the real Statsd#new
+      allow(Datadog::Statsd::Forwarder)
         .to receive(:new)
-        .and_return(fake_statsd)
-    end
-
-    let(:fake_statsd) do
-      instance_double(described_class, close: true)
+        .and_return(instance_double(Datadog::Statsd::Forwarder, flush: true, close: true))
     end
 
     it 'builds an instance of statsd correctly' do
@@ -202,41 +199,42 @@ describe Datadog::Statsd do
       ) {}
     end
 
-    it 'yields the statsd instance' do
-      expect do |block|
-        described_class.open(&block)
-      end.to yield_with_args(fake_statsd)
-    end
+    describe 'with a fake #new' do
+      before do
+        allow(described_class).to receive(:new).and_return(fake_statsd)
+      end
 
-    it 'closes the statsd instance' do
-      expect(fake_statsd).to receive(:close)
+      let(:fake_statsd) do
+        instance_double(described_class, close: true)
+      end
 
-      described_class.open {}
-    end
+      it 'yields the statsd instance' do
+        expect do |block|
+          described_class.open(&block)
+        end.to yield_with_args(fake_statsd)
+      end
 
-    it 'ensures the statsd instance is closed' do
-      expect(fake_statsd).to receive(:close)
+      it 'closes the statsd instance' do
+        expect(fake_statsd).to receive(:close)
 
-      # rubocop:disable Lint/RescueWithoutErrorClass
-      described_class.open do
-        raise 'stop'
-      end rescue nil
-      # rubocop:enable Lint/RescueWithoutErrorClass
+        described_class.open {}
+      end
+
+      it 'ensures the statsd instance is closed' do
+        expect(fake_statsd).to receive(:close)
+
+        # rubocop:disable Lint/RescueWithoutErrorClass
+        described_class.open do
+          raise 'stop'
+        end rescue nil
+        # rubocop:enable Lint/RescueWithoutErrorClass
+      end
     end
 
     it 'does not hide creation errors' do
       expect do
         described_class.open(1,2,3,4,5) {}
       end.to raise_error(ArgumentError)
-    end
-  end
-
-  describe '#open with keyword arguments' do
-    before do
-      # avoid initializing Forwarder, but call the real Statsd#new
-      allow(Datadog::Statsd::Forwarder)
-        .to receive(:new)
-        .and_return(instance_double(Datadog::Statsd::Forwarder, flush: true, close: true))
     end
 
     it 'forwards the namespace keywor argument correctly' do
