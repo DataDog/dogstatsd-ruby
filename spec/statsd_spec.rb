@@ -229,10 +229,18 @@ describe Datadog::Statsd do
         described_class.open(1,2,3,4,5) {}
       end.to raise_error(ArgumentError)
     end
+  end
 
-    # TODO: this test does not work since .new is stubbed
-    it 'can pass kwargs' do
-      described_class.open(1, 2, namespace: "foo") { }
+  describe '#open with keyword arguments' do
+    before do
+      # avoid initializing Forwarder, but call the real Statsd#new
+      allow(Datadog::Statsd::Forwarder)
+        .to receive(:new)
+        .and_return(instance_double(Datadog::Statsd::Forwarder, flush: true, close: true))
+    end
+
+    it 'forwards the namespace keywor argument correctly' do
+      expect(described_class.open("host", namespace: "ns") { |statsd| statsd.namespace }).to eq 'ns'
     end
   end
 
