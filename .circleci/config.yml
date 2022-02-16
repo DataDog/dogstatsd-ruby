@@ -22,23 +22,27 @@ jobs:
     test-ruby-2.4:
         <<: *dockerbuild
         docker:
-          - image: circleci/ruby:2.4-node
+          - image: cimg/ruby:2.4-node
     test-ruby-2.5:
         <<: *dockerbuild
         docker:
-          - image: circleci/ruby:2.5-node
+          - image: cimg/ruby:2.5-node
     test-ruby-2.6:
         <<: *dockerbuild
         docker:
-          - image: circleci/ruby:2.6-node
+          - image: cimg/ruby:2.6-node
     test-ruby-2.7:
         <<: *dockerbuild
         docker:
-          - image: circleci/ruby:2.7-node
+          - image: cimg/ruby:2.7-node
     test-ruby-3.0:
         <<: *dockerbuild
         docker:
-          - image: circleci/ruby:3.0-node
+          - image: cimg/ruby:3.0-node
+    test-ruby-3.1:
+        <<: *dockerbuild
+        docker:
+          - image: cimg/ruby:3.1-node
 
 workflows:
   version: 2
@@ -52,3 +56,4 @@ workflows:
       - test-ruby-2.6
       - test-ruby-2.7
       - test-ruby-3.0
+      - test-ruby-3.1
