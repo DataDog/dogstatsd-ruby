@@ -250,6 +250,7 @@ module Datadog
     # @example Report the time (in ms) taken to activate an account
     #   $statsd.distribution_time('account.activate') { @account.activate! }
     def distribution_time(stat, opts = EMPTY_OPTIONS)
+      opts = { sample_rate: opts } if opts.is_a?(Numeric)
       start = now
       yield
     ensure
