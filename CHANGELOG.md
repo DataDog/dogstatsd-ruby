@@ -2,7 +2,11 @@
 
 [//]: # (comment: Don't forget to update lib/datadog/statsd/version.rb:DogStatsd::Statsd::VERSION when releasing a new version)
 
+  * [IMPROVEMENT] Add a `pre_sampled` option to metric methods [#235][] by [@matthewshafer][]
+
   * [OTHER] Ruby versions earlier than 2.1.0 are no longer supported.  Ruby-2.0 was EOL as of 2016-02-24.
+
+  * [OTHER] Ruby versions 3.0 and 3.1 are now supported, including a fix for keyword arguments to `StatsD#open`. [#240][]
 
 ## 5.3.3 / 2022.02.02
 
@@ -11,7 +15,6 @@
   * [IMPROVEMENT] Add Sender.queue_size limits to limit number of buffered metrics [#232][] by [@djmitche][]
 
   * [IMPROVEMENT] The client can now be configured to use UDS via the `DD_DOGSTATSD_SOCKET` environment variable.
->>>>>>> master
     This variable does not take precedence over any explicit parameters passed to the Statsd constructor.
     [#227][] by [@djmitche][]
 
@@ -408,6 +411,8 @@ Future versions are likely to introduce backward incompatibilities with < Ruby 1
 [#222]: https://github.com/DataDog/dogstatsd-ruby/issues/222
 [#231]: https://github.com/DataDog/dogstatsd-ruby/issues/231
 [#232]: https://github.com/DataDog/dogstatsd-ruby/issues/232
+[#235]: https://github.com/DataDog/dogstatsd-ruby/issues/235
+[#240]: https://github.com/DataDog/dogstatsd-ruby/issues/240
 [@AMekss]: https://github.com/AMekss
 [@abicky]: https://github.com/abicky
 [@adimitrov]: https://github.com/adimitrov
@@ -431,6 +436,7 @@ Future versions are likely to introduce backward incompatibilities with < Ruby 1
 [@kbogtob]: https://github.com/kbogtob
 [@laserlemon]: https://github.com/laserlemon
 [@marcotc]: https://github.com/marcotc
+[@matthewshafer]: https://github.com/matthewshafer
 [@misterbyrne]: https://github.com/misterbyrne
 [@nelhage]: https://github.com/nelhage
 [@olefriis]: https://github.com/olefriis
