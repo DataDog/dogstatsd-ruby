@@ -2,6 +2,8 @@
 
 [//]: # (comment: Don't forget to update lib/datadog/statsd/version.rb:DogStatsd::Statsd::VERSION when releasing a new version)
 
+## 5.4.0 / 2022.03.01
+
   * [IMPROVEMENT] Add a `pre_sampled` option to metric methods [#235][] by [@matthewshafer][]
 
   * [OTHER] Ruby versions earlier than 2.1.0 are no longer supported.  Ruby-2.0 was EOL as of 2016-02-24.
