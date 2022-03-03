@@ -11,8 +11,10 @@ module Datadog
         @message_buffer = message_buffer
         @logger = logger
         @mx = Mutex.new
-        if flush_interval
-          @flush_timer = Datadog::Statsd::Timer.new(flush_interval) { flush }
+        @flush_timer = if flush_interval
+          Datadog::Statsd::Timer.new(flush_interval) { flush }
+        else
+          nil
         end
         # store the pid for which this sender has been created
         update_fork_pid
