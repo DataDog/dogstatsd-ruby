@@ -81,8 +81,6 @@ Version v5.x of `dogstatsd-ruby` is using a sender thread for flushing. This pro
 
 If you are using [Sidekiq](https://github.com/mperham/sidekiq), please make sure to close the client instances that are instantiated. [See this example on using DogStatsD-ruby v5.x with Sidekiq](https://github.com/DataDog/dogstatsd-ruby/blob/master/examples/sidekiq_example.rb).
 
-If you are using [Puma](https://github.com/puma/puma) or [Unicorn](https://yhbt.net/unicorn.git), please make sure to create the instance of DogStatsD in the workers, not in the main process before it forks to create its workers. See [this comment for more details](https://github.com/DataDog/dogstatsd-ruby/issues/179#issuecomment-845570345).
-
 Applications that run into issues but can't apply these recommendations should use the `single_thread` mode which disables the use of the sender thread.
 Here is how to instantiate a client in this mode:
 
