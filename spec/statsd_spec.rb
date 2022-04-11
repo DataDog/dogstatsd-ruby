@@ -799,6 +799,134 @@ describe Datadog::Statsd do
     end
   end
 
+  describe '#distribution_time' do
+    let(:namespace) { nil }
+    let(:sample_rate) { nil }
+    let(:tags) { nil }
+
+    let(:before_date) do
+      DateTime.new(2020, 2, 25, 12, 12, 12)
+    end
+
+    let(:after_date) do
+      DateTime.new(2020, 2, 25, 12, 12, 13)
+    end
+
+    before do
+      Timecop.freeze(before_date)
+      allow(Process).to receive(:clock_gettime).and_return(0)
+    end
+
+    it_behaves_like 'a metrics method', 'foobar:1000|d' do
+      let(:basic_action) do
+        subject.distribution_time('foobar', tags: action_tags) do
+          Timecop.travel(after_date)
+          allow(Process).to receive(:clock_gettime).and_return(1)
+        end
+
+        subject.flush(sync: true)
+      end
+    end
+
+    context 'when actually testing time' do
+      it 'sends the timing' do
+        subject.distribution_time('foobar') do
+          Timecop.travel(after_date)
+          allow(Process).to receive(:clock_gettime).and_return(1)
+        end
+
+        subject.flush(sync: true)
+
+        expect(socket.recv[0]).to eq_with_telemetry 'foobar:1000|d'
+      end
+
+      it 'ensures the timing is sent' do
+        # rubocop:disable Lint/RescueWithoutErrorClass
+        subject.distribution_time('foobar') do
+          Timecop.travel(after_date)
+          allow(Process).to receive(:clock_gettime).and_return(1)
+          raise 'stop'
+        end rescue nil
+        # rubocop:enable Lint/RescueWithoutErrorClass
+
+        subject.flush(sync: true)
+
+        expect(socket.recv[0]).to eq_with_telemetry 'foobar:1000|d'
+      end
+    end
+
+    it 'returns the result of the block' do
+      expect(subject.distribution_time('foobar') { 'test' }).to eq 'test'
+    end
+
+    it 'does not catch errors if block is failing' do
+      expect do
+        subject.distribution_time('foobar') do
+          raise 'yolo'
+        end
+      end.to raise_error(StandardError, 'yolo')
+    end
+
+    it 'can run without "PROCESS_TIME_SUPPORTED"' do
+      stub_const('PROCESS_TIME_SUPPORTED', false)
+
+      expect do
+        subject.distribution_time('foobar') {}
+      end.not_to raise_error
+    end
+
+    context 'with a sample rate' do
+      before do
+        allow(subject).to receive(:rand).and_return(0)
+      end
+
+      it 'sends the timing with the sample rate' do
+        subject.distribution_time('foobar', sample_rate: 0.5) do
+          Timecop.travel(after_date)
+          allow(Process).to receive(:clock_gettime).and_return(1)
+        end
+
+        subject.flush(sync: true)
+
+        expect(socket.recv[0]).to eq_with_telemetry 'foobar:1000|d|@0.5'
+      end
+    end
+
+    context 'with a sample rate like statsd-ruby' do
+      before do
+        allow(subject).to receive(:rand).and_return(0)
+      end
+
+      it 'sends the timing with the sample rate' do
+        subject.distribution_time('foobar', 0.5) do
+          Timecop.travel(after_date)
+          allow(Process).to receive(:clock_gettime).and_return(1)
+        end
+
+        subject.flush(sync: true)
+
+        expect(socket.recv[0]).to eq_with_telemetry 'foobar:1000|d|@0.5'
+      end
+    end
+
+    context 'with pre sampling' do
+      before do
+        allow(subject).to receive(:rand).and_return(1)
+      end
+
+      it 'sends the sample rate without additional sampling' do
+        subject.distribution_time('foobar', sample_rate: 0.5, pre_sampled: true) do
+          Timecop.travel(after_date)
+          allow(Process).to receive(:clock_gettime).and_return(1)
+        end
+
+        subject.flush(sync: true)
+
+        expect(socket.recv[0]).to eq_with_telemetry 'foobar:1000|d|@0.5'
+      end
+    end
+  end
+
   describe '#distribution' do
     let(:namespace) { nil }
     let(:sample_rate) { nil }
