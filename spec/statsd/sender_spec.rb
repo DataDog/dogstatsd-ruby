@@ -111,6 +111,10 @@ describe Datadog::Statsd::Sender do
       let(:flush_interval) { 15 }
 
       it 'stops the worker thread and the flush timer thread' do
+        # sleep a little to wait for the sender thread to start
+        sleep 0.01
+
+        expect(message_buffer).to receive(:flush)
         expect do
           subject.stop
         end.to change { Thread.list.size }.by(-2)
