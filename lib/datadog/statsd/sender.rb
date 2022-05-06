@@ -102,10 +102,11 @@ module Datadog
         # to close the sender nor trying to continue to `#add` more message
         # into the sender.
         def stop(join_worker: true)
+          @flush_timer.stop if @flush_timer
+
           message_queue = @message_queue
           message_queue.close if message_queue
 
-          @flush_timer.stop if @flush_timer
           sender_thread = @sender_thread
           sender_thread.join if sender_thread && join_worker
         end
@@ -114,10 +115,11 @@ module Datadog
         # to close the sender nor trying to continue to `#add` more message
         # into the sender.
         def stop(join_worker: true)
+          @flush_timer.stop if @flush_timer
+
           message_queue = @message_queue
           message_queue << :close if message_queue
 
-          @flush_timer.stop if @flush_timer
           sender_thread = @sender_thread
           sender_thread.join if sender_thread && join_worker
         end
