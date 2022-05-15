@@ -25,11 +25,13 @@ module Datadog
       )
         @transport_type = connection_cfg.transport_type
 
-        if telemetry_flush_interval
-          @telemetry = Telemetry.new(telemetry_flush_interval,
+        @telemetry = if telemetry_flush_interval
+          Telemetry.new(telemetry_flush_interval,
             global_tags: global_tags,
             transport_type: @transport_type
           )
+        else
+          nil
         end
 
         @connection = connection_cfg.make_connection(logger: logger, telemetry: telemetry)
