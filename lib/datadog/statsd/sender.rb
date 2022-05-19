@@ -20,8 +20,10 @@ module Datadog
         @mx = Mutex.new
         @queue_class = queue_class
         @thread_class = thread_class
-        if flush_interval
-          @flush_timer = Datadog::Statsd::Timer.new(flush_interval) { flush(sync: true) }
+        @flush_timer = if flush_interval
+          Datadog::Statsd::Timer.new(flush_interval) { flush(sync: true) }
+        else
+          nil
         end
       end
 

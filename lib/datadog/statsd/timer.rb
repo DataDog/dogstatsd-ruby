@@ -9,6 +9,7 @@ module Datadog
         @interval = interval
         @callback = callback
         @stop = true
+        @thread = nil
       end
 
       def start

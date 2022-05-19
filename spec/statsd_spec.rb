@@ -1014,7 +1014,7 @@ describe Datadog::Statsd do
         it 'does not raise error' do
           expect do
             subject.event(title, text, options)
-          end.not_to raise_error(RuntimeError, /payload is too big/)
+          end.not_to raise_error
         end
       end
     end
