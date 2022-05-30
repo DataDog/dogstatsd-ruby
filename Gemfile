@@ -10,10 +10,6 @@ gem 'minitest-matchers'
 gem 'yard', '~> 0.9.20'
 gem 'climate_control', '~> 0.2.0'
 
-if RUBY_VERSION < '2.2.2'
-  gem 'rack', '~> 1.6' # required on older ruby versions
-end
-
 if RUBY_VERSION >= '2.3.0'
   gem 'allocation_stats'
 end
