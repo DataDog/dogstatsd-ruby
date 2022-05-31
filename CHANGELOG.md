@@ -2,6 +2,16 @@
 
 [//]: # (comment: Don't forget to update lib/datadog/statsd/version.rb:DogStatsd::Statsd::VERSION when releasing a new version)
 
+## 5.5.0 / 2022.05.31
+
+  * [FEATURE] Add `distribution_time` method to facilitate measuring timing of a yielded block. [#248][] by [@jordan-brough][]
+
+  * [BUGFIX] Stop flush timer before closing the queue [#257][] by [@abicky][]
+
+  * [IMPROVEMENT] Various warnings removed [#258][] by [@abicky][]
+
+  * [OTHER] Remove unused `rack` dependency [#260][] by [@remeh][]
+
 ## 5.4.0 / 2022.03.01
 
   * [IMPROVEMENT] Add a `pre_sampled` option to metric methods [#235][] by [@matthewshafer][]
@@ -415,6 +425,10 @@ Future versions are likely to introduce backward incompatibilities with < Ruby 1
 [#232]: https://github.com/DataDog/dogstatsd-ruby/issues/232
 [#235]: https://github.com/DataDog/dogstatsd-ruby/issues/235
 [#240]: https://github.com/DataDog/dogstatsd-ruby/issues/240
+[#248]: https://github.com/DataDog/dogstatsd-ruby/issues/248
+[#257]: https://github.com/DataDog/dogstatsd-ruby/issues/257
+[#258]: https://github.com/DataDog/dogstatsd-ruby/issues/258
+[#260]: https://github.com/DataDog/dogstatsd-ruby/issues/260
 [@AMekss]: https://github.com/AMekss
 [@abicky]: https://github.com/abicky
 [@adimitrov]: https://github.com/adimitrov
@@ -433,6 +447,7 @@ Future versions are likely to introduce backward incompatibilities with < Ruby 1
 [@ivoanjo]: https://github.com/ivoanjo
 [@jacobbednarz]: https://github.com/jacobbednarz
 [@janester]: https://github.com/janester
+[@jordan-brough]: https://github.com/jordan-brough
 [@jtzemp]: https://github.com/jtzemp
 [@kazu9su]: https://github.com/kazu9su
 [@kbogtob]: https://github.com/kbogtob
