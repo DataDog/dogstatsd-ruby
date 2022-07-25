@@ -14,16 +14,16 @@ require '../../lib/datadog/statsd'
 # This Sidekiq worker uses a DogStatsD instance created every time this worker job
 # is executed. Because of that, it is important to close this created client to
 # free the resources it is using (a socket and a thread).
-# It is important to manually flush the metrics calling the #flush method because
-# the client instance internal buffer may not be full and the DogStatsD client is
-# not flushing the metrics until that.
+# Closing the client will also invoke "flush(sync: true)" to ensure metrics are
+# flushed even if the client instance internal buffer is not full.
 class ExampleEphemeralInstance
   include Sidekiq::Worker
   def perform()
     client = Datadog::Statsd.new('localhost', 8125)
     client.increment('example_metric.sample', tags: ['environment:dev'])
-    client.flush(sync: true) # flush all metrics created during the job execution
-    client.close() # free resources used by this ephemeral dogstatsd client instance
+    # flush all metrics created during the job execution and free resources used by
+    # this ephemeral dogstatsd client instance:
+    client.close()
     puts("Metrics flushed and client closed")
   end
 end
