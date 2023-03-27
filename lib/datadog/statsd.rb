@@ -108,6 +108,7 @@ module Datadog
         raise ArgumentError, 'tags must be an array of string tags or a Hash'
       end
 
+      @logger = logger
       @namespace = namespace
       @prefix = @namespace ? "#{@namespace}.".freeze : nil
       @serializer = Serialization::Serializer.new(prefix: @prefix, global_tags: tags)
@@ -187,6 +188,10 @@ module Datadog
     # @option opts [Array<String>] :tags An array of tags
     def count(stat, count, opts = EMPTY_OPTIONS)
       opts = { sample_rate: opts } if opts.is_a?(Numeric)
+      if not count.is_a?(Numeric)
+          @logger.error("count: count value should be numeric") if @logger
+          return
+      end
       send_stats(stat, count, COUNTER_TYPE, opts)
     end
 
@@ -206,6 +211,10 @@ module Datadog
     #   $statsd.gauge('user.count', User.count)
     def gauge(stat, value, opts = EMPTY_OPTIONS)
       opts = { sample_rate: opts } if opts.is_a?(Numeric)
+      if not value.is_a?(Numeric)
+          @logger.error("gauge: value should be numeric") if @logger
+          return
+      end
       send_stats(stat, value, GAUGE_TYPE, opts)
     end
 
@@ -220,6 +229,10 @@ module Datadog
     # @example Report the current user count:
     #   $statsd.histogram('user.count', User.count)
     def histogram(stat, value, opts = EMPTY_OPTIONS)
+      if not value.is_a?(Numeric)
+          @logger.error("histogram: value should be numeric") if @logger
+          return
+      end
       send_stats(stat, value, HISTOGRAM_TYPE, opts)
     end
 
@@ -234,6 +247,10 @@ module Datadog
     # @example Report the current user count:
     #   $statsd.distribution('user.count', User.count)
     def distribution(stat, value, opts = EMPTY_OPTIONS)
+      if not value.is_a?(Numeric)
+          @logger.error("distribution: value should be numeric") if @logger
+          return
+      end
       send_stats(stat, value, DISTRIBUTION_TYPE, opts)
     end
 
@@ -270,6 +287,10 @@ module Datadog
     # @option opts [Array<String>] :tags An array of tags
     def timing(stat, ms, opts = EMPTY_OPTIONS)
       opts = { sample_rate: opts } if opts.is_a?(Numeric)
+      if not ms.is_a?(Numeric)
+          @logger.error("timing: ms should be numeric") if @logger
+          return
+      end
       send_stats(stat, ms, TIMING_TYPE, opts)
     end
 
@@ -307,6 +328,10 @@ module Datadog
     #   $statsd.set('visitors.uniques', User.id)
     def set(stat, value, opts = EMPTY_OPTIONS)
       opts = { sample_rate: opts } if opts.is_a?(Numeric)
+      if not value.is_a?(Numeric)
+          @logger.error("set: value should be numeric") if @logger
+          return
+      end
       send_stats(stat, value, SET_TYPE, opts)
     end
 
@@ -315,10 +340,10 @@ module Datadog
     # @param [String] name Service check name
     # @param [String] status Service check status.
     # @param [Hash] opts the additional data about the service check
-      # @option opts [Integer, String, nil] :timestamp (nil) Assign a timestamp to the service check. Default is now when none
-      # @option opts [String, nil] :hostname (nil) Assign a hostname to the service check.
-      # @option opts [Array<String>, nil] :tags (nil) An array of tags
-      # @option opts [String, nil] :message (nil) A message to associate with this service check status
+    # @option opts [Integer, String, nil] :timestamp (nil) Assign a timestamp to the service check. Default is now when none
+    # @option opts [String, nil] :hostname (nil) Assign a hostname to the service check.
+    # @option opts [Array<String>, nil] :tags (nil) An array of tags
+    # @option opts [String, nil] :message (nil) A message to associate with this service check status
     # @example Report a critical service check status
     #   $statsd.service_check('my.service.check', Statsd::CRITICAL, :tags=>['urgent'])
     def service_check(name, status, opts = EMPTY_OPTIONS)
