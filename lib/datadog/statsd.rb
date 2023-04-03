@@ -188,7 +188,7 @@ module Datadog
     # @option opts [Array<String>] :tags An array of tags
     def count(stat, count, opts = EMPTY_OPTIONS)
       opts = { sample_rate: opts } if opts.is_a?(Numeric)
-      if not count.is_a?(Numeric)
+      unless count.is_a?(Numeric)
           @logger.error("count: count value should be numeric") if @logger
           return
       end
@@ -211,7 +211,7 @@ module Datadog
     #   $statsd.gauge('user.count', User.count)
     def gauge(stat, value, opts = EMPTY_OPTIONS)
       opts = { sample_rate: opts } if opts.is_a?(Numeric)
-      if not value.is_a?(Numeric)
+      unless value.is_a?(Numeric)
           @logger.error("gauge: value should be numeric") if @logger
           return
       end
@@ -229,7 +229,7 @@ module Datadog
     # @example Report the current user count:
     #   $statsd.histogram('user.count', User.count)
     def histogram(stat, value, opts = EMPTY_OPTIONS)
-      if not value.is_a?(Numeric)
+      unless value.is_a?(Numeric)
           @logger.error("histogram: value should be numeric") if @logger
           return
       end
@@ -247,7 +247,7 @@ module Datadog
     # @example Report the current user count:
     #   $statsd.distribution('user.count', User.count)
     def distribution(stat, value, opts = EMPTY_OPTIONS)
-      if not value.is_a?(Numeric)
+      unless value.is_a?(Numeric)
           @logger.error("distribution: value should be numeric") if @logger
           return
       end
@@ -287,7 +287,7 @@ module Datadog
     # @option opts [Array<String>] :tags An array of tags
     def timing(stat, ms, opts = EMPTY_OPTIONS)
       opts = { sample_rate: opts } if opts.is_a?(Numeric)
-      if not ms.is_a?(Numeric)
+      unless ms.is_a?(Numeric)
           @logger.error("timing: ms should be numeric") if @logger
           return
       end
@@ -328,7 +328,7 @@ module Datadog
     #   $statsd.set('visitors.uniques', User.id)
     def set(stat, value, opts = EMPTY_OPTIONS)
       opts = { sample_rate: opts } if opts.is_a?(Numeric)
-      if not value.is_a?(Numeric)
+      unless value.is_a?(Numeric)
           @logger.error("set: value should be numeric") if @logger
           return
       end
