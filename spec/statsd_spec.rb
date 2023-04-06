@@ -261,42 +261,49 @@ describe Datadog::Statsd do
       expect(socket.recv[0]).to eq_with_telemetry('foobar:1|c')
     end
 
-    it 'doesnt send count when the value isnt numeric' do
+    it 'does not send count when the value isnt numeric' do
       subject.count('metric_name', 'hello')
       subject.flush(sync: true)
 
       expect(socket.recv).to be nil
     end
 
-    it 'doesnt send gauge when the value isnt numeric' do
+    it 'does not send gauge when the value isnt numeric' do
       subject.gauge('metric_name', 'hello')
       subject.flush(sync: true)
 
       expect(socket.recv).to be nil
     end
 
-    it 'doesnt send set when the value isnt numeric' do
-      subject.set('metric_name', 'hello')
+    it 'escape set when the value is a string' do
+      subject.set('metric_name', "hel\nl|o")
       subject.flush(sync: true)
 
-      expect(socket.recv).to be nil
+      expect(socket.recv[0]).to eq_with_telemetry("metric_name:hel\\nlo|s")
     end
 
-    it 'doesnt send distribution when the value isnt numeric' do
+    it 'does not escape set when the value is numeric' do
+      subject.set('metric_name', 5)
+      subject.flush(sync: true)
+
+      expect(socket.recv[0]).to eq_with_telemetry("metric_name:5|s")
+    end
+
+    it 'does not send distribution when the value isnt numeric' do
       subject.distribution('metric_name', 'hello')
       subject.flush(sync: true)
 
       expect(socket.recv).to be nil
     end
 
-    it 'doesnt send histogram when the value isnt numeric' do
+    it 'does not send histogram when the value isnt numeric' do
       subject.histogram('metric_name', 'hello')
       subject.flush(sync: true)
 
       expect(socket.recv).to be nil
     end
 
-    it 'doesnt send timing when the value isnt numeric' do
+    it 'does not send timing when the value isnt numeric' do
       subject.timing('metric_name', 'hello')
       subject.flush(sync: true)
 

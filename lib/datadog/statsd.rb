@@ -328,9 +328,8 @@ module Datadog
     #   $statsd.set('visitors.uniques', User.id)
     def set(stat, value, opts = EMPTY_OPTIONS)
       opts = { sample_rate: opts } if opts.is_a?(Numeric)
-      unless value.is_a?(Numeric)
-          @logger.error("set: value should be numeric") if @logger
-          return
+      if value.is_a?(String)
+          value = escape(value)
       end
       send_stats(stat, value, SET_TYPE, opts)
     end
@@ -442,6 +441,12 @@ module Datadog
 
     def now
       Process.clock_gettime(Process::CLOCK_MONOTONIC)
+    end
+
+    def escape(text)
+      text.delete('|').tap do |t|
+        t.gsub!("\n", '\n')
+      end
     end
 
     def send_stats(stat, delta, type, opts = EMPTY_OPTIONS)
