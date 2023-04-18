@@ -9,7 +9,7 @@ module Datadog
       end
 
       def reset_telemetry
-        telemetry.reset
+        telemetry.reset if telemetry
       end
 
       # not thread safe: `Sender` instances that use this are required to properly synchronize or sequence calls to this method
