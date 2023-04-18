@@ -40,6 +40,23 @@ describe Datadog::Statsd::UDSConnection do
     end
   end
 
+  describe '#reset_telemetry' do
+    context 'when telemetry is set' do
+      it 'resets the telemetry' do
+        expect(telemetry).to receive(:reset)
+        subject.reset_telemetry
+      end
+    end
+
+    context 'when telemetry is not set' do
+      let(:telemetry) { nil }
+
+      it 'does not raise an error' do
+        expect { subject.reset_telemetry }.to_not raise_error
+      end
+    end
+  end
+
   describe '#write' do
     let(:telemetry) do
       instance_double(Datadog::Statsd::Telemetry, sent: true, dropped_writer: true)
