@@ -145,6 +145,8 @@ statsd.flush(sync: true)
 statsd.close()
 ```
 
+5. `statsd.connection` should not be used anymore to get the `host`, the `port` and the `socket_path` of the statsd connection, they are now available directly in the `statsd` object.
+
 ### Commits
 
  * [IMPROVEMENT] Use asynchronous IO to avoid doing IO in the hot paths of the library users [#151][] by [@kbogtob][]
