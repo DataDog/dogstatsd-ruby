@@ -66,7 +66,7 @@ describe Datadog::Statsd::UDSConnection do
       expect(Socket)
         .to receive(:new)
         .once
-        .with(Socket::AF_UNIX, Socket::SOCK_DGRAM)
+        .with(Socket::AF_UNIX, Socket::SOCK_STREAM)
 
       subject.write('test')
     end

@@ -27,7 +27,7 @@ module Datadog
       def connect
         close if @socket
 
-        @socket = Socket.new(Socket::AF_UNIX, Socket::SOCK_DGRAM)
+        @socket = Socket.new(Socket::AF_UNIX, Socket::SOCK_STREAM)
         @socket.connect(Socket.pack_sockaddr_un(@socket_path))
       end
 
