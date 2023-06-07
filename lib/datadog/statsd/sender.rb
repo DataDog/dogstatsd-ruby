@@ -84,7 +84,10 @@ module Datadog
         if message_queue.length <= @queue_size
           message_queue << message
         else
-          @telemetry.dropped_queue(packets: 1, bytes: message.bytesize) if @telemetry
+          if @telemetry
+            bytesize = message.respond_to?(:bytesize) ? message.bytesize : 0
+            @telemetry.dropped_queue(packets: 1, bytes: bytesize)
+          end
         end
       end
 

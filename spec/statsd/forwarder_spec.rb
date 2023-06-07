@@ -33,6 +33,10 @@ describe Datadog::Statsd::Forwarder do
     instance_double(Logger)
   end
 
+  let(:serializer) do
+    Datadog::Statsd::Serialization::Serializer.new
+  end
+
   before do
     allow(Datadog::Statsd::MessageBuffer)
       .to receive(:new)
@@ -94,6 +98,8 @@ describe Datadog::Statsd::Forwarder do
 
         logger: logger,
         global_tags: global_tags,
+
+        serializer: serializer,
       }
     end
 
@@ -277,6 +283,8 @@ describe Datadog::Statsd::Forwarder do
 
         logger: logger,
         global_tags: global_tags,
+
+        serializer: serializer,
       }
     end
 
@@ -464,6 +472,8 @@ describe Datadog::Statsd::Forwarder do
 
         logger: logger,
         global_tags: global_tags,
+
+        serializer: serializer,
       }
     end
 

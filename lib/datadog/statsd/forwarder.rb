@@ -21,7 +21,9 @@ module Datadog
 
         single_thread: false,
 
-        logger: nil
+        logger: nil,
+
+        serializer:
       )
         @transport_type = connection_cfg.transport_type
 
@@ -52,8 +54,10 @@ module Datadog
           max_payload_size: buffer_max_payload_size,
           max_pool_size: buffer_max_pool_size || DEFAULT_BUFFER_POOL_SIZE,
           overflowing_stategy: buffer_overflowing_stategy,
+          serializer: serializer
         )
 
+        sender_queue_size ||= 1 if single_thread
         sender_queue_size ||= (@transport_type == :udp ?
                                UDP_DEFAULT_SENDER_QUEUE_SIZE : UDS_DEFAULT_SENDER_QUEUE_SIZE)
 
@@ -61,7 +65,8 @@ module Datadog
           SingleThreadSender.new(
             buffer,
             logger: logger,
-            flush_interval: buffer_flush_interval) :
+            flush_interval: buffer_flush_interval,
+            queue_size: sender_queue_size) :
           Sender.new(
             buffer,
             logger: logger,

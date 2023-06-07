@@ -6,6 +6,7 @@ describe Datadog::Statsd::MessageBuffer do
       max_payload_size: max_payload_size,
       max_pool_size: max_pool_size,
       overflowing_stategy: overflowing_stategy,
+      serializer: serializer,
     )
   end
 
@@ -23,6 +24,10 @@ describe Datadog::Statsd::MessageBuffer do
 
   let(:overflowing_stategy) do
     :drop
+  end
+
+  let(:serializer) do
+    Datadog::Statsd::Serialization::Serializer.new
   end
 
   describe '#add' do
