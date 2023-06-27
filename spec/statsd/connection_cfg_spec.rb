@@ -8,6 +8,7 @@ describe Datadog::Statsd::ConnectionCfg do
   around do |example|
     ClimateControl.modify(
       'DD_AGENT_HOST' => dd_agent_host,
+      'DD_DOGSTATSD_URL' => dd_dogstatsd_url,
       'DD_DOGSTATSD_PORT' => dd_dogstatsd_port,
       'DD_DOGSTATSD_SOCKET' => dd_dogstatsd_socket,
     ) do
@@ -19,6 +20,7 @@ describe Datadog::Statsd::ConnectionCfg do
   let(:port) { nil }
   let(:socket_path) { nil }
   let(:dd_agent_host) { nil }
+  let(:dd_dogstatsd_url) { nil }
   let(:dd_dogstatsd_port) { nil }
   let(:dd_dogstatsd_socket) { nil }
 
@@ -29,6 +31,7 @@ describe Datadog::Statsd::ConnectionCfg do
       let(:dd_agent_host) { 'unused' }
       let(:dd_dogstatsd_port) { '999' }
       let(:dd_dogstatsd_socket) { '/un/used' }
+      let(:dd_dogstatsd_url) { 'unix://unused.sock' }
 
       it 'creates a UDP connection' do
         expect(subject.transport_type).to eq :udp
@@ -144,6 +147,75 @@ describe Datadog::Statsd::ConnectionCfg do
       end
     end
 
+    context 'with no args and a malformed DD_DOGSTATSD_URL' do
+      let(:dd_dogstatsd_url) { 'tcppp://somehost' }
+      it 'raises an exception' do
+        expect do
+          subject.new(dogstatsd_url: dogstatsd_url, host: host, port: port, socket_path: socket_path)
+        end.to raise_error(ArgumentError)
+      end
+    end
+
+    context 'with no args and DD_DOGSTATSD_URL set for UDP connection without port' do
+      let(:dd_dogstatsd_url) { 'udp://somehost' }
+
+      it 'creates an UDP connection' do
+        expect(subject.transport_type).to eq :udp
+      end
+
+      it 'sets host' do
+        expect(subject.host).to eq 'somehost'
+      end
+
+      it 'sets port to default port' do
+        expect(subject.port).to eq 8125
+      end
+
+      it 'sets socket_path to nil' do
+        expect(subject.socket_path).to eq nil
+      end
+    end
+
+    context 'with no args and DD_DOGSTATSD_URL set for UDP connection with a port' do
+      let(:dd_dogstatsd_url) { 'udp://somehost:1111' }
+
+      it 'creates an UDP connection' do
+        expect(subject.transport_type).to eq :udp
+      end
+
+      it 'sets host' do
+        expect(subject.host).to eq 'somehost'
+      end
+
+      it 'sets port' do
+        expect(subject.port).to eq 1111
+      end
+
+      it 'sets socket_path to nil' do
+        expect(subject.socket_path).to eq nil
+      end
+    end
+
+    context 'with no args and DD_DOGSTATSD_URL set for UDS connection' do
+      let(:dd_dogstatsd_url) { 'unix:///path/to/some-unix.sock' }
+
+      it 'creates an UDS connection' do
+        expect(subject.transport_type).to eq :uds
+      end
+
+      it 'sets host to nil' do
+        expect(subject.host).to eq nil
+      end
+
+      it 'sets port to nil' do
+        expect(subject.port).to eq nil
+      end
+
+      it 'sets socket_path' do
+        expect(subject.socket_path).to eq '/path/to/some-unix.sock'
+      end
+    end
+
     context 'with both DD_AGENT_HOST and DD_DOGSTATSD_SOCKET set' do
       let(:dd_agent_host) { 'some-host' }
       let(:dd_dogstatsd_socket) { '/some/socket' }
@@ -151,9 +223,29 @@ describe Datadog::Statsd::ConnectionCfg do
       it 'raises an exception' do
         expect do
           subject.new(host: host, port: port, socket_path: socket_path)
-        end.to raise_error(
-          ArgumentError,
-          'Both UDP (DD_AGENT_HOST/DD_DOGSTATSD_PORT some-host:) and UDS (DD_DOGSTATSD_SOCKET /some/socket) environment variables are set. Set only one or the other.')
+        end.to raise_error(ArgumentError)
+      end
+    end
+
+    context 'with both DD_DOGSTATSD_URL and DD_AGENT_HOST' do
+      let(:dd_agent_host) { 'some-host' }
+      let(:dd_dogstatsd_url) { 'udp://localhost' }
+
+      it 'raises an exception' do
+        expect do
+          subject.new(dogstatsd_url: dogstatsd_url, host: host, port: port, socket_path: socket_path)
+        end.to raise_error(ArgumentError)
+      end
+    end
+
+    context 'with both DD_DOGSTATSD_URL and DD_DOGSTATSD_SOCKET' do
+      let(:dd_agent_host) { 'some-host' }
+      let(:dd_dogstatsd_socket) { 'statsd.sock' }
+
+      it 'raises an exception' do
+        expect do
+          subject.new(dogstatsd_url: dogstatsd_url, host: host, port: port, socket_path: socket_path)
+        end.to raise_error(ArgumentError)
       end
     end
 
