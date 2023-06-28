@@ -227,25 +227,81 @@ describe Datadog::Statsd::ConnectionCfg do
       end
     end
 
-    context 'with both DD_DOGSTATSD_URL and DD_AGENT_HOST' do
+    context 'with both DD_DOGSTATSD_URL and DD_AGENT_HOST, udp variant' do
       let(:dd_agent_host) { 'some-host' }
+      let(:dd_dogstatsd_port) { '1111' }
       let(:dd_dogstatsd_url) { 'udp://localhost' }
 
-      it 'raises an exception' do
-        expect do
-          subject.new(dogstatsd_url: dogstatsd_url, host: host, port: port, socket_path: socket_path)
-        end.to raise_error(ArgumentError)
+      # DD_DOGSTATSD_URL has priority
+
+      it 'sets host' do
+        expect(subject.host).to eq 'localhost'
+      end
+
+      it 'sets port' do
+        expect(subject.port).to eq 8125
+      end
+
+      it 'sets socket_path' do
+        expect(subject.socket_path).to eq nil
       end
     end
 
-    context 'with both DD_DOGSTATSD_URL and DD_DOGSTATSD_SOCKET' do
-      let(:dd_agent_host) { 'some-host' }
-      let(:dd_dogstatsd_socket) { 'statsd.sock' }
+    context 'with both DD_DOGSTATSD_URL and DD_DOGSTATSD_SOCKET, udp variant' do
+      let(:dd_dogstatsd_socket) { '/not/used.sock' }
+      let(:dd_dogstatsd_url) { 'udp://localhost:2222' }
 
-      it 'raises an exception' do
-        expect do
-          subject.new(dogstatsd_url: dogstatsd_url, host: host, port: port, socket_path: socket_path)
-        end.to raise_error(ArgumentError)
+      # DD_DOGSTATSD_URL has priority
+
+      it 'sets host' do
+        expect(subject.host).to eq 'localhost'
+      end
+
+      it 'sets port' do
+        expect(subject.port).to eq 2222
+      end
+
+      it 'sets socket_path' do
+        expect(subject.socket_path).to eq nil
+      end
+    end
+
+    context 'with both DD_DOGSTATSD_URL and DD_AGENT_HOST, uds variant' do
+      let(:dd_agent_host) { 'some-host' }
+      let(:dd_dogstatsd_port) { '1111' }
+      let(:dd_dogstatsd_url) { 'unix:///path/to/unix.sock' }
+
+      # DD_DOGSTATSD_URL has priority
+
+      it 'sets host to nil' do
+        expect(subject.host).to eq nil
+      end
+
+      it 'sets port to nil' do
+        expect(subject.port).to eq nil
+      end
+
+      it 'sets socket_path' do
+        expect(subject.socket_path).to eq '/path/to/unix.sock'
+      end
+    end
+
+    context 'with both DD_DOGSTATSD_URL and DD_DOGSTATSD_SOCKET, uds variant' do
+      let(:dd_dogstatsd_socket) { '/not/used.sock' }
+      let(:dd_dogstatsd_url) { 'unix:///path/to/unix.sock' }
+
+      # DD_DOGSTATSD_URL has priority
+
+      it 'sets host to nil' do
+        expect(subject.host).to eq nil
+      end
+
+      it 'sets port to nil' do
+        expect(subject.port).to eq nil
+      end
+
+      it 'sets socket_path' do
+        expect(subject.socket_path).to eq '/path/to/unix.sock'
       end
     end
 

@@ -30,7 +30,8 @@ module Datadog
                       "  or\n" +
                       "  - DD_AGENT_HOST and DD_DOGSTATSD_PORT for an UDP connection. E.g. DD_AGENT_HOST='localhost' DD_DOGSTATSD_PORT=8125\n" +
                       "  or\n" +
-                      "  - DD_DOGSTATSD_SOCKET for an UDS connection: E.g. DD_DOGSTATSD_SOCKET='/path/to/unix.sock'\n"
+                      "  - DD_DOGSTATSD_SOCKET for an UDS connection: E.g. DD_DOGSTATSD_SOCKET='/path/to/unix.sock'\n" +
+                      " Note that DD_DOGSTATSD_URL has priority on other environment variables."
 
       DEFAULT_HOST = '127.0.0.1'
       DEFAULT_PORT = 8125
@@ -61,16 +62,12 @@ module Datadog
       end
 
       def try_initialize_with(dogstatsd_url: nil, host: nil, port: nil, socket_path: nil, error_message: ERROR_MESSAGE)
-        if dogstatsd_url && (host || port || socket_path)
+        if (host || port) && socket_path
           raise ArgumentError, error_message
         end
 
         if dogstatsd_url
           host, port, socket_path = parse_dogstatsd_url(str: dogstatsd_url.to_s)
-        end
-
-        if (host || port) && socket_path
-          raise ArgumentError, error_message
         end
 
         if host || port 
