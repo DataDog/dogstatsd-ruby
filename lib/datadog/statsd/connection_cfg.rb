@@ -94,7 +94,7 @@ module Datadog
         # udp socket connection
 
         if str.start_with?(UDP_PREFIX)
-          dogstatsd_url = str[UDP_PREFIX.size..]
+          dogstatsd_url = str[UDP_PREFIX.size..str.size]
           host = nil
           port = nil
 
@@ -116,7 +116,7 @@ module Datadog
         # unix socket connection
 
         if str.start_with?(UDS_PREFIX)
-          return nil, nil, str[UDS_PREFIX.size..]
+          return nil, nil, str[UDS_PREFIX.size..str.size]
         end
 
         # malformed value
