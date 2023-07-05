@@ -8,7 +8,8 @@ module Datadog
       def initialize(connection,
         max_payload_size: nil,
         max_pool_size: DEFAULT_BUFFER_POOL_SIZE,
-        overflowing_stategy: :drop
+        overflowing_stategy: :drop,
+        serializer:
       )
         raise ArgumentError, 'max_payload_size keyword argument must be provided' unless max_payload_size
         raise ArgumentError, 'max_pool_size keyword argument must be provided' unless max_pool_size
@@ -17,12 +18,19 @@ module Datadog
         @max_payload_size = max_payload_size
         @max_pool_size = max_pool_size
         @overflowing_stategy = overflowing_stategy
+        @serializer = serializer
 
         @buffer = String.new
         clear_buffer
       end
 
       def add(message)
+        # Serializes the message if it hasn't been already. Part of the
+        # delay_serialization feature.
+        if message.is_a?(Array)
+          message = @serializer.to_stat(*message[0], **message[1])
+        end
+
         message_size = message.bytesize
 
         return nil unless message_size > 0 # to avoid adding empty messages to the buffer

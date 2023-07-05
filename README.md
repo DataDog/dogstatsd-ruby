@@ -183,7 +183,7 @@ There is also an implicit message which closes the queue which will cause the se
 statsd = Datadog::Statsd.new('localhost', 8125)
 ```
 
-The message queue's maximum size (in messages) is given by the `sender_queue_size` argument, and has appropriate defaults for UDP (2048) and UDS (512).
+The message queue's maximum size (in messages) is given by the `sender_queue_size` argument, and has appropriate defaults for UDP (2048), UDS (512) and `single_thread: true` (1).
 
 The `buffer_flush_interval`, if enabled, is implemented with an additional thread which manages the timing of those flushes.  This additional thread is used even if `single_thread: true`.
 
@@ -208,6 +208,16 @@ This is useful when preparing to exit the application or when checking unit test
 By default, instances of `Datadog::Statsd` are thread-safe and we recommend that a single instance be reused by all application threads (even in applications that employ forking). The sole exception is the `#close` method — this method is not yet thread safe (work in progress here [#209](https://github.com/DataDog/dogstatsd-ruby/pull/209)).
 
 When using the `single_thread: true` mode, instances of `Datadog::Statsd` are still thread-safe, but you may run into contention on heavily-threaded applications, so we don’t recommend (for performance reasons) reusing these instances.
+
+### Delaying serialization
+
+By default, message serialization happens synchronously whenever stat methods such as `#increment` gets called, blocking the caller. If the blocking is impacting your program's performance, you may want to consider the `delay_serialization: true` mode.
+
+The `delay_serialization: true` mode delays the serialization of metrics to avoid the wait when submitting metrics. Serialization will still have to happen at some point, but it might be postponed until a more convenient time, such as after an HTTP request has completed.
+
+In `single_thread: true` mode, you'll probably want to set `sender_queue_size:` from it's default of `1` to some greater value, so that it can benefit from `delay_serialization: true`. Messages will then be queued unserialized in the sender queue and processed normally whenever `sender_queue_size` is reached or `#flush` is called. You might set `sender_queue_size: Float::INFINITY` to allow for an unbounded queue that will only be processed on explicit `#flush`.
+
+In `single_thread: false` mode, `delay_serialization: true`, will cause serialization to happen inside the sender thread.
 
 ## Versioning
 

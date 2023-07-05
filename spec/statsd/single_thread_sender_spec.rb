@@ -2,13 +2,14 @@ require 'spec_helper'
 
 describe Datadog::Statsd::SingleThreadSender do
   subject do
-    described_class.new(message_buffer, flush_interval: flush_interval)
+    described_class.new(message_buffer, flush_interval: flush_interval, queue_size: queue_size)
   end
 
   let(:message_buffer) do
     instance_double(Datadog::Statsd::MessageBuffer)
   end
   let(:flush_interval) { nil }
+  let(:queue_size) { 6 }
 
   describe '#start' do
     after do
@@ -80,12 +81,31 @@ describe Datadog::Statsd::SingleThreadSender do
         subject.stop
       end
 
-      it 'adds a message to the message buffer asynchronously (needs rendez_vous)' do
-        expect(message_buffer)
-          .to receive(:add)
-          .with('sample message')
+      context 'when number of messages < queue size' do
+        it 'does not touch the message buffer' do
+          n = queue_size - 1
+          n.times do |i|
+            subject.add("sample message #{i}")
+          end
+        end
+      end
 
-        subject.add('sample message')
+      context 'when number of messages == queue size' do
+        it 'adds queued messages to the message buffer' do
+          n = queue_size
+
+          n.times do |i|
+            expect(message_buffer)
+              .to receive(:add)
+              .with("sample message #{i}")
+              .ordered
+          end
+          expect(message_buffer).to receive(:add).exactly(0).times
+
+          n.times do |i|
+            subject.add("sample message #{i}")
+          end
+        end
       end
     end
   end
@@ -100,10 +120,23 @@ describe Datadog::Statsd::SingleThreadSender do
         subject.stop
       end
 
-      it 'flushes the message buffer' do
+      it 'adds queued messages to the message buffer and flushes it' do
+        n = queue_size - 1
+
+        n.times do |i|
+          expect(message_buffer)
+            .to receive(:add)
+            .with("sample message #{i}")
+            .ordered
+        end
+        # and then expect no more adds!
+        expect(message_buffer).to receive(:add).exactly(0).times
         expect(message_buffer)
           .to receive(:flush)
 
+        n.times do |i|
+          subject.add("sample message #{i}")
+        end
         subject.flush
       end
     end
