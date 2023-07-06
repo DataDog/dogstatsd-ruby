@@ -2,7 +2,7 @@
 
 [//]: # (comment: Don't forget to update lib/datadog/statsd/version.rb:DogStatsd::Statsd::VERSION when releasing a new version)
 
-## 5.6.0 / 2023.06.07
+## 5.6.0 / main branch -- not released yet
 
   * [FEATURE] Add the `delay_serialization` option, allowing users to delay
     expensive serialization until a more convenient time, such as after an HTTP
