@@ -2,7 +2,7 @@
 
 [//]: # (comment: Don't forget to update lib/datadog/statsd/version.rb:DogStatsd::Statsd::VERSION when releasing a new version)
 
-## 5.6.0 / main branch -- not released yet
+## 5.6.0 / 2023.07.10
 
   * [FEATURE] Add the `delay_serialization` option, allowing users to delay
     expensive serialization until a more convenient time, such as after an HTTP
@@ -16,6 +16,16 @@
     `#flush` is called. It may be set to `Float::INFINITY`, so that messages
     are indefinitely queued until an explicit `#flush`. [#271][] by [@pudiva][]
     and [@BlakeWilliams][]
+
+  * [IMPROVEMENT] Add support of `DD_DOGSTATSD_URL` for configuration through
+    environment variable. Valid formats are: `udp://some-host`,
+    `udp://some-host:port` and `unix:///path/to/unix.sock`.
+    `DD_DOGSTATSD_URL` has priority on other environment vars (`DD_AGENT_HOST`,
+    `DD_DOGSTATSD_PORT` and `DD_DOGSTATSD_SOCKET`) but does not throw an error
+    if others are set, values are overridden instead. [#278][] by [@remeh][]
+
+  * [BUGFIX] Fix NoMethodError when Datadog::Statsd is initialized without
+    telemetry. [#272][] by [@matthewshafer][]
 
 ## 5.5.0 / 2022.06.01
 
@@ -447,6 +457,8 @@ Future versions are likely to introduce backward incompatibilities with < Ruby 1
 [#258]: https://github.com/DataDog/dogstatsd-ruby/issues/258
 [#260]: https://github.com/DataDog/dogstatsd-ruby/issues/260
 [#271]: https://github.com/DataDog/dogstatsd-ruby/issues/271
+[#272]: https://github.com/DataDog/dogstatsd-ruby/issues/272
+[#278]: https://github.com/DataDog/dogstatsd-ruby/issues/278
 [@AMekss]: https://github.com/AMekss
 [@abicky]: https://github.com/abicky
 [@adimitrov]: https://github.com/adimitrov
