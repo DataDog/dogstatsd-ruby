@@ -29,7 +29,9 @@ module Datadog
       def connect
         close if @socket
 
-        @socket = UDPSocket.new
+        family = Addrinfo.udp(host, port).afamily
+
+        @socket = UDPSocket.new(family)
         @socket.connect(host, port)
       end
 
