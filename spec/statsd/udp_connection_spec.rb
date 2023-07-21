@@ -71,6 +71,34 @@ describe Datadog::Statsd::UDPConnection do
       instance_double(Datadog::Statsd::Telemetry, sent: true, dropped_writer: true)
     end
 
+    context 'using an IPv6 address' do
+      let(:host) { '2001:db8::dead:beef' }
+
+      it 'connects to an IPv6 host with the right address family' do
+        expect(UDPSocket)
+          .to receive(:new)
+                .with(Socket::AF_INET6)
+
+        subject.write('test')
+      end
+
+      it 'connects to the right host and port' do
+        expect(udp_socket)
+          .to receive(:connect)
+                .with('2001:db8::dead:beef', 4567)
+
+        subject.write('test')
+      end
+    end
+
+    it 'connects to an IPv4 host with the right address family' do
+      expect(UDPSocket)
+        .to receive(:new)
+        .with(Socket::AF_INET)
+
+      subject.write('test')
+    end
+
     it 'connects to the right host and port' do
       expect(udp_socket)
         .to receive(:connect)
