@@ -2,6 +2,10 @@
 
 [//]: # (comment: Don't forget to update lib/datadog/statsd/version.rb:DogStatsd::Statsd::VERSION when releasing a new version)
 
+## 5.6.1 / 2023.09.07
+
+  * [IMPROVEMENT] Add support for IPv6 UDP connection. [#280][] by [@kazwolfe][]
+
 ## 5.6.0 / 2023.07.10
 
   * [FEATURE] Add the `delay_serialization` option, allowing users to delay
@@ -459,6 +463,7 @@ Future versions are likely to introduce backward incompatibilities with < Ruby 1
 [#271]: https://github.com/DataDog/dogstatsd-ruby/issues/271
 [#272]: https://github.com/DataDog/dogstatsd-ruby/issues/272
 [#278]: https://github.com/DataDog/dogstatsd-ruby/issues/278
+[#280]: https://github.com/DataDog/dogstatsd-ruby/issues/280
 [@AMekss]: https://github.com/AMekss
 [@abicky]: https://github.com/abicky
 [@adimitrov]: https://github.com/adimitrov
@@ -480,6 +485,7 @@ Future versions are likely to introduce backward incompatibilities with < Ruby 1
 [@jordan-brough]: https://github.com/jordan-brough
 [@jtzemp]: https://github.com/jtzemp
 [@kazu9su]: https://github.com/kazu9su
+[@kazwolfe]: https://github.com/kazwolfe
 [@kbogtob]: https://github.com/kbogtob
 [@laserlemon]: https://github.com/laserlemon
 [@marcotc]: https://github.com/marcotc
