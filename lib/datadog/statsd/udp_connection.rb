@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative 'connection'
+require "resolv"
 
 module Datadog
   class Statsd
@@ -35,12 +36,30 @@ module Datadog
         @socket.connect(host, port)
       end
 
+      def check_dns_resolution
+        unless @current_host_ip && @last_dns_check
+          @current_host_ip = Resolv.getaddress(@host)
+          @last_dns_check = Time.now
+        end
+
+        return if Time.now - @last_dns_check < 60
+
+        @last_dns_check = Time.now
+        fresh_resolved_ip = Resolv.getaddress(@host)
+        return if @current_host_ip == fresh_resolved_ip
+
+        @current_host_ip = fresh_resolved_ip
+        close
+        connect
+      end
+
       # send_message is writing the message in the socket, it may create the socket if nil
       # It is not thread-safe but since it is called by either the Sender bg thread or the
       # SingleThreadSender (which is using a mutex while Flushing), only one thread must call
       # it at a time.
       def send_message(message)
         connect unless @socket
+        check_dns_resolution
         @socket.send(message, 0)
       end
     end

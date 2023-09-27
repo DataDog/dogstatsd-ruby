@@ -21,6 +21,7 @@ describe 'Connection edge cases test' do
 
     let(:fake_socket) do
       instance_double(UDPSocket,
+        close: true,
         connect: true,
         send: true)
     end
@@ -29,6 +30,63 @@ describe 'Connection edge cases test' do
       instance_double(UDPSocket,
         connect: true,
         send: true)
+    end
+
+    context 'when hostname resolves to a different ip address after connecting' do
+      it 'reconnects socket after 60 seconds if the ip changes' do
+        allow(Resolv).to receive(:getaddress)
+          .and_return("192.168.0.1", "192.168.0.2")
+
+        subject.write('foobar')
+        expect(fake_socket)
+          .to have_received(:send)
+          .with('foobar', anything)
+
+        subject.write('foobar')
+        expect(fake_socket)
+          .to have_received(:send)
+          .with('foobar', anything)
+          .twice
+
+        Timecop.travel(Time.now + 61) do
+          subject.write('foobar')
+          expect(fake_socket_retry)
+            .to have_received(:send)
+            .with('foobar', anything)
+        end
+
+        Timecop.travel(Time.now + 360) do
+          subject.write('foobar')
+          expect(fake_socket_retry)
+            .to have_received(:send)
+            .with('foobar', anything)
+            .twice
+        end
+      end
+
+      it 'does not reconnect socket after 60 seconds if the ip does not change' do
+        allow(Resolv).to receive(:getaddress)
+          .and_return("192.168.0.1")
+
+        subject.write('foobar')
+        expect(fake_socket)
+          .to have_received(:send)
+          .with('foobar', anything)
+
+        subject.write('foobar')
+        expect(fake_socket)
+          .to have_received(:send)
+          .with('foobar', anything)
+          .twice
+
+        Timecop.travel(Time.now + 61) do
+          subject.write('foobar')
+          expect(fake_socket)
+            .to have_received(:send)
+            .with('foobar', anything)
+            .exactly(3).times
+        end
+      end
     end
 
     context 'when having unknown SocketError (drop strategy)'do
