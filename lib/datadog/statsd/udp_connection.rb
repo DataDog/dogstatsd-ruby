@@ -12,10 +12,21 @@ module Datadog
       # StatsD port.
       attr_reader :port
 
+
+      def self.resolve_host_dns(hostname)
+        Resolv::DNS.open do |dns|
+          dns.timeouts = 1
+          dns.getaddress(@host)
+        end
+      rescue Resolv::ResolvError
+        nil
+      end
+
       def initialize(host, port, **kwargs)
         super(**kwargs)
 
         @host = host
+        @host_is_ip = !!(@host =~ Regexp.union([Resolv::IPv4::Regex, Resolv::IPv6::Regex]))
         @port = port
         @socket = nil
       end
@@ -37,20 +48,20 @@ module Datadog
       end
 
       def check_dns_resolution
-        unless @current_host_ip && @last_dns_check
-          @current_host_ip = Resolv.getaddress(@host)
-          @last_dns_check = Time.now
-        end
-
-        return if Time.now - @last_dns_check < 60
-
+        return if @host_is_ip
+        return if @last_dns_check && Time.now - @last_dns_check < 60
+        
         @last_dns_check = Time.now
-        fresh_resolved_ip = Resolv.getaddress(@host)
+        fresh_resolved_ip = self.class.resolve_host_dns(@host) 
+        @current_host_ip = fresh_resolved_ip unless defined?(@current_host_ip)
+
         return if @current_host_ip == fresh_resolved_ip
 
         @current_host_ip = fresh_resolved_ip
         close
         connect
+      rescue Resolv::ResolvError
+        nil
       end
 
       # send_message is writing the message in the socket, it may create the socket if nil

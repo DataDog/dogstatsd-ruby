@@ -9,6 +9,12 @@ describe 'Connection edge cases test' do
     end
   end
   let(:log) { StringIO.new }
+  
+  before do
+    dns_mock = instance_double(Resolv::DNS, 'timeouts=': nil, getaddress: nil)
+    allow(Resolv::DNS).to receive(:open)
+      .and_yield(dns_mock)
+  end
 
   describe 'when having problems with UDP communication' do
     subject do
@@ -34,8 +40,11 @@ describe 'Connection edge cases test' do
 
     context 'when hostname resolves to a different ip address after connecting' do
       it 'reconnects socket after 60 seconds if the ip changes' do
-        allow(Resolv).to receive(:getaddress)
+        dns_mock = instance_double(Resolv::DNS, 'timeouts=': nil)
+        allow(dns_mock).to receive(:getaddress)
           .and_return("192.168.0.1", "192.168.0.2")
+        allow(Resolv::DNS).to receive(:open)
+          .and_yield(dns_mock)
 
         subject.write('foobar')
         expect(fake_socket)
@@ -65,8 +74,11 @@ describe 'Connection edge cases test' do
       end
 
       it 'does not reconnect socket after 60 seconds if the ip does not change' do
-        allow(Resolv).to receive(:getaddress)
+        dns_mock = instance_double(Resolv::DNS, 'timeouts=': nil)
+        allow(dns_mock).to receive(:getaddress)
           .and_return("192.168.0.1")
+        allow(Resolv::DNS).to receive(:open)
+          .and_yield(dns_mock)
 
         subject.write('foobar')
         expect(fake_socket)

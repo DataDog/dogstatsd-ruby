@@ -14,6 +14,7 @@ describe 'Telemetry integration testing' do
   before do
     allow(Socket).to receive(:new).and_return(socket)
     allow(UDPSocket).to receive(:new).and_return(socket)
+    allow(Datadog::Statsd::UDPConnection).to receive(:resolve_host_dns)
   end
 
   let(:namespace) { nil }

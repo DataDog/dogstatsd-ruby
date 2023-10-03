@@ -28,6 +28,13 @@ describe Datadog::Statsd::UDPConnection do
     allow(UDPSocket)
       .to receive(:new)
       .and_return(udp_socket)
+
+    dns_mock = instance_double(Resolv::DNS)
+    allow(dns_mock).to receive(:timeouts=)
+      .with(1)
+    allow(dns_mock).to receive(:getaddress)
+    allow(Resolv::DNS).to receive(:open)
+      .and_yield(dns_mock)
   end
 
   let(:udp_socket) do
