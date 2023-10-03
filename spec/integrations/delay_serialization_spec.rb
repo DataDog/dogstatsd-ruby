@@ -20,6 +20,7 @@ describe "Delayed serialization mode" do
   end
 
   it "serializes messages normally" do
+    allow(Datadog::Statsd::UDPConnection).to receive(:resolve_host_dns)
     socket = FakeUDPSocket.new(copy_message: true)
     allow(UDPSocket).to receive(:new).and_return(socket)
     dogstats = Datadog::Statsd.new("localhost", 1234, delay_serialization: true)

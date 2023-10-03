@@ -21,6 +21,7 @@ RSpec.shared_examples 'Buffering integration testing' do |single_thread|
   before do
     allow(Socket).to receive(:new).and_return(socket)
     allow(UDPSocket).to receive(:new).and_return(socket)
+    allow(Datadog::Statsd::UDPConnection).to receive(:resolve_host_dns)
   end
 
   it 'does not not send anything when the buffer is empty' do
