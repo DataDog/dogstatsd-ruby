@@ -42,7 +42,8 @@ describe 'Connection edge cases test' do
       it 'reconnects socket after 60 seconds if the ip changes' do
         dns_mock = instance_double(Resolv::DNS, 'timeouts=': nil)
         allow(dns_mock).to receive(:getaddress)
-          .and_return("192.168.0.1", "192.168.0.2")
+          .with("localhost")
+          .and_return(Resolv::IPv4.create("192.168.0.1"), Resolv::IPv4.create("192.168.0.2"))
         allow(Resolv::DNS).to receive(:open)
           .and_yield(dns_mock)
 

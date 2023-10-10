@@ -16,7 +16,7 @@ module Datadog
       def self.resolve_host_dns(hostname)
         Resolv::DNS.open do |dns|
           dns.timeouts = 1
-          dns.getaddress(@host)
+          dns.getaddress(hostname)
         end
       rescue Resolv::ResolvError
         nil

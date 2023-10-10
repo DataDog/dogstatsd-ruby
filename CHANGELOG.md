@@ -2,6 +2,13 @@
 
 [//]: # (comment: Don't forget to update lib/datadog/statsd/version.rb:DogStatsd::Statsd::VERSION when releasing a new version)
 
+## 5.7.1
+  * [BUGFIX] UPD connection ip tracking
+
+## 5.7.0
+
+  * [FEATURE] UDP connection is tracking IP changes of the STATSD_HOST and reconnecting the socket when the ip changes
+
 ## 5.6.1 / 2023.09.07
 
   * [IMPROVEMENT] Add support for IPv6 UDP connection. [#280][] by [@kazwolfe][]
