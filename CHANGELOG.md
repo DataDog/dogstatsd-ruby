@@ -139,7 +139,7 @@ send your metrics. The `Statsd#batch` method has been deprecated from the API.
 3. As of (1), the metrics are now buffered before being sent on the network, you have to use the `Statsd#flush`
 method to force their sending through the socket. Note that the companion thread will automatically flush the buffered metrics if the buffer gets full or when you are closing the instance.
 
-4. `Statsd#initialize` parameter `max_buffer_bytes` has been renamed to `buffer_max_payload_size` for consistency with the new automatic batch strategy. Please note the addition of `buffer_max_pool_size` to limit the maximum amount of *messages* to buffer.
+4. `Statsd#initialize` parameter `max_buffer_bytes` has been renamed to `buffer_max_payload_size` for consistency with the new automatic batch strategy. Please note the addition of `buffer_max_pool_size` to limit the maximum amount of *messages* to buffer. `disable_telemetry` has been renamed `telemetry_enable`, please note the semantic inversion.
 
 What would have been written this way with the v4 API:
 
