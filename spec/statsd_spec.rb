@@ -26,6 +26,7 @@ describe Datadog::Statsd do
   before do
     allow(Socket).to receive(:new).and_return(socket)
     allow(UDPSocket).to receive(:new).and_return(socket)
+    allow(Datadog::Statsd::UDPConnection).to receive(:resolve_host_dns)
   end
 
   describe '#initialize' do
