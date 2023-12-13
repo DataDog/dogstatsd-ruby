@@ -148,7 +148,7 @@ describe Datadog::Statsd::Serialization::TagSerializer do
       context 'when testing DD_TAGS' do
         around do |example|
           ClimateControl.modify(
-            'DD_TAGS' => 'ghi,team:qa'
+            'DD_TAGS' => 'ghi team:qa'
           ) do
             example.run
           end
