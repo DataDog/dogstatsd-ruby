@@ -79,7 +79,7 @@ module Datadog
         def dd_tags(env = ENV)
           return {} unless dd_tags = env['DD_TAGS']
 
-          to_tags_hash(dd_tags.split(' '))
+          to_tags_hash(dd_tags.split(/[, ]/))
         end
 
         def default_tags(env = ENV)
