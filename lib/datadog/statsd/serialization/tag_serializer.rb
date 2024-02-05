@@ -59,10 +59,10 @@ module Datadog
           case tags
           when Hash
             tags.map do |name, value|
-              if value
-                escape_tag_content("#{name}:#{value}")
-              else
+              if value.nil?
                 escape_tag_content(name)
+              else
+                escape_tag_content("#{name}:#{value}")
               end
             end
           when Array
