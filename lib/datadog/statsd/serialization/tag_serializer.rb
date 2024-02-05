@@ -59,10 +59,10 @@ module Datadog
           case tags
           when Hash
             tags.map do |name, value|
-              if value
-                escape_tag_content("#{name}:#{value}")
-              else
+              if value&.to_s.nil?
                 escape_tag_content(name)
+              else
+                escape_tag_content("#{name}:#{value}")
               end
             end
           when Array
@@ -75,7 +75,7 @@ module Datadog
         def escape_tag_content(tag)
           tag = tag.to_s
           return tag unless tag.include?('|')
-          tag.delete('|,')        
+          tag.delete('|,')
         end
 
         def dd_tags(env = ENV)
