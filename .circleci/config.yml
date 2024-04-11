@@ -43,6 +43,14 @@ jobs:
         <<: *dockerbuild
         docker:
           - image: cimg/ruby:3.1-node
+    test-ruby-3.2:
+        <<: *dockerbuild
+        docker:
+          - image: cimg/ruby:3.2-node
+    test-ruby-3.3:
+        <<: *dockerbuild
+        docker:
+          - image: cimg/ruby:3.3-node
 
 workflows:
   version: 2
@@ -57,3 +65,5 @@ workflows:
       - test-ruby-2.7
       - test-ruby-3.0
       - test-ruby-3.1
+      - test-ruby-3.2
+      - test-ruby-3.3

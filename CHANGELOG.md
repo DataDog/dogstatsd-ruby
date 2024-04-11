@@ -2,6 +2,12 @@
 
 [//]: # (comment: Don't forget to update lib/datadog/statsd/version.rb:DogStatsd::Statsd::VERSION when releasing a new version)
 
+## FUTURE RELEASE
+
+### Notice
+
+  * [OTHER] Ruby versions 3.2 and 3.3 are now supported.
+
 ## 5.6.1 / 2023.09.07
 
   * [IMPROVEMENT] Add support for IPv6 UDP connection. [#280][] by [@kazwolfe][]

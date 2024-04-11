@@ -226,7 +226,7 @@ As much as possible, we will add a "future deprecation" message in the minor rel
 
 ## Ruby Versions
 
-This gem supports and is tested on Ruby minor versions 2.1 through 3.1.
+This gem supports and is tested on Ruby minor versions 2.1 through 3.3.
 Support for Ruby 2.0 was dropped in version 5.4.0.
 
 ## Credits
