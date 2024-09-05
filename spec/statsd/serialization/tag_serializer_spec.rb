@@ -135,7 +135,7 @@ describe Datadog::Statsd::Serialization::TagSerializer do
       end
 
       it 'formats tags values with to_s' do
-        tag = double('some tag', to_s: 'node:storage')
+        tag = double('some tag', to_s: 'node:storage', include?: false)
         expect(subject.format([tag])).to eq 'node:storage'
       end
 
