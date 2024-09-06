@@ -38,16 +38,17 @@ module Datadog
         attr_reader :tag_serializer
 
         def formated_name(name)
-          if name.is_a?(String) && name.include?(':')
-            # DEV: gsub is faster than dup.gsub!
-            formated = name.gsub('::', '.')
-          else
-            formated = name.to_s
-            formated.gsub!('::', '.')
-          end
+          formated = name.is_a?(String) ? name : name.to_s
 
-          formated.tr!(':|@', '_')
-          formated
+          if formated.include?('::')
+            formated = formated.gsub('::', '.')
+            formated.tr!(':|@', '_')
+            formated
+          elsif formated.include?(':') || formated.include?('@') || formated.include?('|')
+            formated.tr(':|@', '_')
+          else
+            formated
+          end
         end
       end
     end
