@@ -73,7 +73,9 @@ module Datadog
         end
 
         def escape_tag_content(tag)
-          tag.to_s.delete('|,')
+          tag = tag.to_s
+          return tag unless tag.include?('|')
+          tag.delete('|,')        
         end
 
         def dd_tags(env = ENV)
