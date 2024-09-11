@@ -11,7 +11,7 @@ module Datadog
         end
 
         def format(name, delta, type, tags: [], sample_rate: 1)
-          name = formated_name(name)
+          name = formatted_name(name)
 
           if sample_rate != 1
             if tags_list = tag_serializer.format(tags)
@@ -37,17 +37,17 @@ module Datadog
         attr_reader :prefix
         attr_reader :tag_serializer
 
-        def formated_name(name)
-          formated = name.is_a?(String) ? name : name.to_s
+        def formatted_name(name)
+          formatted = name.to_s
 
-          if formated.include?('::')
-            formated = formated.gsub('::', '.')
-            formated.tr!(':|@', '_')
-            formated
-          elsif formated.include?(':') || formated.include?('@') || formated.include?('|')
-            formated.tr(':|@', '_')
+          if formatted.include?('::')
+            formatted = formatted.gsub('::', '.')
+            formatted.tr!(':|@', '_')
+            formatted
+          elsif formatted.include?(':') || formatted.include?('@') || formatted.include?('|')
+            formatted.tr(':|@', '_')
           else
-            formated
+            formatted
           end
         end
       end
