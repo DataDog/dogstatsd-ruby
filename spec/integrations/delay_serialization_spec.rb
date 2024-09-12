@@ -6,7 +6,7 @@ describe "Delayed serialization mode" do
     # expects an Array is passed and not a String
     expect(buffer)
       .to receive(:add)
-      .with([["boo", 1, "c"], {tags: nil, sample_rate: 1}])
+      .with(["boo", 1, "c", nil, 1])
     # and then expect no more adds!
     expect(buffer).to receive(:add).exactly(0).times
     expect(buffer)
