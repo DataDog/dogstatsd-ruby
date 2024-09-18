@@ -431,7 +431,7 @@ module Datadog
       if sample_rate == 1 || opts[:pre_sampled] || rand <= sample_rate
         full_stat =
           if @delay_serialization
-            [[stat, delta, type], {tags: opts[:tags], sample_rate: sample_rate}]
+            [stat, delta, type, opts[:tags], sample_rate]
           else
             serializer.to_stat(stat, delta, type, tags: opts[:tags], sample_rate: sample_rate)
           end
