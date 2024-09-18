@@ -10,20 +10,20 @@ module Datadog
           @tag_serializer = TagSerializer.new(global_tags)
         end
 
-        def format(name, delta, type, tags: [], sample_rate: 1)
-          name = formated_name(name)
+        def format(metric_name, delta, type, tags: [], sample_rate: 1)
+          metric_name = formatted_metric_name(metric_name)
 
           if sample_rate != 1
             if tags_list = tag_serializer.format(tags)
-              "#{@prefix_str}#{name}:#{delta}|#{type}|@#{sample_rate}|##{tags_list}"
+              "#{@prefix_str}#{metric_name}:#{delta}|#{type}|@#{sample_rate}|##{tags_list}"
             else
-              "#{@prefix_str}#{name}:#{delta}|#{type}|@#{sample_rate}"
+              "#{@prefix_str}#{metric_name}:#{delta}|#{type}|@#{sample_rate}"
             end
           else
             if tags_list = tag_serializer.format(tags)
-              "#{@prefix_str}#{name}:#{delta}|#{type}|##{tags_list}"
+              "#{@prefix_str}#{metric_name}:#{delta}|#{type}|##{tags_list}"
             else
-              "#{@prefix_str}#{name}:#{delta}|#{type}"
+              "#{@prefix_str}#{metric_name}:#{delta}|#{type}"
             end
           end
         end
@@ -37,17 +37,18 @@ module Datadog
         attr_reader :prefix
         attr_reader :tag_serializer
 
-        def formated_name(name)
-          if name.is_a?(String)
-            # DEV: gsub is faster than dup.gsub!
-            formated = name.gsub('::', '.')
-          else
-            formated = name.to_s
-            formated.gsub!('::', '.')
-          end
+        def formatted_metric_name(metric_name)
+          formatted = Symbol === metric_name ? metric_name.name : metric_name.to_s
 
-          formated.tr!(':|@', '_')
-          formated
+          if formatted.include?('::')
+            formatted = formatted.gsub('::', '.')
+            formatted.tr!(':|@', '_')
+            formatted
+          elsif formatted.include?(':') || formatted.include?('@') || formatted.include?('|')
+            formatted.tr(':|@', '_')
+          else
+            formatted
+          end
         end
       end
     end

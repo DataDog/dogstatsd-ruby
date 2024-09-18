@@ -92,6 +92,22 @@ describe Datadog::Statsd::Serialization::StatSerializer do
         expect(subject.format('somecount', 42, 'c', tags: message_tags, sample_rate: 0.5)).to eq 'swag.somecount:42|c|@0.5|#globaltag1:value1,msgtag2:value2'
       end
     end
+
+    context "metric name contains unsupported characters" do
+      it 'does not alter the provided metric name when containing ::' do
+        input = 'somecount::test'
+        output = subject.format(input, 1, 'c')
+        expect(output).to eq 'somecount.test:1|c'
+        expect(input).to eq 'somecount::test'
+      end
+
+      it 'does not alter the provided metric name when containing :|@' do
+        input = 'somecount:|@test'
+        output = subject.format(input, 1, 'c')
+        expect(output).to eq 'somecount___test:1|c'
+        expect(input).to eq 'somecount:|@test'
+      end
+    end
   end
 
   context 'benchmark' do

@@ -142,6 +142,13 @@ describe Datadog::Statsd::Serialization::TagSerializer do
       it 'formats frozen tags correctly' do
         expect(subject.format(['name:foobarfoo'.freeze])).to eq 'name:foobarfoo'
       end
+
+      it 'does not alter the provided tag value when containing unsupported characters' do
+        input = 'name|foobar'
+        output = subject.format([input])
+        expect(output).to eq 'namefoobar'
+        expect(input).to eq 'name|foobar'
+      end
     end
 
     context '[testing management of env vars]' do
