@@ -102,7 +102,7 @@ describe Datadog::Statsd::Serialization::StatSerializer do
       end
 
       it 'does not alter the provided metric name when containing :|@' do
-        input = 'somecount:|@test'
+        input = :'somecount:|@test'
         output = subject.format(input, 1, 'c')
         expect(output).to eq 'somecount___test:1|c'
         expect(input).to eq 'somecount:|@test'
