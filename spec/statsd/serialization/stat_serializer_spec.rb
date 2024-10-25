@@ -108,6 +108,20 @@ describe Datadog::Statsd::Serialization::StatSerializer do
         expect(input).to eq 'somecount:|@test'
       end
     end
+
+    context "when metric name is a symbol" do
+      it 'formats correctly without error' do
+        input = :'somecount::test'
+        output = subject.format(input, 1, 'c')
+        expect(output).to eq 'somecount.test:1|c'
+        expect(input).to eq :'somecount::test'
+
+        input = :'somecount:|@test'
+        output = subject.format(input, 1, 'c')
+        expect(output).to eq 'somecount___test:1|c'
+        expect(input).to eq :'somecount:|@test'
+      end
+    end
   end
 
   context 'benchmark' do
