@@ -114,12 +114,10 @@ describe Datadog::Statsd::Serialization::StatSerializer do
         input = :'somecount::test'
         output = subject.format(input, 1, 'c')
         expect(output).to eq 'somecount.test:1|c'
-        expect(input).to eq :'somecount::test'
 
         input = :'somecount:|@test'
         output = subject.format(input, 1, 'c')
         expect(output).to eq 'somecount___test:1|c'
-        expect(input).to eq :'somecount:|@test'
       end
     end
   end

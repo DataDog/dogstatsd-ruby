@@ -43,7 +43,7 @@ module Datadog
           end
         else
           def metric_name_to_string(metric_name)
-            metric_name.is_a?(Symbol) ? metric_name.name : metric_name.to_s
+            Symbol === metric_name ? metric_name.name : metric_name.to_s
           end
         end
 
