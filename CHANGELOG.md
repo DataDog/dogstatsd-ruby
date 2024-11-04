@@ -2,6 +2,11 @@
 
 [//]: # (comment: Don't forget to update lib/datadog/statsd/version.rb:DogStatsd::Statsd::VERSION when releasing a new version)
 
+
+## 5.6.3 / 2024.11.04
+
+  * [BUGFIX] Fixes invalid Symbol#name usage for Ruby versions < 3.0 [#297][] by [@rayz][]
+
 ## 5.6.2 / 2024.09.20
 
   * [OTHER] Ruby versions 3.2 and 3.3 are now supported. [#291][] by [@gdubicki][]
@@ -473,6 +478,7 @@ Future versions are likely to introduce backward incompatibilities with < Ruby 1
 [#291]: https://github.com/DataDog/dogstatsd-ruby/issues/291
 [#294]: https://github.com/DataDog/dogstatsd-ruby/issues/294
 [#295]: https://github.com/DataDog/dogstatsd-ruby/issues/295
+[#297]: https://github.com/DataDog/dogstatsd-ruby/issues/297
 [@AMekss]: https://github.com/AMekss
 [@abicky]: https://github.com/abicky
 [@adimitrov]: https://github.com/adimitrov
@@ -506,6 +512,7 @@ Future versions are likely to introduce backward incompatibilities with < Ruby 1
 [@olefriis]: https://github.com/olefriis
 [@pschambacher]: https://github.com/pschambacher
 [@ramfjord]: https://github.com/ramfjord
+[@rayz]: https://github.com/rayz
 [@redhotpenguin]: https://github.com/redhotpenguin
 [@remeh]: https://github.com/remeh
 [@schlubbi]: https://github.com/schlubbi
