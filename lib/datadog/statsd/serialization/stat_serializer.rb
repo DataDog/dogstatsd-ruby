@@ -37,13 +37,18 @@ module Datadog
         attr_reader :prefix
         attr_reader :tag_serializer
 
-        def formatted_metric_name(metric_name)
-          if Symbol === metric_name && metric_name.respond_to?(:name)
-            formatted = metric_name.name
-          else
-            formatted = metric_name.to_s
+        if RUBY_VERSION < '3'
+          def metric_name_to_string(metric_name)
+            metric_name.to_s
           end
+        else
+          def metric_name_to_string(metric_name)
+            metric_name.is_a?(Symbol) ? metric_name.name : metric_name.to_s
+          end
+        end
 
+        def formatted_metric_name(metric_name)
+          formatted = metric_name_to_string(metric_name)
           if formatted.include?('::')
             formatted = formatted.gsub('::', '.')
             formatted.tr!(':|@', '_')
