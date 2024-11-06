@@ -139,6 +139,20 @@ describe Datadog::Statsd::Serialization::TagSerializer do
         expect(subject.format([tag])).to eq 'node:storage'
       end
 
+      it 'ignores hash tag values which are not present when called with to_s' do
+        message_tags_hash = {
+          request: [],
+          missing: nil,
+          'another' => {},
+          blank: '',
+          :yet_another => false,
+          'results in blank': double('some tag', to_s: ''),
+          'results in nil': double('some tag', to_s: nil),
+        }
+
+        expect(subject.format(message_tags_hash)).to eq 'request:[],another:{},yet_another:false'
+      end
+
       it 'formats frozen tags correctly' do
         expect(subject.format(['name:foobarfoo'.freeze])).to eq 'name:foobarfoo'
       end
