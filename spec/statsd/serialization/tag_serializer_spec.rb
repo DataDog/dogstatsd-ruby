@@ -139,6 +139,20 @@ describe Datadog::Statsd::Serialization::TagSerializer do
         expect(subject.format([tag])).to eq 'node:storage'
       end
 
+      it 'ignores nil values and formats all other falsy values correctly' do
+        message_tags_hash = {
+          empty_array: [],
+          missing: nil,
+          'empty_hash' => {},
+          blank: '',
+          :false_value => false,
+          'results in blank': double('some tag', to_s: ''),
+          'results in nil': double('some tag', to_s: nil),
+        }
+
+        expect(subject.format(message_tags_hash)).to eq 'empty_array:[],missing,empty_hash:{},blank:,false_value:false,results in blank:,results in nil'
+      end
+
       it 'formats frozen tags correctly' do
         expect(subject.format(['name:foobarfoo'.freeze])).to eq 'name:foobarfoo'
       end
