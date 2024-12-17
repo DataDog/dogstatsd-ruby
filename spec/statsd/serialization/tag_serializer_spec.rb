@@ -132,6 +132,8 @@ describe Datadog::Statsd::Serialization::TagSerializer do
     context '[testing serialization edge cases]' do
       it 'formats tags with reserved characters' do
         expect(subject.format(['name:foo,bar|foo'])).to eq 'name:foobarfoo'
+        expect(subject.format(['name:foobar|foo'])).to eq 'name:foobarfoo'
+        expect(subject.format(['name:foo, bar, and foo'])).to eq 'name:foo bar and foo'
       end
 
       it 'formats tags values with to_s' do
