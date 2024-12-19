@@ -2,6 +2,9 @@
 
 [//]: # (comment: Don't forget to update lib/datadog/statsd/version.rb:DogStatsd::Statsd::VERSION when releasing a new version)
 
+## 5.6.4 / 2024.12.19
+
+  * [BUGFIX] Delete commas when escaping tag content [#301][] by [@mattwd7][]
 
 ## 5.6.3 / 2024.11.04
 
@@ -479,6 +482,7 @@ Future versions are likely to introduce backward incompatibilities with < Ruby 1
 [#294]: https://github.com/DataDog/dogstatsd-ruby/issues/294
 [#295]: https://github.com/DataDog/dogstatsd-ruby/issues/295
 [#297]: https://github.com/DataDog/dogstatsd-ruby/issues/297
+[#301]: https://github.com/DataDog/dogstatsd-ruby/issues/301
 [@AMekss]: https://github.com/AMekss
 [@abicky]: https://github.com/abicky
 [@adimitrov]: https://github.com/adimitrov
@@ -507,6 +511,7 @@ Future versions are likely to introduce backward incompatibilities with < Ruby 1
 [@laserlemon]: https://github.com/laserlemon
 [@marcotc]: https://github.com/marcotc
 [@matthewshafer]: https://github.com/matthewshafer
+[@mattwd7]: https://github.com/mattwd7
 [@misterbyrne]: https://github.com/misterbyrne
 [@nelhage]: https://github.com/nelhage
 [@olefriis]: https://github.com/olefriis
