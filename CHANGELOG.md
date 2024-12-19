@@ -2,7 +2,7 @@
 
 [//]: # (comment: Don't forget to update lib/datadog/statsd/version.rb:DogStatsd::Statsd::VERSION when releasing a new version)
 
-## 5.6.4 / 2024.12.17
+## 5.6.4 / 2024.12.19
 
   * [BUGFIX] Delete commas when escaping tag content [#301][] by [@mattwd7][]
 
