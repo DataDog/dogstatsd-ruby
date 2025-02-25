@@ -68,6 +68,11 @@ module Datadog
         # the parent process) and spawn a new companion thread.
         if !sender_thread.alive?
           @mx.synchronize {
+            # if the sender_thread was terminated due to an exception, we don't want to re-start it 
+            if sender_thread.status.nil?
+              @logger.debug { "Statsd: sender_thread was terminated due to exception, skipping sender_thread re-start."} if @logger
+              return
+            end
             # a call from another thread has already re-created
             # the companion thread before this one acquired the lock
             break if sender_thread.alive?
