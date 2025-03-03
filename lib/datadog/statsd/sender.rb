@@ -20,6 +20,7 @@ module Datadog
         @mx = Mutex.new
         @queue_class = queue_class
         @thread_class = thread_class
+        @done = false
         @flush_timer = if flush_interval
           Datadog::Statsd::Timer.new(flush_interval) { flush(sync: true) }
         else
@@ -68,11 +69,7 @@ module Datadog
         # the parent process) and spawn a new companion thread.
         if !sender_thread.alive?
           @mx.synchronize {
-            # if the sender_thread was terminated due to an exception, we don't want to re-start it 
-            if sender_thread.status.nil?
-              @logger.debug { "Statsd: sender_thread was terminated due to exception, skipping sender_thread re-start."} if @logger
-              return
-            end
+            break if @done
             # a call from another thread has already re-created
             # the companion thread before this one acquired the lock
             break if sender_thread.alive?
@@ -103,7 +100,13 @@ module Datadog
         @message_queue = @queue_class.new
         begin
           # start background thread
-          @sender_thread = @thread_class.new(&method(:send_loop))
+          @sender_thread = @thread_class.new do
+            begin
+              send_loop
+            ensure
+              @mx.synchronize { @done = true }
+            end
+          end
           @sender_thread.name = "Statsd Sender" unless Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.3')
         rescue ThreadError => e
           @logger.debug { "Statsd: Failed to start sender thread: #{e.message}, flushing message buffer" } if @logger
