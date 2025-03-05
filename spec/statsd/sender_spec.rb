@@ -94,10 +94,7 @@ describe Datadog::Statsd::Sender do
           subject.start
           expect(fake_queue).not_to receive(:<<)
           subject.add('message')
-
-          if not Queue.instance_methods.include?(:close)
-            expect(fake_queue).to receive(:<<).with(:close)
-          end
+          allow(fake_queue).to receive(:<<).with(:close)
         end
       end
     end
