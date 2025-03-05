@@ -102,12 +102,7 @@ module Datadog
         @message_queue = @queue_class.new
         begin
           # start background thread
-          @sender_thread = @thread_class.new do
-            begin
-              send_loop
-            ensure
-            end
-          end
+          @sender_thread = @thread_class.new(&method(:send_loop))
           @sender_thread.name = "Statsd Sender" unless Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.3')
         rescue ThreadError => e
           @logger.debug { "Statsd: Failed to start sender thread: #{e.message}" } if @logger

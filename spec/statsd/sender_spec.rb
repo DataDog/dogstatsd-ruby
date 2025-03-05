@@ -92,7 +92,10 @@ describe Datadog::Statsd::Sender do
 
         it 'does not store the message' do
           subject.start
-          expect(fake_queue).not_to receive(:<<)
+          expect(fake_queue).not_to receive(:<<).with('message')
+          if not Queue.instance_methods.include?(:close)
+            expect(fake_queue).to receive(:<<).with(:close)
+          end
           subject.add('message')
         end
       end
