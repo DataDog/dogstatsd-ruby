@@ -69,6 +69,8 @@ module Datadog
         # the parent process) and spawn a new companion thread.
         if !sender_thread.alive?
           @mx.synchronize {
+            # an attempt was previously made to start the sender thread but failed.
+            # skipping re-start
             break if @done
             # a call from another thread has already re-created
             # the companion thread before this one acquired the lock
@@ -109,8 +111,7 @@ module Datadog
           end
           @sender_thread.name = "Statsd Sender" unless Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.3')
         rescue ThreadError => e
-          @logger.debug { "Statsd: Failed to start sender thread: #{e.message}, flushing message buffer" } if @logger
-          message_buffer.flush
+          @logger.debug { "Statsd: Failed to start sender thread: #{e.message}" } if @logger
         end
 
         @flush_timer.start if @flush_timer

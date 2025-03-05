@@ -62,6 +62,22 @@ describe Datadog::Statsd::Sender do
       end
     end
 
+    context 'when a ThreadError is raised starting the sender thread' do
+      let(:thread_class) do
+        class_double(Thread)
+      end
+
+      before do
+        allow(thread_class).to receive(:new).and_raise(ThreadError, "ThreadError")
+      end
+
+      it 'ignores the thread error' do
+        expect do
+          subject.start
+        end.not_to raise_error
+      end
+    end
+
     context 'when flush_interval is set' do
       let(:flush_interval) { 0.001 }
 
