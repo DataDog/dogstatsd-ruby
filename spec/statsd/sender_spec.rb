@@ -62,6 +62,45 @@ describe Datadog::Statsd::Sender do
       end
     end
 
+    context 'when a ThreadError is raised starting the sender thread' do
+      let(:thread_class) do
+        class_double(Thread)
+      end
+
+      before do
+        expect(thread_class).to receive(:new).and_raise(ThreadError, "ThreadError")
+      end
+
+      it 'ignores the thread error' do
+        expect do
+          subject.start
+        end.not_to raise_error
+      end
+
+      context 'when add' do
+        let(:fake_queue_length) { queue_size }
+        let(:fake_queue) do
+          if Queue.instance_methods.include?(:close)
+            instance_double(Queue, { "length" => fake_queue_length, "<<" => true, "close" => true })
+          else
+            instance_double(Queue, { "length" => fake_queue_length, "<<" => true })
+          end
+        end
+        let(:queue_class) do
+          class_double(Queue, new: fake_queue)
+        end
+
+        it 'does not store the message' do
+          subject.start
+          expect(fake_queue).not_to receive(:<<).with('message')
+          if not Queue.instance_methods.include?(:close)
+            expect(fake_queue).to receive(:<<).with(:close)
+          end
+          subject.add('message')
+        end
+      end
+    end
+
     context 'when flush_interval is set' do
       let(:flush_interval) { 0.001 }
 
