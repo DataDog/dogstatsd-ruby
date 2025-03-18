@@ -2,6 +2,10 @@
 
 [//]: # (comment: Don't forget to update lib/datadog/statsd/version.rb:DogStatsd::Statsd::VERSION when releasing a new version)
 
+## 5.6.6 / 2025.03.19
+
+  * [OTHER] Rescue ThreadError when creating SenderThread. [#306][] by [@mperham][]
+
 ## 5.6.5 / 2025.02.03
 
   * [OTHER] Include changes meant for `dogstatsd-ruby` v5.6.4 which should be skipped.  [#303][] by [@jasonpenny][]
@@ -488,6 +492,7 @@ Future versions are likely to introduce backward incompatibilities with < Ruby 1
 [#297]: https://github.com/DataDog/dogstatsd-ruby/issues/297
 [#301]: https://github.com/DataDog/dogstatsd-ruby/issues/301
 [#303]: https://github.com/DataDog/dogstatsd-ruby/issues/303
+[#306]: https://github.com/DataDog/dogstatsd-ruby/issues/306
 [@AMekss]: https://github.com/AMekss
 [@abicky]: https://github.com/abicky
 [@adimitrov]: https://github.com/adimitrov
@@ -519,6 +524,7 @@ Future versions are likely to introduce backward incompatibilities with < Ruby 1
 [@matthewshafer]: https://github.com/matthewshafer
 [@mattwd7]: https://github.com/mattwd7
 [@misterbyrne]: https://github.com/misterbyrne
+[@mperham]: https://github.com/mperham
 [@nelhage]: https://github.com/nelhage
 [@olefriis]: https://github.com/olefriis
 [@pschambacher]: https://github.com/pschambacher
