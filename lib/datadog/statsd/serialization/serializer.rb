@@ -6,8 +6,8 @@ module Datadog
   class Statsd
     module Serialization
       class Serializer
-        def initialize(prefix: nil, global_tags: [])
-          @stat_serializer = StatSerializer.new(prefix, global_tags: global_tags)
+        def initialize(prefix: nil, container_id: nil, global_tags: [])
+          @stat_serializer = StatSerializer.new(prefix, container_id, global_tags: global_tags)
           @service_check_serializer = ServiceCheckSerializer.new(global_tags: global_tags)
           @event_serializer = EventSerializer.new(global_tags: global_tags)
         end

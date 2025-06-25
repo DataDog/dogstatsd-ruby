@@ -6,6 +6,7 @@ require_relative 'statsd/telemetry'
 require_relative 'statsd/udp_connection'
 require_relative 'statsd/uds_connection'
 require_relative 'statsd/connection_cfg'
+require_relative 'statsd/origin_detection'
 require_relative 'statsd/message_buffer'
 require_relative 'statsd/serialization'
 require_relative 'statsd/sender'
@@ -82,6 +83,8 @@ module Datadog
     # @option [Float] default sample rate if not overridden
     # @option [Boolean] single_thread flushes the metrics on the main thread instead of in a companion thread
     # @option [Boolean] delay_serialization delays stat serialization
+    # @option [Boolean] origin_detection is origin detection enabled
+    # @option [String] container_id the container ID field, used for origin detection
     def initialize(
       host = nil,
       port = nil,
@@ -104,7 +107,10 @@ module Datadog
       delay_serialization: false,
 
       telemetry_enable: true,
-      telemetry_flush_interval: DEFAULT_TELEMETRY_FLUSH_INTERVAL
+      telemetry_flush_interval: DEFAULT_TELEMETRY_FLUSH_INTERVAL,
+
+      origin_detection: true,
+      container_id: nil
     )
       unless tags.nil? || tags.is_a?(Array) || tags.is_a?(Hash)
         raise ArgumentError, 'tags must be an array of string tags or a Hash'
@@ -112,7 +118,12 @@ module Datadog
 
       @namespace = namespace
       @prefix = @namespace ? "#{@namespace}.".freeze : nil
-      @serializer = Serialization::Serializer.new(prefix: @prefix, global_tags: tags)
+
+      origin_detection_enabled = is_origin_detection_enabled(origin_detection)
+      container_id = OriginDetection
+                        .new()
+                        .get_container_id(container_id, origin_detection_enabled)
+      @serializer = Serialization::Serializer.new(prefix: @prefix, container_id: container_id, global_tags: tags)
       @sample_rate = sample_rate
       @delay_serialization = delay_serialization
 
@@ -438,6 +449,24 @@ module Datadog
 
         forwarder.send_message(full_stat)
       end
+    end
+
+    def is_origin_detection_enabled(origin_detection)
+      if !origin_detection.nil? && !origin_detection
+        return false
+      end
+
+      if ENV['DD_ORIGIN_DETECTION_ENABLED']
+        return ![
+          '0',
+          'f',
+          'false'
+        ].include?(
+          ENV['DD_ORIGIN_DETECTION_ENABLED'].downcase
+        )
+      end
+
+      return true
     end
   end
 end

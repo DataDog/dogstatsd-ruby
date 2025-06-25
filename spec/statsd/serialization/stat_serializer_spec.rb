@@ -2,7 +2,11 @@ require 'spec_helper'
 
 describe Datadog::Statsd::Serialization::StatSerializer do
   subject do
-    described_class.new(prefix, global_tags: global_tags)
+    described_class.new(prefix, container_id, global_tags: global_tags)
+  end
+
+  let(:container_id) do
+    nil
   end
 
   let(:prefix) do
@@ -90,6 +94,41 @@ describe Datadog::Statsd::Serialization::StatSerializer do
 
       it 'adds the tags to the stat correctly' do
         expect(subject.format('somecount', 42, 'c', tags: message_tags, sample_rate: 0.5)).to eq 'swag.somecount:42|c|@0.5|#globaltag1:value1,msgtag2:value2'
+      end
+    end
+
+    context 'when having a container id' do
+      let(:container_id) do
+        'in-23'
+      end
+
+      it 'adds the container id field correctly' do
+        expect(subject.format('somecount', 42, 'c')).to eq 'somecount:42|c|c:in-23'
+      end
+    end
+
+    context 'when having a prefix, tags, sample_rate and container id' do
+      let(:prefix) do
+        'swag.'
+      end
+
+      let(:message_tags) do
+        double('message tags')
+      end
+
+      let(:container_id) do
+        'in-23'
+      end
+
+      before do
+        allow(tag_serializer)
+          .to receive(:format)
+          .with(message_tags)
+          .and_return('globaltag1:value1,msgtag2:value2')
+      end
+
+      it 'adds the tags to the stat correctly' do
+        expect(subject.format('somecount', 42, 'c', tags: message_tags, sample_rate: 0.5)).to eq 'swag.somecount:42|c|@0.5|c:in-23|#globaltag1:value1,msgtag2:value2'
       end
     end
 

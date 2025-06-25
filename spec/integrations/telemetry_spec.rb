@@ -7,7 +7,8 @@ describe 'Telemetry integration testing' do
 
   subject do
     Datadog::Statsd.new('localhost', 1234,
-      telemetry_flush_interval: -1
+      telemetry_flush_interval: -1,
+      origin_detection: false,
     )
   end
 
@@ -26,6 +27,7 @@ describe 'Telemetry integration testing' do
     subject do
       Datadog::Statsd.new('localhost', 1234,
         telemetry_enable: false,
+        origin_detection: false,
       )
     end
 
@@ -59,6 +61,7 @@ describe 'Telemetry integration testing' do
     subject do
       Datadog::Statsd.new('localhost', 1234,
         telemetry_flush_interval: 2,
+        origin_detection: false,
       )
     end
 

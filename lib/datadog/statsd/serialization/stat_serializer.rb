@@ -4,26 +4,37 @@ module Datadog
   class Statsd
     module Serialization
       class StatSerializer
-        def initialize(prefix, global_tags: [])
+        def initialize(prefix, container_id, global_tags: [])
           @prefix = prefix
           @prefix_str = prefix.to_s
+          @container_id = container_id
           @tag_serializer = TagSerializer.new(global_tags)
+        end
+
+        def format_fields
+          field = String.new
+          unless @container_id.nil?
+            field << "|c:#{@container_id}"
+          end
+
+          field
         end
 
         def format(metric_name, delta, type, tags: [], sample_rate: 1)
           metric_name = formatted_metric_name(metric_name)
+          fields = format_fields
 
           if sample_rate != 1
             if tags_list = tag_serializer.format(tags)
-              "#{@prefix_str}#{metric_name}:#{delta}|#{type}|@#{sample_rate}|##{tags_list}"
+              "#{@prefix_str}#{metric_name}:#{delta}|#{type}|@#{sample_rate}#{fields}|##{tags_list}"
             else
-              "#{@prefix_str}#{metric_name}:#{delta}|#{type}|@#{sample_rate}"
+              "#{@prefix_str}#{metric_name}:#{delta}|#{type}|@#{sample_rate}#{fields}"
             end
           else
             if tags_list = tag_serializer.format(tags)
-              "#{@prefix_str}#{metric_name}:#{delta}|#{type}|##{tags_list}"
+              "#{@prefix_str}#{metric_name}:#{delta}|#{type}|##{tags_list}#{fields}"
             else
-              "#{@prefix_str}#{metric_name}:#{delta}|#{type}"
+              "#{@prefix_str}#{metric_name}:#{delta}|#{type}#{fields}"
             end
           end
         end

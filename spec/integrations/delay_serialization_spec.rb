@@ -13,7 +13,10 @@ describe "Delayed serialization mode" do
       .to receive(:flush)
 
     allow(Datadog::Statsd::MessageBuffer).to receive(:new).and_return(buffer)
-    dogstats = Datadog::Statsd.new("localhost", 1234, delay_serialization: true)
+    dogstats = Datadog::Statsd.new("localhost", 1234,
+                                   delay_serialization: true,
+                                   origin_detection: false,
+                                   )
 
     dogstats.increment("boo")
     dogstats.flush(sync: true)
@@ -22,7 +25,10 @@ describe "Delayed serialization mode" do
   it "serializes messages normally" do
     socket = FakeUDPSocket.new(copy_message: true)
     allow(UDPSocket).to receive(:new).and_return(socket)
-    dogstats = Datadog::Statsd.new("localhost", 1234, delay_serialization: true)
+    dogstats = Datadog::Statsd.new("localhost", 1234,
+                                   delay_serialization: true,
+                                   origin_detection: false,
+                                   )
 
     dogstats.increment("boo")
     dogstats.increment("oob", tags: {tag1: "val1"})
