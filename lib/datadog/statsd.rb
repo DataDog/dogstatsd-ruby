@@ -123,7 +123,15 @@ module Datadog
       container_id = OriginDetection
                         .new()
                         .get_container_id(container_id, origin_detection_enabled)
-      @serializer = Serialization::Serializer.new(prefix: @prefix, container_id: container_id, global_tags: tags)
+
+      external_data = sanitize(ENV['DD_EXTERNAL_ENV'])
+
+      @serializer = Serialization::Serializer.new(prefix: @prefix,
+                                                  container_id: container_id,
+                                                  external_data: external_data,
+                                                  global_tags: tags,
+                                                  )
+
       @sample_rate = sample_rate
       @delay_serialization = delay_serialization
 
@@ -467,6 +475,13 @@ module Datadog
       end
 
       return true
+    end
+
+    # Sanitize the DD_EXTERNAL_ENV input to ensure it doesn't contain invalid characters
+    # that may break the protocol.
+    # Removing any non-printable characters and `|`.
+    def sanitize(external_data)
+      external_data.gsub(/[^[:print:]]|`\|/, '') unless external_data.nil?
     end
   end
 end

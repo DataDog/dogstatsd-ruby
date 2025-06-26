@@ -2,7 +2,11 @@ require 'spec_helper'
 
 describe Datadog::Statsd::Serialization::StatSerializer do
   subject do
-    described_class.new(prefix, container_id, global_tags: global_tags)
+    described_class.new(prefix, container_id, external_data, global_tags: global_tags)
+  end
+
+  let(:external_data) do
+    nil
   end
 
   let(:container_id) do
@@ -129,6 +133,16 @@ describe Datadog::Statsd::Serialization::StatSerializer do
 
       it 'adds the tags to the stat correctly' do
         expect(subject.format('somecount', 42, 'c', tags: message_tags, sample_rate: 0.5)).to eq 'swag.somecount:42|c|@0.5|c:in-23|#globaltag1:value1,msgtag2:value2'
+      end
+    end
+
+    context 'when having a external data' do
+      let(:external_data) do
+        'cn-SomeKindOfContainerName'
+      end
+
+      it 'adds the external data field correctly' do
+        expect(subject.format('somecount', 42, 'c')).to eq 'somecount:42|c|e:cn-SomeKindOfContainerName'
       end
     end
 

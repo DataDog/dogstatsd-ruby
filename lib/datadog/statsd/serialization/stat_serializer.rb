@@ -4,10 +4,11 @@ module Datadog
   class Statsd
     module Serialization
       class StatSerializer
-        def initialize(prefix, container_id, global_tags: [])
+        def initialize(prefix, container_id, external_data, global_tags: [])
           @prefix = prefix
           @prefix_str = prefix.to_s
           @container_id = container_id
+          @external_data = external_data
           @tag_serializer = TagSerializer.new(global_tags)
         end
 
@@ -15,6 +16,10 @@ module Datadog
           field = String.new
           unless @container_id.nil?
             field << "|c:#{@container_id}"
+          end
+
+          unless @external_data.nil?
+            field << "|e:#{@external_data}"
           end
 
           field
