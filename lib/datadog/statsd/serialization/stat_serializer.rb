@@ -4,6 +4,8 @@ module Datadog
   class Statsd
     module Serialization
       class StatSerializer
+        VALID_CARDINALITY = [:none, :low, :orchestrator, :high]
+
         def initialize(prefix, container_id, external_data, global_tags: [])
           @prefix = prefix
           @prefix_str = prefix.to_s
@@ -12,7 +14,7 @@ module Datadog
           @tag_serializer = TagSerializer.new(global_tags)
         end
 
-        def format_fields
+        def format_fields(cardinality)
           field = String.new
           unless @container_id.nil?
             field << "|c:#{@container_id}"
@@ -22,12 +24,20 @@ module Datadog
             field << "|e:#{@external_data}"
           end
 
+          unless cardinality.nil?
+            unless VALID_CARDINALITY.include?(cardinality.to_sym)
+              raise ArgumentError, "Invalid cardinality #{cardinality}. Valid options are #{VALID_CARDINALITY.join(', ')}."
+            end
+
+            field << "|card:#{cardinality}"
+          end
+
           field
         end
 
-        def format(metric_name, delta, type, tags: [], sample_rate: 1)
+        def format(metric_name, delta, type, tags: [], sample_rate: 1, cardinality: nil)
           metric_name = formatted_metric_name(metric_name)
-          fields = format_fields
+          fields = format_fields(cardinality)
 
           if sample_rate != 1
             if tags_list = tag_serializer.format(tags)

@@ -13,8 +13,8 @@ module Datadog
         end
 
         # using *args would make new allocations
-        def to_stat(name, delta, type, tags: [], sample_rate: 1)
-          stat_serializer.format(name, delta, type, tags: tags, sample_rate: sample_rate)
+        def to_stat(name, delta, type, tags: [], sample_rate: 1, cardinality: nil)
+          stat_serializer.format(name, delta, type, tags: tags, sample_rate: sample_rate, cardinality: cardinality)
         end
 
         # using *args would make new allocations

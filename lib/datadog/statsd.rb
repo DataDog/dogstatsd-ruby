@@ -85,6 +85,7 @@ module Datadog
     # @option [Boolean] delay_serialization delays stat serialization
     # @option [Boolean] origin_detection is origin detection enabled
     # @option [String] container_id the container ID field, used for origin detection
+    # @option [String] cardinality the default tag cardinality to use
     def initialize(
       host = nil,
       port = nil,
@@ -110,7 +111,8 @@ module Datadog
       telemetry_flush_interval: DEFAULT_TELEMETRY_FLUSH_INTERVAL,
 
       origin_detection: true,
-      container_id: nil
+      container_id: nil,
+      cardinality: nil
     )
       unless tags.nil? || tags.is_a?(Array) || tags.is_a?(Hash)
         raise ArgumentError, 'tags must be an array of string tags or a Hash'
@@ -119,7 +121,7 @@ module Datadog
       @namespace = namespace
       @prefix = @namespace ? "#{@namespace}.".freeze : nil
 
-      origin_detection_enabled = is_origin_detection_enabled(origin_detection)
+      origin_detection_enabled = origin_detection_enabled?(origin_detection)
       container_id = OriginDetection
                         .new()
                         .get_container_id(container_id, origin_detection_enabled)
@@ -131,6 +133,8 @@ module Datadog
                                                   external_data: external_data,
                                                   global_tags: tags,
                                                   )
+
+      @cardinality = cardinality || ENV['DD_CARDINALITY'] || ENV['DATADOG_CARDINALITY']
 
       @sample_rate = sample_rate
       @delay_serialization = delay_serialization
@@ -178,6 +182,7 @@ module Datadog
     # @option opts [Boolean] :pre_sampled If true, the client assumes the caller has already sampled metrics at :sample_rate, and doesn't perform sampling.
     # @option opts [Array<String>] :tags An array of tags
     # @option opts [Numeric] :by increment value, default 1
+    # @option opts [String] :cardinality The tag cardinality to use
     # @see #count
     def increment(stat, opts = EMPTY_OPTIONS)
       opts = { sample_rate: opts } if opts.is_a?(Numeric)
@@ -193,6 +198,7 @@ module Datadog
     # @option opts [Boolean] :pre_sampled If true, the client assumes the caller has already sampled metrics at :sample_rate, and doesn't perform sampling.
     # @option opts [Array<String>] :tags An array of tags
     # @option opts [Numeric] :by decrement value, default 1
+    # @option opts [String] :cardinality The tag cardinality to use
     # @see #count
     def decrement(stat, opts = EMPTY_OPTIONS)
       opts = { sample_rate: opts } if opts.is_a?(Numeric)
@@ -208,6 +214,7 @@ module Datadog
     # @option opts [Numeric] :sample_rate sample rate, 1 for always
     # @option opts [Boolean] :pre_sampled If true, the client assumes the caller has already sampled metrics at :sample_rate, and doesn't perform sampling.
     # @option opts [Array<String>] :tags An array of tags
+    # @option opts [String] :cardinality The tag cardinality to use
     def count(stat, count, opts = EMPTY_OPTIONS)
       opts = { sample_rate: opts } if opts.is_a?(Numeric)
       send_stats(stat, count, COUNTER_TYPE, opts)
@@ -225,6 +232,7 @@ module Datadog
     # @option opts [Numeric] :sample_rate sample rate, 1 for always
     # @option opts [Boolean] :pre_sampled If true, the client assumes the caller has already sampled metrics at :sample_rate, and doesn't perform sampling.
     # @option opts [Array<String>] :tags An array of tags
+    # @option opts [String] :cardinality The tag cardinality to use
     # @example Report the current user count:
     #   $statsd.gauge('user.count', User.count)
     def gauge(stat, value, opts = EMPTY_OPTIONS)
@@ -240,6 +248,7 @@ module Datadog
     # @option opts [Numeric] :sample_rate sample rate, 1 for always
     # @option opts [Boolean] :pre_sampled If true, the client assumes the caller has already sampled metrics at :sample_rate, and doesn't perform sampling.
     # @option opts [Array<String>] :tags An array of tags
+    # @option opts [String] :cardinality The tag cardinality to use
     # @example Report the current user count:
     #   $statsd.histogram('user.count', User.count)
     def histogram(stat, value, opts = EMPTY_OPTIONS)
@@ -254,6 +263,7 @@ module Datadog
     # @option opts [Numeric] :sample_rate sample rate, 1 for always
     # @option opts [Boolean] :pre_sampled If true, the client assumes the caller has already sampled metrics at :sample_rate, and doesn't perform sampling.
     # @option opts [Array<String>] :tags An array of tags
+    # @option opts [String] :cardinality The tag cardinality to use
     # @example Report the current user count:
     #   $statsd.distribution('user.count', User.count)
     def distribution(stat, value, opts = EMPTY_OPTIONS)
@@ -270,6 +280,7 @@ module Datadog
     # @param [Hash] opts the options to create the metric with
     # @option opts [Numeric] :sample_rate sample rate, 1 for always
     # @option opts [Array<String>] :tags An array of tags
+    # @option opts [String] :cardinality The tag cardinality to use
     # @example Report the time (in ms) taken to activate an account
     #   $statsd.distribution_time('account.activate') { @account.activate! }
     def distribution_time(stat, opts = EMPTY_OPTIONS)
@@ -291,6 +302,7 @@ module Datadog
     # @option opts [Numeric] :sample_rate sample rate, 1 for always
     # @option opts [Boolean] :pre_sampled If true, the client assumes the caller has already sampled metrics at :sample_rate, and doesn't perform sampling.
     # @option opts [Array<String>] :tags An array of tags
+    # @option opts [String] :cardinality The tag cardinality to use
     def timing(stat, ms, opts = EMPTY_OPTIONS)
       opts = { sample_rate: opts } if opts.is_a?(Numeric)
       send_stats(stat, ms, TIMING_TYPE, opts)
@@ -306,6 +318,7 @@ module Datadog
     # @option opts [Numeric] :sample_rate sample rate, 1 for always
     # @option opts [Boolean] :pre_sampled If true, the client assumes the caller has already sampled metrics at :sample_rate, and doesn't perform sampling.
     # @option opts [Array<String>] :tags An array of tags
+    # @option opts [String] :cardinality The tag cardinality to use
     # @yield The operation to be timed
     # @see #timing
     # @example Report the time (in ms) taken to activate an account
@@ -326,6 +339,7 @@ module Datadog
     # @option opts [Numeric] :sample_rate sample rate, 1 for always
     # @option opts [Boolean] :pre_sampled If true, the client assumes the caller has already sampled metrics at :sample_rate, and doesn't perform sampling.
     # @option opts [Array<String>] :tags An array of tags
+    # @option opts [String] :cardinality The tag cardinality to use
     # @example Record a unique visitory by id:
     #   $statsd.set('visitors.uniques', User.id)
     def set(stat, value, opts = EMPTY_OPTIONS)
@@ -367,6 +381,7 @@ module Datadog
     # @option opts [String, nil] :alert_type ('info') Can be "error", "warning", "info" or "success".
     # @option opts [Boolean, false] :truncate_if_too_long (false) Truncate the event if it is too long
     # @option opts [Array<String>] :tags tags to be added to every metric
+    # @option opts [String] :cardinality The tag cardinality to use
     # @example Report an awful event:
     #   $statsd.event('Something terrible happened', 'The end is near if we do nothing', :alert_type=>'warning', :tags=>['end_of_times','urgent'])
     def event(title, text, opts = EMPTY_OPTIONS)
@@ -446,20 +461,21 @@ module Datadog
       telemetry.sent(metrics: 1) if telemetry
 
       sample_rate = opts[:sample_rate] || @sample_rate || 1
+      cardinality = opts[:cardinality] || @cardinality
 
       if sample_rate == 1 || opts[:pre_sampled] || rand <= sample_rate
         full_stat =
           if @delay_serialization
             [stat, delta, type, opts[:tags], sample_rate]
           else
-            serializer.to_stat(stat, delta, type, tags: opts[:tags], sample_rate: sample_rate)
+            serializer.to_stat(stat, delta, type, tags: opts[:tags], sample_rate: sample_rate, cardinality: cardinality)
           end
 
         forwarder.send_message(full_stat)
       end
     end
 
-    def is_origin_detection_enabled(origin_detection)
+    def origin_detection_enabled?(origin_detection)
       if !origin_detection.nil? && !origin_detection
         return false
       end

@@ -136,7 +136,7 @@ describe Datadog::Statsd::Serialization::StatSerializer do
       end
     end
 
-    context 'when having a external data' do
+    context 'when having external data' do
       let(:external_data) do
         'cn-SomeKindOfContainerName'
       end
@@ -159,6 +159,21 @@ describe Datadog::Statsd::Serialization::StatSerializer do
         output = subject.format(input, 1, 'c')
         expect(output).to eq 'somecount___test:1|c'
         expect(input).to eq 'somecount:|@test'
+      end
+    end
+
+    context 'when having cardinality' do
+      it 'adds the cardinality field correctly' do
+        expect(subject.format('somecount', 42, 'c', cardinality: :high)).to eq 'somecount:42|c|card:high'
+        expect(subject.format('somecount', 42, 'c', cardinality: 'none')).to eq 'somecount:42|c|card:none'
+      end
+
+      it 'validates the cardinality is correct' do
+        expect {
+          subject.format('somecount', 42, 'c', cardinality: :potato)
+        }.to raise_error(ArgumentError) do |e|
+          expect(e.message).to eq 'Invalid cardinality potato. Valid options are none, low, orchestrator, high.'
+        end
       end
     end
 
