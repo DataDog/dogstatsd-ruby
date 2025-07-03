@@ -532,7 +532,7 @@ describe Datadog::Statsd::UDPConnection do
 
             it 'logs the error message' do
               subject.write('foobar')
-              expect(log.string).to match(/'Errno::ECONNREFUSED .* - yolo'/)
+              expect(log.string).to match(/Errno::ECONNREFUSED .* - yolo/)
             end
 
             it 'tries to send through the initial socket' do
