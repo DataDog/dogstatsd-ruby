@@ -1,5 +1,14 @@
 name: Ruby Test
 
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
+permissions:
+  contents: read
+
 jobs:
   test:
     name: Ruby ${{ matrix.ruby }} on ${{ matrix.os }}
