@@ -220,6 +220,10 @@ describe 'Connection edge cases test' do
   end
 
   describe 'when having problems with UDS communication' do
+    def setup
+      skip "UDS not supported on Windows" if Gem.win_platform?
+    end
+
     subject do
       Datadog::Statsd::UDSConnection.new('/tmp/socket', logger: logger)
     end

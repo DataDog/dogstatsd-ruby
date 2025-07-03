@@ -1,6 +1,10 @@
 require 'spec_helper'
 
 describe Datadog::Statsd::UDSConnection do
+  def setup
+    skip "UDS not supported on Windows" if Gem.win_platform?
+  end
+
   subject do
     described_class.new(socket_path, logger: logger, telemetry: telemetry)
   end
