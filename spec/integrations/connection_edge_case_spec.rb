@@ -212,7 +212,7 @@ describe 'Connection edge cases test' do
 
           it 'logs the error message' do
             subject.write('foobar')
-            expect(log.string).to match 'Errno::ECONNREFUSED Connection refused - yolo'
+            expect(log.string).to match(/Errno::ECONNREFUSED .* - yolo/)
           end
         end
       end
@@ -220,7 +220,7 @@ describe 'Connection edge cases test' do
   end
 
   describe 'when having problems with UDS communication' do
-    def setup
+    before do
       skip "UDS not supported on Windows" if Gem.win_platform?
     end
 

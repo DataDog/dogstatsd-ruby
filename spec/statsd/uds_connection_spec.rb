@@ -1,7 +1,7 @@
 require 'spec_helper'
 
 describe Datadog::Statsd::UDSConnection do
-  def setup
+  before do
     skip "UDS not supported on Windows" if Gem.win_platform?
   end
 
