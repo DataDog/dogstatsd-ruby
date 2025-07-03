@@ -9,7 +9,7 @@ module Datadog
         def initialize(prefix: nil, container_id: nil, external_data: nil, global_tags: [])
           @stat_serializer = StatSerializer.new(prefix, container_id, external_data, global_tags: global_tags)
           @service_check_serializer = ServiceCheckSerializer.new(global_tags: global_tags)
-          @event_serializer = EventSerializer.new(global_tags: global_tags)
+          @event_serializer = EventSerializer.new(container_id, external_data, global_tags: global_tags)
         end
 
         # using *args would make new allocations
