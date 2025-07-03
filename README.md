@@ -2,7 +2,7 @@
 
 A client for DogStatsD, an extension of the StatsD metric server for Datadog. Full API documentation is available in [DogStatsD-ruby rubydoc](https://www.rubydoc.info/github/DataDog/dogstatsd-ruby/master/Datadog/Statsd).
 
-[![Build Status](https://secure.travis-ci.org/DataDog/dogstatsd-ruby.svg)](http://travis-ci.org/DataDog/dogstatsd-ruby)
+[![Build Status](https://github.com/DataDog/dogstatsd-ruby/actions/workflows/test.yml/badge.svg)](https://github.com/DataDog/dogstatsd-ruby/actions/workflows/test.yml)
 
 See [CHANGELOG.md](CHANGELOG.md) for changes. To suggest a feature, report a bug, or general discussion, [open an issue](http://github.com/DataDog/dogstatsd-ruby/issues/).
 
