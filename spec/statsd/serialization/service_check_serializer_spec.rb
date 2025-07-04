@@ -2,7 +2,15 @@ require 'spec_helper'
 
 describe Datadog::Statsd::Serialization::ServiceCheckSerializer do
   subject do
-    described_class.new(global_tags: global_tags)
+    described_class.new(container_id, external_data, global_tags: global_tags)
+  end
+
+  let(:external_data) do
+    nil
+  end
+
+  let(:container_id) do
+    nil
   end
 
   let(:global_tags) do
@@ -84,6 +92,22 @@ describe Datadog::Statsd::Serialization::ServiceCheckSerializer do
       it 'adds the tags to the service check correctly' do
         expect(subject.format('windmill', 'grinding', tags: message_tags))
           .to eq '_sc|windmill|grinding|#globaltag1:value1,msgtag2:value2'
+      end
+    end
+
+    context 'when having a container id' do
+      let(:container_id) do
+        'in-23'
+      end
+
+      it 'adds the container id field correctly' do
+        expect(subject.format('windmill', 'grinding'))
+          .to eq '_sc|windmill|grinding|c:in-23'
+      end
+
+      it 'adds the cardinality field correctly' do
+        expect(subject.format('windmill', 'grinding', cardinality: :low))
+          .to eq '_sc|windmill|grinding|c:in-23|card:low'
       end
     end
 
