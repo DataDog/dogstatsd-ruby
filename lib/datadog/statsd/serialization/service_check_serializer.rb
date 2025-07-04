@@ -9,8 +9,9 @@ module Datadog
           hostname:  'h:',
         }.freeze
 
-        def initialize(global_tags: [])
+        def initialize(container_id, external_data, global_tags: [])
           @tag_serializer = TagSerializer.new(global_tags)
+          @field_serializer = FieldSerializer.new(container_id, external_data)
         end
 
         def format(name, status, options = EMPTY_OPTIONS)
@@ -42,11 +43,16 @@ module Datadog
               service_check << '|#'
               service_check << tags
             end
+
+            if fields = field_serializer.format(options[:cardinality])
+              service_check << fields
+            end
           end
         end
 
         protected
         attr_reader :tag_serializer
+        attr_reader :field_serializer
 
         def escape_message(message)
           message.delete('|').tap do |m|

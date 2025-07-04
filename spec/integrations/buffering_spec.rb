@@ -9,6 +9,7 @@ RSpec.shared_examples 'Buffering integration testing' do |single_thread|
       telemetry_enable: false,
       single_thread: single_thread,
       buffer_max_pool_size: buffer_max_pool_size,
+      origin_detection: false,
     )
   end
   let(:socket) { FakeUDPSocket.new(copy_message: true) }
@@ -137,6 +138,7 @@ RSpec.shared_examples 'Buffering integration testing' do |single_thread|
         telemetry_flush_interval: 60,
         buffer_max_pool_size: buffer_max_pool_size,
         single_thread: single_thread,
+        origin_detection: false,
       )
     end
 

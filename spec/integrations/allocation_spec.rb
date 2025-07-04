@@ -16,6 +16,7 @@ describe 'Allocations and garbage collection' do
       tags: tags,
       logger: logger,
       telemetry_flush_interval: -1,
+      origin_detection: false,
     )
   end
 
@@ -67,6 +68,7 @@ describe 'Allocations and garbage collection' do
           tags: tags,
           logger: logger,
           telemetry_enable: false,
+          origin_detection: false,
         )
       end
 
@@ -146,6 +148,7 @@ describe 'Allocations and garbage collection' do
           tags: tags,
           logger: logger,
           telemetry_enable: false,
+          origin_detection: false,
         )
       end
 
@@ -200,13 +203,13 @@ describe 'Allocations and garbage collection' do
 
     let(:expected_allocations) do
       if RUBY_VERSION < '2.4.0'
-        22
+        23
       elsif RUBY_VERSION < '2.5.0'
-        21
+        22
       elsif RUBY_VERSION < '2.6.0'
-        20
+        21
       else
-        19
+        20 
       end
     end
 
@@ -225,18 +228,19 @@ describe 'Allocations and garbage collection' do
           tags: tags,
           logger: logger,
           telemetry_enable: false,
+          origin_detection: false,
         )
       end
 
       let(:expected_allocations) do
         if RUBY_VERSION < '2.4.0'
-          14
+          15
         elsif RUBY_VERSION < '2.5.0'
-          13
+          14
         elsif RUBY_VERSION < '2.6.0'
-          12
+          13
         else
-          11
+          12
         end
       end
 
@@ -279,13 +283,13 @@ describe 'Allocations and garbage collection' do
 
     let(:expected_allocations) do
       if RUBY_VERSION < '2.4.0'
-        18
+        19
       elsif RUBY_VERSION < '2.5.0'
-        17
+        18
       elsif RUBY_VERSION < '2.6.0'
-        16
+        17
       else
-        15
+        16
       end
     end
 
@@ -304,6 +308,7 @@ describe 'Allocations and garbage collection' do
           tags: tags,
           logger: logger,
           telemetry_enable: false,
+          origin_detection: false,
         )
       end
 

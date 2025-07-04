@@ -10,6 +10,7 @@ describe Datadog::Statsd do
       tags: tags,
       logger: logger,
       telemetry_flush_interval: -1,
+      origin_detection: false,
     )
   end
 
