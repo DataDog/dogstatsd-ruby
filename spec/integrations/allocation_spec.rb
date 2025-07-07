@@ -101,7 +101,7 @@ describe 'Allocations and garbage collection' do
         elsif RUBY_VERSION < '2.6.0'
           26
         else
-          25
+          26
         end
       end
 
