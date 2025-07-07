@@ -3,6 +3,24 @@
 require 'spec_helper'
 require 'objspace'
 
+def trace_alloctions
+  ObjectSpace.trace_object_allocations_start
+
+  yield
+
+  ObjectSpace.trace_object_allocations_stop
+
+  c = 0
+  ObjectSpace.each_object(String) do |str|
+    file = ObjectSpace.allocation_sourcefile(str)
+    unless !file.nil? && file.include?("allocation_spec")
+      line = ObjectSpace.allocation_sourceline(str)
+      c += 1 if file
+      puts "(#{c}):#{file}:#{line} - #{str.inspect}" if file
+    end
+  end
+end
+
 describe 'Allocations and garbage collection' do
   before do
     skip 'Ruby too old' if RUBY_VERSION < '2.3.0'
@@ -11,14 +29,16 @@ describe 'Allocations and garbage collection' do
   let(:socket) { FakeUDPSocket.new }
 
   subject do
-    Datadog::Statsd.new('localhost', 1234,
-      namespace: namespace,
-      sample_rate: sample_rate,
-      tags: tags,
-      logger: logger,
-      telemetry_flush_interval: -1,
-      origin_detection: false,
-    )
+    trace_alloctions do
+      Datadog::Statsd.new('localhost', 1234,
+        namespace: namespace,
+        sample_rate: sample_rate,
+        tags: tags,
+        logger: logger,
+        telemetry_flush_interval: -1,
+        origin_detection: false,
+      )
+    end
   end
 
   let(:namespace) { 'sample_ns' }
@@ -276,23 +296,10 @@ describe 'Allocations and garbage collection' do
 
       it 'produces low amounts of garbage' do
         expect do
-          ObjectSpace.trace_object_allocations_start
- 
-          subject.event('foobar', 'happening', tags: { something: 'a value' })
-          subject.flush(sync: true)
-          
-          ObjectSpace.trace_object_allocations_stop
-
-          c = 0
-          ObjectSpace.each_object(String) do |str|
-            file = ObjectSpace.allocation_sourcefile(str)
-            unless !file.nil? && file.include?("allocation_spec")
-              line = ObjectSpace.allocation_sourceline(str)
-              c += 1 if file
-              puts "(#{c}):#{file}:#{line} - #{str.inspect}" if file
-            end
+          trace_alloctions do
+            subject.event('foobar', 'happening', tags: { something: 'a value' })
+            subject.flush(sync: true)
           end
- 
         end.to make_allocations(expected_allocations)
       end
     end
