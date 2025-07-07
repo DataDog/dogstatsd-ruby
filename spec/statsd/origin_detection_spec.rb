@@ -30,9 +30,9 @@ describe Datadog::Statsd::OriginDetection do
     container_id = nil
     FakeFS.with_fresh do
       FileUtils.mkdir_p('/proc/self')
-      File.write('/proc/self/cgroup', <<~CGROUP)
-        4:blkio:/kubepods/burstable/podfd52ef25-a87d-11e9-9423-0800271a638e/8c046cb0b72cd4c99f51b5591cd5b095967f58ee003710a45280c28ee1a9c7fa
-      CGROUP
+      File.write('/proc/self/cgroup', <<CGROUP)
+4:blkio:/kubepods/burstable/podfd52ef25-a87d-11e9-9423-0800271a638e/8c046cb0b72cd4c99f51b5591cd5b095967f58ee003710a45280c28ee1a9c7fa
+CGROUP
 
       container_id = subject.get_container_id(nil, true)
     end
@@ -43,19 +43,19 @@ describe Datadog::Statsd::OriginDetection do
   describe 'read container id' do
     [
       {
-        input: <<~CGROUP,
-          other_line
-          10:hugetlb:/kubepods/burstable/podfd52ef25-a87d-11e9-9423-0800271a638e/8c046cb0b72cd4c99f51b5591cd5b095967f58ee003710a45280c28ee1a9c7fa
-          9:cpuset:/kubepods/burstable/podfd52ef25-a87d-11e9-9423-0800271a638e/8c046cb0b72cd4c99f51b5591cd5b095967f58ee003710a45280c28ee1a9c7fa
-          8:pids:/kubepods/burstable/podfd52ef25-a87d-11e9-9423-0800271a638e/8c046cb0b72cd4c99f51b5591cd5b095967f58ee003710a45280c28ee1a9c7fa
-          7:freezer:/kubepods/burstable/podfd52ef25-a87d-11e9-9423-0800271a638e/8c046cb0b72cd4c99f51b5591cd5b095967f58ee003710a45280c28ee1a9c7fa
-          6:cpu,cpuacct:/kubepods/burstable/podfd52ef25-a87d-11e9-9423-0800271a638e/8c046cb0b72cd4c99f51b5591cd5b095967f58ee003710a45280c28ee1a9c7fa
-          5:perf_event:/kubepods/burstable/podfd52ef25-a87d-11e9-9423-0800271a638e/8c046cb0b72cd4c99f51b5591cd5b095967f58ee003710a45280c28ee1a9c7fa
-          4:blkio:/kubepods/burstable/podfd52ef25-a87d-11e9-9423-0800271a638e/8c046cb0b72cd4c99f51b5591cd5b095967f58ee003710a45280c28ee1a9c7fa
-          3:devices:/kubepods/burstable/podfd52ef25-a87d-11e9-9423-0800271a638e/8c046cb0b72cd4c99f51b5591cd5b095967f58ee003710a45280c28ee1a9c7fa
-          2:net_cls,net_prio:/kubepods/burstable/podfd52ef25-a87d-11e9-9423-0800271a638e/8c046cb0b72cd4c99f51b5591cd5b095967f58ee003710a45280c28ee1a9c7fa
-        CGROUP
-        expected: '8c046cb0b72cd4c99f51b5591cd5b095967f58ee003710a45280c28ee1a9c7fa'
+        input: <<CGROUP,
+other_line
+10:hugetlb:/kubepods/burstable/podfd52ef25-a87d-11e9-9423-0800271a638e/8c046cb0b72cd4c99f51b5591cd5b095967f58ee003710a45280c28ee1a9c7fa
+9:cpuset:/kubepods/burstable/podfd52ef25-a87d-11e9-9423-0800271a638e/8c046cb0b72cd4c99f51b5591cd5b095967f58ee003710a45280c28ee1a9c7fa
+8:pids:/kubepods/burstable/podfd52ef25-a87d-11e9-9423-0800271a638e/8c046cb0b72cd4c99f51b5591cd5b095967f58ee003710a45280c28ee1a9c7fa
+7:freezer:/kubepods/burstable/podfd52ef25-a87d-11e9-9423-0800271a638e/8c046cb0b72cd4c99f51b5591cd5b095967f58ee003710a45280c28ee1a9c7fa
+6:cpu,cpuacct:/kubepods/burstable/podfd52ef25-a87d-11e9-9423-0800271a638e/8c046cb0b72cd4c99f51b5591cd5b095967f58ee003710a45280c28ee1a9c7fa
+5:perf_event:/kubepods/burstable/podfd52ef25-a87d-11e9-9423-0800271a638e/8c046cb0b72cd4c99f51b5591cd5b095967f58ee003710a45280c28ee1a9c7fa
+4:blkio:/kubepods/burstable/podfd52ef25-a87d-11e9-9423-0800271a638e/8c046cb0b72cd4c99f51b5591cd5b095967f58ee003710a45280c28ee1a9c7fa
+3:devices:/kubepods/burstable/podfd52ef25-a87d-11e9-9423-0800271a638e/8c046cb0b72cd4c99f51b5591cd5b095967f58ee003710a45280c28ee1a9c7fa
+2:net_cls,net_prio:/kubepods/burstable/podfd52ef25-a87d-11e9-9423-0800271a638e/8c046cb0b72cd4c99f51b5591cd5b095967f58ee003710a45280c28ee1a9c7fa
+CGROUP
+    expected: '8c046cb0b72cd4c99f51b5591cd5b095967f58ee003710a45280c28ee1a9c7fa'
       },
       {
         input: "10:hugetlb:/kubepods/burstable/podfd52ef25-a87d-11e9-9423-0800271a638e/8c046cb0b72cd4c99f51b5591cd5b095967f58ee003710a45280c28ee1a9c7fa",
@@ -115,9 +115,9 @@ describe Datadog::Statsd::OriginDetection do
       FileUtils.mkdir_p('/proc/self')
 
       # Write only mountinfo file content (cgroup file unused here but still required for consistency)
-      File.write('/proc/self/mountinfo', <<~MOUNTINFO)
-        2282 2269 8:1 /var/lib/containerd/io.containerd.grpc.v1.cri/sandboxes/c0a82a3506b0366c9666f6dbe71c783abeb26ba65e312e918a49e10a277196d0/hostname /host/var/run/containerd/io.containerd.runtime.v2.task/k8s.io/fc7038bc73a8d3850c66ddbfb0b2901afa378bfcbb942cc384b051767e4ac6b0/rootfs/etc/hostname rw,nosuid,nodev,relatime - ext4 /dev/sda1 rw,commit=30
-      MOUNTINFO
+      File.write('/proc/self/mountinfo', <<MOUNTINFO)
+2282 2269 8:1 /var/lib/containerd/io.containerd.grpc.v1.cri/sandboxes/c0a82a3506b0366c9666f6dbe71c783abeb26ba65e312e918a49e10a277196d0/hostname /host/var/run/containerd/io.containerd.runtime.v2.task/k8s.io/fc7038bc73a8d3850c66ddbfb0b2901afa378bfcbb942cc384b051767e4ac6b0/rootfs/etc/hostname rw,nosuid,nodev,relatime - ext4 /dev/sda1 rw,commit=30
+MOUNTINFO
 
       File.write('/proc/self/cgroup', "")
 
@@ -130,7 +130,7 @@ describe Datadog::Statsd::OriginDetection do
   describe 'Parse mount info' do
     test_cases = [
       {
-        input: <<~MOUNTINFO,
+        input: <<MOUNTINFO,
 608 554 0:42 / / rw,relatime master:289 - overlay overlay rw,lowerdir=/var/lib/docker/overlay2/l/RQH52YWGJKBXL6THNS7EASIUNY:/var/lib/docker/overlay2/l/EHJME4ZW2BP2W7SGOCNTKY76NI,upperdir=/var/lib/docker/overlay2/241a77e9a6a048e54d5b5700afaeab6071cb5ffef1fd2acbebbf19935a429897/diff,workdir=/var/lib/docker/overlay2/241a77e9a6a048e54d5b5700afaeab6071cb5ffef1fd2acbebbf19935a429897/work
 609 608 0:46 / /proc rw,nosuid,nodev,noexec,relatime - proc proc rw
 610 608 0:47 / /dev rw,nosuid - tmpfs tmpfs rw,size=65536k,mode=755,inode64
@@ -153,11 +153,11 @@ describe Datadog::Statsd::OriginDetection do
 563 609 0:47 /null /proc/timer_list rw,nosuid - tmpfs tmpfs rw,size=65536k,mode=755,inode64
 564 609 0:52 / /proc/scsi ro,relatime - tmpfs tmpfs ro,inode64
 565 615 0:53 / /sys/firmware ro,relatime - tmpfs tmpfs ro,inode64
-        MOUNTINFO
+MOUNTINFO
         expected: '0cfa82bf3ab29da271548d6a044e95c948c6fd2f7578fb41833a44ca23da425f'
       },
       {
-        input: <<~MOUNTINFO,
+        input: <<MOUNTINFO,
 2775 2588 0:310 / / rw,relatime master:760 - overlay overlay rw,lowerdir=/var/lib/containerd/io.containerd.snapshotter.v1.overlayfs/snapshots/163/fs,upperdir=/var/lib/containerd/io.containerd.snapshotter.v1.overlayfs/snapshots/164/fs,workdir=/var/lib/containerd/io.containerd.snapshotter.v1.overlayfs/snapshots/164/work
 2776 2775 0:312 / /proc rw,nosuid,nodev,noexec,relatime - proc proc rw
 2777 2775 0:313 / /dev rw,nosuid - tmpfs tmpfs rw,size=65536k,mode=755
@@ -183,11 +183,11 @@ describe Datadog::Statsd::OriginDetection do
 2611 2776 0:313 /null /proc/timer_list rw,nosuid - tmpfs tmpfs rw,size=65536k,mode=755
 2612 2776 0:316 / /proc/scsi ro,relatime - tmpfs tmpfs ro
 2613 2780 0:317 / /sys/firmware ro,relatime - tmpfs tmpfs ro
-        MOUNTINFO
+MOUNTINFO
         expected: nil
       },
       {
-        input: <<~MOUNTINFO,
+        input: <<MOUNTINFO,
 2208 2025 0:249 / / rw,relatime master:691 - overlay overlay rw,lowerdir=/var/lib/containerd/io.containerd.snapshotter.v1.overlayfs/snapshots/133/fs,upperdir=/var/lib/containerd/io.containerd.snapshotter.v1.overlayfs/snapshots/134/fs,workdir=/var/lib/containerd/io.containerd.snapshotter.v1.overlayfs/snapshots/134/work
 2209 2208 0:251 / /proc rw,nosuid,nodev,noexec,relatime - proc proc rw
 2210 2208 0:252 / /dev rw,nosuid - tmpfs tmpfs rw,size=65536k,mode=755
@@ -288,7 +288,7 @@ describe Datadog::Statsd::OriginDetection do
 2034 2209 0:252 /null /proc/timer_list rw,nosuid - tmpfs tmpfs rw,size=65536k,mode=755
 2035 2209 0:255 / /proc/scsi ro,relatime - tmpfs tmpfs ro
 2036 2213 0:256 / /sys/firmware ro,relatime - tmpfs tmpfs ro
-        MOUNTINFO
+MOUNTINFO
         expected: 'fc7038bc73a8d3850c66ddbfb0b2901afa378bfcbb942cc384b051767e4ac6b0'
       },
       {
@@ -314,30 +314,30 @@ describe Datadog::Statsd::OriginDetection do
   it 'extracts the container ID when found in mountinfo path' do
     cid = "0cfa82bf3ab29da271548d6a044e95c948c6fd2f7578fb41833a44ca23da425f"
 
-    mountinfo_contents = <<~MOUNTINFO
-      608 554 0:42 / / rw,relatime master:289 - overlay overlay rw,lowerdir=/var/lib/docker/overlay2/l/RQH52YWGJKBXL6THNS7EASIUNY:/var/lib/docker/overlay2/l/EHJME4ZW2BP2W7SGOCNTKY76NI,upperdir=/var/lib/docker/overlay2/241a77e9a6a048e54d5b5700afaeab6071cb5ffef1fd2acbebbf19935a429897/diff,workdir=/var/lib/docker/overlay2/241a77e9a6a048e54d5b5700afaeab6071cb5ffef1fd2acbebbf19935a429897/work
-      609 608 0:46 / /proc rw,nosuid,nodev,noexec,relatime - proc proc rw
-      610 608 0:47 / /dev rw,nosuid - tmpfs tmpfs rw,size=65536k,mode=755,inode64
-      611 610 0:48 / /dev/pts rw,nosuid,noexec,relatime - devpts devpts rw,gid=5,mode=620,ptmxmode=666
-      615 608 0:49 / /sys ro,nosuid,nodev,noexec,relatime - sysfs sysfs ro
-      623 615 0:28 / /sys/fs/cgroup ro,nosuid,nodev,noexec,relatime - cgroup2 cgroup rw,nsdelegate,memory_recursiveprot
-      624 610 0:45 / /dev/mqueue rw,nosuid,nodev,noexec,relatime - mqueue mqueue rw
-      625 610 0:50 / /dev/shm rw,nosuid,nodev,noexec,relatime - tmpfs shm rw,size=65536k,inode64
-      626 608 259:1 /var/lib/docker/containers/#{cid}/resolv.conf /etc/resolv.conf rw,relatime - ext4 /dev/root rw,discard,errors=remount-ro
-      627 608 259:1 /var/lib/docker/containers/#{cid}/hostname /etc/hostname rw,relatime - ext4 /dev/root rw,discard,errors=remount-ro
-      628 608 259:1 /var/lib/docker/containers/#{cid}/hosts /etc/hosts rw,relatime - ext4 /dev/root rw,discard,errors=remount-ro
-      555 609 0:46 /bus /proc/bus ro,nosuid,nodev,noexec,relatime - proc proc rw
-      556 609 0:46 /fs /proc/fs ro,nosuid,nodev,noexec,relatime - proc proc rw
-      557 609 0:46 /irq /proc/irq ro,nosuid,nodev,noexec,relatime - proc proc rw
-      558 609 0:46 /sys /proc/sys ro,nosuid,nodev,noexec,relatime - proc proc rw
-      559 609 0:46 /sysrq-trigger /proc/sysrq-trigger ro,nosuid,nodev,noexec,relatime - proc proc rw
-      560 609 0:51 / /proc/acpi ro,relatime - tmpfs tmpfs ro,inode64
-      561 609 0:47 /null /proc/kcore rw,nosuid - tmpfs tmpfs rw,size=65536k,mode=755,inode64
-      562 609 0:47 /null /proc/keys rw,nosuid - tmpfs tmpfs rw,size=65536k,mode=755,inode64
-      563 609 0:47 /null /proc/timer_list rw,nosuid - tmpfs tmpfs rw,size=65536k,mode=755,inode64
-      564 609 0:52 / /proc/scsi ro,relatime - tmpfs tmpfs ro,inode64
-      565 615 0:53 / /sys/firmware ro,relatime - tmpfs tmpfs ro,inode64
-    MOUNTINFO
+    mountinfo_contents = <<MOUNTINFO
+608 554 0:42 / / rw,relatime master:289 - overlay overlay rw,lowerdir=/var/lib/docker/overlay2/l/RQH52YWGJKBXL6THNS7EASIUNY:/var/lib/docker/overlay2/l/EHJME4ZW2BP2W7SGOCNTKY76NI,upperdir=/var/lib/docker/overlay2/241a77e9a6a048e54d5b5700afaeab6071cb5ffef1fd2acbebbf19935a429897/diff,workdir=/var/lib/docker/overlay2/241a77e9a6a048e54d5b5700afaeab6071cb5ffef1fd2acbebbf19935a429897/work
+609 608 0:46 / /proc rw,nosuid,nodev,noexec,relatime - proc proc rw
+610 608 0:47 / /dev rw,nosuid - tmpfs tmpfs rw,size=65536k,mode=755,inode64
+611 610 0:48 / /dev/pts rw,nosuid,noexec,relatime - devpts devpts rw,gid=5,mode=620,ptmxmode=666
+615 608 0:49 / /sys ro,nosuid,nodev,noexec,relatime - sysfs sysfs ro
+623 615 0:28 / /sys/fs/cgroup ro,nosuid,nodev,noexec,relatime - cgroup2 cgroup rw,nsdelegate,memory_recursiveprot
+624 610 0:45 / /dev/mqueue rw,nosuid,nodev,noexec,relatime - mqueue mqueue rw
+625 610 0:50 / /dev/shm rw,nosuid,nodev,noexec,relatime - tmpfs shm rw,size=65536k,inode64
+626 608 259:1 /var/lib/docker/containers/#{cid}/resolv.conf /etc/resolv.conf rw,relatime - ext4 /dev/root rw,discard,errors=remount-ro
+627 608 259:1 /var/lib/docker/containers/#{cid}/hostname /etc/hostname rw,relatime - ext4 /dev/root rw,discard,errors=remount-ro
+628 608 259:1 /var/lib/docker/containers/#{cid}/hosts /etc/hosts rw,relatime - ext4 /dev/root rw,discard,errors=remount-ro
+555 609 0:46 /bus /proc/bus ro,nosuid,nodev,noexec,relatime - proc proc rw
+556 609 0:46 /fs /proc/fs ro,nosuid,nodev,noexec,relatime - proc proc rw
+557 609 0:46 /irq /proc/irq ro,nosuid,nodev,noexec,relatime - proc proc rw
+558 609 0:46 /sys /proc/sys ro,nosuid,nodev,noexec,relatime - proc proc rw
+559 609 0:46 /sysrq-trigger /proc/sysrq-trigger ro,nosuid,nodev,noexec,relatime - proc proc rw
+560 609 0:51 / /proc/acpi ro,relatime - tmpfs tmpfs ro,inode64
+561 609 0:47 /null /proc/kcore rw,nosuid - tmpfs tmpfs rw,size=65536k,mode=755,inode64
+562 609 0:47 /null /proc/keys rw,nosuid - tmpfs tmpfs rw,size=65536k,mode=755,inode64
+563 609 0:47 /null /proc/timer_list rw,nosuid - tmpfs tmpfs rw,size=65536k,mode=755,inode64
+564 609 0:52 / /proc/scsi ro,relatime - tmpfs tmpfs ro,inode64
+565 615 0:53 / /sys/firmware ro,relatime - tmpfs tmpfs ro,inode64
+MOUNTINFO
 
     container_id = ""
     FakeFS.with_fresh do
@@ -402,36 +402,36 @@ describe Datadog::Statsd::OriginDetection do
       {
         description: 'matching entry in /proc/self/cgroup and /proc/mounts - cgroup/hybrid only',
         cgroup_node_dir: 'system.slice/docker-abcdef0123456789abcdef0123456789.scope',
-        proc_self_cgroup_content: <<~CG,
-          3:memory:/system.slice/docker-abcdef0123456789abcdef0123456789.scope
-          2:net_cls,net_prio:c
-          1:name=systemd:b
-          0::a
-        CG
+        proc_self_cgroup_content: <<CG,
+3:memory:/system.slice/docker-abcdef0123456789abcdef0123456789.scope
+2:net_cls,net_prio:c
+1:name=systemd:b
+0::a
+CG
         controller: 'memory',
         expected_result: 'in-{inode}'
       },
       {
         description: 'non memory or empty controller',
         cgroup_node_dir: 'system.slice/docker-abcdef0123456789abcdef0123456789.scope',
-        proc_self_cgroup_content: <<~CG,
-          3:cpu:/system.slice/docker-abcdef0123456789abcdef0123456789.scope
-          2:net_cls,net_prio:c
-          1:name=systemd:b
-          0::a
-        CG
+        proc_self_cgroup_content: <<CG,
+3:cpu:/system.slice/docker-abcdef0123456789abcdef0123456789.scope
+2:net_cls,net_prio:c
+1:name=systemd:b
+0::a
+CG
         controller: 'cpu',
         expected_result: nil
       },
       {
         description: 'path does not exist',
         cgroup_node_dir: 'dummy.scope',
-        proc_self_cgroup_content: <<~CG,
-          3:memory:/system.slice/docker-abcdef0123456789abcdef0123456789.scope
-          2:net_cls,net_prio:c
-          1:name=systemd:b
-          0::a
-        CG
+        proc_self_cgroup_content: <<CG,
+3:memory:/system.slice/docker-abcdef0123456789abcdef0123456789.scope
+2:net_cls,net_prio:c
+1:name=systemd:b
+0::a
+CG
         controller: nil,
         expected_result: nil
       },
