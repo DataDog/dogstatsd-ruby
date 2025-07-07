@@ -6,7 +6,7 @@ require 'objspace'
 def trace_alloctions
   ObjectSpace.trace_object_allocations_start
 
-  yield
+  result = yield
 
   ObjectSpace.trace_object_allocations_stop
 
@@ -19,6 +19,8 @@ def trace_alloctions
       puts "(#{c}):#{file}:#{line} - #{str.inspect}" if file
     end
   end
+
+  result
 end
 
 describe 'Allocations and garbage collection' do
