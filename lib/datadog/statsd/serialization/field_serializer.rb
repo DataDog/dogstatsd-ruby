@@ -12,14 +12,14 @@ module Datadog
         end
 
         def format(cardinality)
-          field = String.new
-          unless @container_id.nil?
-            field << "|c:#{@container_id}"
+          if @container_id.nil? && @external_data.nil? && cardinality.nil?
+            # Avoid the allocation unless needed.
+            return nil
           end
 
-          unless @external_data.nil?
-            field << "|e:#{@external_data}"
-          end
+          field = String.new
+          field << "|c:#{@container_id}" unless @container_id.nil?
+          field << "|e:#{@external_data}" unless @external_data.nil?
 
           unless cardinality.nil?
             unless VALID_CARDINALITY.include?(cardinality.to_sym)

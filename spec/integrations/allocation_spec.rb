@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'spec_helper'
+require 'objspace'
 
 describe 'Allocations and garbage collection' do
   before do
