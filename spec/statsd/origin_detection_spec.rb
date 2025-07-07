@@ -88,11 +88,11 @@ CGROUP
         expected: '34dc0b5e626f2c5c4c5170e34b10e7654ce36f0fcd532739f4445baabea03376'
       },
       {
-        input: <<~CGROUP,
-          1:name=systemd:/nope
-          2:pids:/docker/34dc0b5e626f2c5c4c5170e34b10e7654ce36f0fcd532739f4445baabea03376
-          3:cpu:/invalid
-        CGROUP
+        input: <<CGROUP,
+1:name=systemd:/nope
+2:pids:/docker/34dc0b5e626f2c5c4c5170e34b10e7654ce36f0fcd532739f4445baabea03376
+3:cpu:/invalid
+CGROUP
         expected: '34dc0b5e626f2c5c4c5170e34b10e7654ce36f0fcd532739f4445baabea03376'
       }
     ].each_with_index do |test_case, index|
