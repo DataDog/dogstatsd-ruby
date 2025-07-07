@@ -276,8 +276,23 @@ describe 'Allocations and garbage collection' do
 
       it 'produces low amounts of garbage' do
         expect do
+          ObjectSpace.trace_object_allocations_start
+ 
           subject.event('foobar', 'happening', tags: { something: 'a value' })
           subject.flush(sync: true)
+          
+          ObjectSpace.trace_object_allocations_stop
+
+          c = 0
+          ObjectSpace.each_object(String) do |str|
+            file = ObjectSpace.allocation_sourcefile(str)
+            unless !file.nil? && file.include?("allocation_spec")
+              line = ObjectSpace.allocation_sourceline(str)
+              c += 1 if file
+              puts "(#{c}):#{file}:#{line} - #{str.inspect}" if file
+            end
+          end
+ 
         end.to make_allocations(expected_allocations)
       end
     end
