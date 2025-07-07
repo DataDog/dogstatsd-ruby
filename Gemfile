@@ -27,5 +27,5 @@ end
 
 group :test do
   gem 'mocha'
-  gem 'fakefs', '~> 3.0'
+  gem 'fakefs', '~> 0.13.3'
 end

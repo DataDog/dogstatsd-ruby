@@ -1,6 +1,15 @@
 require 'spec_helper'
 require 'fakefs/safe'
 
+# To ensure that we can against Ruby v2 we need to use quite an old
+# version of fakefs that doesn't provide the ino function.
+# Monkey patch a version here.
+class FakeFS::File::Stat
+  def ino
+    42
+  end
+end
+
 describe Datadog::Statsd::OriginDetection do
   subject do
     described_class.new()
