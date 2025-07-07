@@ -37,7 +37,7 @@ module Datadog
 
       def get_cgroup_inode(cgroup_mount_path, proc_self_cgroup_path)
         content = File.read(proc_self_cgroup_path) rescue nil
-        return nil unless content.nil?
+        return nil unless content
 
         controllers = parse_cgroup_node_path(content)
 
