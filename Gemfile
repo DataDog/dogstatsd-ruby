@@ -27,5 +27,9 @@ end
 
 group :test do
   gem 'mocha'
-  gem 'fakefs', '~> 0.13.3'
+  if RUBY_VERSION < '3.0'
+    gem 'fakefs', '~> 0.13.3'
+  else
+    gem 'fakefs', '~> 3.0'
+  end
 end
