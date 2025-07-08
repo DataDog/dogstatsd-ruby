@@ -12,7 +12,7 @@ if RUBY_VERSION < '3.0'
   end
 end
 
-describe Datadog::Statsd::OriginDetection do
+describe Datadog::Statsd do
   subject do
     described_class.new()
   end
