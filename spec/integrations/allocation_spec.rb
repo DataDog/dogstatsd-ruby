@@ -1,27 +1,6 @@
 # frozen_string_literal: true
 
 require 'spec_helper'
-require 'objspace'
-
-def trace_alloctions
-  ObjectSpace.trace_object_allocations_start
-
-  result = yield
-
-  ObjectSpace.trace_object_allocations_stop
-
-  c = 0
-  ObjectSpace.each_object(String) do |str|
-    file = ObjectSpace.allocation_sourcefile(str)
-    unless !file.nil? && file.include?("allocation_spec")
-      line = ObjectSpace.allocation_sourceline(str)
-      c += 1 if file
-      puts "(#{c}):#{file}:#{line} - #{str.inspect}" if file
-    end
-  end
-
-  result
-end
 
 describe 'Allocations and garbage collection' do
   before do
