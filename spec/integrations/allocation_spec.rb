@@ -31,16 +31,14 @@ describe 'Allocations and garbage collection' do
   let(:socket) { FakeUDPSocket.new }
 
   subject do
-    trace_alloctions do
-      Datadog::Statsd.new('localhost', 1234,
-        namespace: namespace,
-        sample_rate: sample_rate,
-        tags: tags,
-        logger: logger,
-        telemetry_flush_interval: -1,
-        origin_detection: false,
-      )
-    end
+    Datadog::Statsd.new('localhost', 1234,
+      namespace: namespace,
+      sample_rate: sample_rate,
+      tags: tags,
+      logger: logger,
+      telemetry_flush_interval: -1,
+      origin_detection: false,
+    )
   end
 
   let(:namespace) { 'sample_ns' }
@@ -276,6 +274,12 @@ describe 'Allocations and garbage collection' do
     end
 
     context 'with tags' do
+      before do
+        # warmup
+        subject.event('foobar', 'happening', tags: { something: 'a value' })
+        subject.flush(sync: true)
+      end
+
       let(:expected_allocations) do
         if RUBY_VERSION < '2.4.0'
           31
@@ -298,10 +302,8 @@ describe 'Allocations and garbage collection' do
 
       it 'produces low amounts of garbage' do
         expect do
-          trace_alloctions do
-            subject.event('foobar', 'happening', tags: { something: 'a value' })
-            subject.flush(sync: true)
-          end
+          subject.event('foobar', 'happening', tags: { something: 'a value' })
+          subject.flush(sync: true)
         end.to make_allocations(expected_allocations)
       end
     end
@@ -366,6 +368,12 @@ describe 'Allocations and garbage collection' do
     end
 
     context 'with tags' do
+      before do
+        # warmup
+        subject.service_check('foobar', 'happening', tags: { something: 'a value' })
+        subject.flush(sync: true)
+      end
+
       let(:expected_allocations) do
         if RUBY_VERSION < '2.4.0'
           27
