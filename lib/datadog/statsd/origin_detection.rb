@@ -91,8 +91,9 @@ module Datadog
 
       handle.each_line do |line|
         split = line.split(" ")
-        mnt1 = split[3]
-        mnt2 = split[4]
+        # Take the first 4,096 bytes of the path to avoid the regex exploding.
+        mnt1 = split[3][0, 4096]
+        mnt2 = split[4][0, 4096]
         [mnt1, mnt2].each do |line|
           matches = line.scan(cid_mount_info_regexp)
           next if matches.empty?
