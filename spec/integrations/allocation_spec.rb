@@ -372,17 +372,9 @@ describe 'Allocations and garbage collection' do
         elsif RUBY_VERSION < '2.5.0'
           25
         elsif RUBY_VERSION < '2.6.0'
-          if RUBY_PLATFORM.include?('linux')
-            24
-          else
-            25
-          end
+          24
         else
-          if RUBY_PLATFORM.include?('linux')
-            23
-          else
-            24
-          end
+          23
         end
       end
 
