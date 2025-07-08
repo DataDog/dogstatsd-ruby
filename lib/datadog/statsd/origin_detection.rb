@@ -85,24 +85,44 @@ module Datadog
       id
     end
 
-    def parse_mount_info(handle)
-      container_regexp = '([0-9a-f]{64})|([0-9a-f]{32}-\d+)|([0-9a-f]{8}(-[0-9a-f]{4}){4}$)'
-      cid_mount_info_regexp = %r{[^\s]*/([^\s/]+)/(?:#{container_regexp})/[\S]*hostname$}
+    # Extracts the final container info from a line in mount info
+    def extract_container_info(line)
+      parts = line.strip.split("/")
+      return nil unless parts.last == "hostname"
 
+      # Expected structure: [..., <group>, <container_id>, ..., "hostname"]
+      container_id = nil
+      group = nil
+
+      parts.each_with_index do |part, idx|
+        # Match the container id and include the section prior to it.
+        if part.length == 64 && part.match?(/\A[0-9a-f]{64}\z/)
+          group = parts[idx - 1] if idx >= 1
+          container_id = part
+        elsif part.length > 32 && part.match?(/\A[0-9a-f]{32}-\d+\z/)
+          group = parts[idx - 1] if idx >= 1
+          container_id = part
+        elsif part.match?(/\A[0-9a-f]{8}(-[0-9a-f]{4}){4}\z/)
+          group = parts[idx - 1] if idx >= 1
+          container_id = part
+        end
+      end
+
+      return container_id unless group == "sandboxes"
+    end
+
+    # Parse /proc/self/mountinfo to extract the container id.
+    # Often container runtimes embed the container id in the mount paths.
+    # We parse the mount with a final `hostname` component, which is part of
+    # the containers `etc/hostname` bind mount.
+    def parse_mount_info(handle)
       handle.each_line do |line|
         split = line.split(" ")
-        # Take the first 4,096 bytes of the path to avoid the regex exploding.
-        mnt1 = split[3][0, 4096]
-        mnt2 = split[4][0, 4096]
+        mnt1 = split[3]
+        mnt2 = split[4]
         [mnt1, mnt2].each do |line|
-          matches = line.scan(cid_mount_info_regexp)
-          next if matches.empty?
-
-          match = matches.last
-          containerd_sandbox_prefix = "sandboxes"
-          if match && match[0] != containerd_sandbox_prefix
-            return match[1]
-          end
+          container_id = extract_container_info(line)
+          return container_id unless container_id.nil?
         end
       end
 
