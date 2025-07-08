@@ -15,7 +15,7 @@ module Datadog
 
         def initialize(container_id, external_data, global_tags: [])
           @tag_serializer = TagSerializer.new(global_tags)
-          #@field_serializer = FieldSerializer.new(container_id, external_data)
+          @field_serializer = FieldSerializer.new(container_id, external_data)
         end
 
         def format(title, text, options = EMPTY_OPTIONS)
@@ -48,9 +48,9 @@ module Datadog
               event << tags
             end
 
-            #if fields = field_serializer.format(options[:cardinality])
-            #  event << fields
-            #end
+            if fields = field_serializer.format(options[:cardinality])
+              event << fields
+            end
 
             if event.bytesize > MAX_EVENT_SIZE
               if options[:truncate_if_too_long]
