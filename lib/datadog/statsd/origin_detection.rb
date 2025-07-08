@@ -87,16 +87,21 @@ module Datadog
 
     def parse_mount_info(handle)
       container_regexp = '([0-9a-f]{64})|([0-9a-f]{32}-\d+)|([0-9a-f]{8}(-[0-9a-f]{4}){4}$)'
-      cid_mount_info_regexp = %r{.*/([^\s/]+)/(?:#{container_regexp})/[\S]*hostname}
+      cid_mount_info_regexp = %r{[^\s]*/([^\s/]+)/(?:#{container_regexp})/[\S]*hostname$}
 
       handle.each_line do |line|
-        matches = line.scan(cid_mount_info_regexp)
-        next if matches.empty?
+        split = line.split(" ")
+        mnt1 = split[3]
+        mnt2 = split[4]
+        [mnt1, mnt2].each do |line|
+          matches = line.scan(cid_mount_info_regexp)
+          next if matches.empty?
 
-        match = matches.last
-        containerd_sandbox_prefix = "sandboxes"
-        if match && match[0] != containerd_sandbox_prefix
-          return match[1]
+          match = matches.last
+          containerd_sandbox_prefix = "sandboxes"
+          if match && match[0] != containerd_sandbox_prefix
+            return match[1]
+          end
         end
       end
 
