@@ -96,13 +96,13 @@ module Datadog
 
       parts.each_with_index do |part, idx|
         # Match the container id and include the section prior to it.
-        if part.length == 64 && part.match?(/\A[0-9a-f]{64}\z/)
+        if part.length == 64 && !!(part =~ /\A[0-9a-f]{64}\z/)
           group = parts[idx - 1] if idx >= 1
           container_id = part
-        elsif part.length > 32 && part.match?(/\A[0-9a-f]{32}-\d+\z/)
+        elsif part.length > 32 && !!(part =~ /\A[0-9a-f]{32}-\d+\z/)
           group = parts[idx - 1] if idx >= 1
           container_id = part
-        elsif part.match?(/\A[0-9a-f]{8}(-[0-9a-f]{4}){4}\z/)
+        elsif !!(part =~ /\A[0-9a-f]{8}(-[0-9a-f]{4}){4}\z/)
           group = parts[idx - 1] if idx >= 1
           container_id = part
         end
