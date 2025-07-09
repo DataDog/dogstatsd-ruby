@@ -36,7 +36,7 @@ describe Datadog::Statsd do
 4:blkio:/kubepods/burstable/podfd52ef25-a87d-11e9-9423-0800271a638e/8c046cb0b72cd4c99f51b5591cd5b095967f58ee003710a45280c28ee1a9c7fa
 CGROUP
 
-      container_id = subject.get_container_id(nil, true)
+      container_id = subject.send(:get_container_id, nil, true)
     end
 
     expect(container_id).to eq('8c046cb0b72cd4c99f51b5591cd5b095967f58ee003710a45280c28ee1a9c7fa')
@@ -103,7 +103,7 @@ CGROUP
           FileUtils.mkdir_p('/proc/self')
           File.write('/proc/self/cgroup', test_case[:input])
 
-          result = subject.read_container_id('/proc/self/cgroup')
+          result = subject.send(:read_container_id, '/proc/self/cgroup')
         end
         expect(result).to eq(test_case[:expected])
       end
@@ -123,7 +123,7 @@ MOUNTINFO
 
       File.write('/proc/self/cgroup', "")
 
-      container_id = subject.get_container_id(nil, true)
+      container_id = subject.send(:get_container_id, nil, true)
     end
 
     expect(container_id).to eq("fc7038bc73a8d3850c66ddbfb0b2901afa378bfcbb942cc384b051767e4ac6b0")
@@ -305,7 +305,7 @@ MOUNTINFO
         FakeFS.with_fresh do
           FileUtils.mkdir_p('/proc/self')
           File.write('/proc/self/mountinfo', test_case[:input])
-          result = subject.read_mount_info('/proc/self/mountinfo')
+          result = subject.send(:read_mount_info, '/proc/self/mountinfo')
           end
 
         expect(result).to eq(test_case[:expected])
@@ -347,7 +347,7 @@ MOUNTINFO
       File.write('/proc/self/mountinfo', mountinfo_contents)
       File.write('/proc/self/cgroup', '')  # Needed if get_container_id uses it
 
-      container_id = subject.get_container_id(nil, true)
+      container_id = subject.send(:get_container_id, nil, true)
     end
 
     expect(container_id).to eq(cid)
@@ -386,7 +386,7 @@ MOUNTINFO
 
     test_cases.each do |test_case|
       it "parses correctly for: #{test_case[:name]}" do
-        result = subject.parse_cgroup_node_path(test_case[:content])
+        result = subject.send(:parse_cgroup_node_path, test_case[:content])
         expect(result).to eq(test_case[:expected])
       end
     end
@@ -463,7 +463,7 @@ CG
             test_case[:expected_result] = test_case[:expected_result].gsub("{inode}", inode.to_s)
           end
 
-          result = subject.get_cgroup_inode('/sys/fs/cgroup', '/proc/self/cgroup')
+          result = subject.send(:get_cgroup_inode, '/sys/fs/cgroup', '/proc/self/cgroup')
         end
 
         expect(result).to eq(test_case[:expected_result])
@@ -518,7 +518,7 @@ CG
           File.write('/proc/self/cgroup', test_case[:proc_self_cgroup_content].to_s)
           File.write('/proc/self/mountinfo', test_case[:mount_info_content].to_s)
 
-          allow(subject).to receive(:is_host_cgroup_namespace?)
+          allow(subject).to receive(:host_cgroup_namespace?)
             .and_return(test_case[:is_host_cgroup_ns] || false)
 
           if test_case[:cgroup_node_dir]
@@ -532,7 +532,7 @@ CG
             end
           end
 
-          container_id = subject.get_container_id(nil, true)
+          container_id = subject.send(:get_container_id, nil, true)
         end
 
         expect(container_id).to eq(test_case[:expected_result])

@@ -1,9 +1,11 @@
 module Datadog
   class Statsd
+    private
+
     CGROUPV1BASECONTROLLER = "memory"
     HOSTCGROUPNAMESPACEINODE = 0xEFFFFFFB
 
-    def is_host_cgroup_namespace?
+    def host_cgroup_namespace?
       stat = File.stat("/proc/self/ns/cgroup") rescue nil
       return false unless stat
       stat.ino == HOSTCGROUPNAMESPACEINODE
@@ -48,8 +50,6 @@ module Datadog
       nil
     end
 
-    private
-
     def inode_for_path(path)
       stat = File.stat(path) rescue nil
       return nil unless stat
@@ -73,8 +73,6 @@ module Datadog
 
       nil
     end
-
-    public
 
     def read_container_id(fpath)
       handle = File.open(fpath, 'r') rescue nil
@@ -148,7 +146,7 @@ module Datadog
       container_id = read_mount_info("/proc/self/mountinfo")
       return container_id unless container_id.nil?
 
-      return nil if is_host_cgroup_namespace?
+      return nil if host_cgroup_namespace?
 
       get_cgroup_inode("/sys/fs/cgroup", "/proc/self/cgroup")
     end
