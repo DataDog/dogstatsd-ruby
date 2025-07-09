@@ -7,8 +7,6 @@ module Datadog
         def initialize(prefix, container_id, external_data, global_tags: [])
           @prefix = prefix
           @prefix_str = prefix.to_s
-          @container_id = container_id
-          @external_data = external_data
           @tag_serializer = TagSerializer.new(global_tags)
           @field_serializer = FieldSerializer.new(container_id, external_data)
         end
