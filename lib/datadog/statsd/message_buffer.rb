@@ -28,8 +28,8 @@ module Datadog
         # Serializes the message if it hasn't been already. Part of the
         # delay_serialization feature.
         if message.is_a?(Array)
-          stat, delta, type, tags, sample_rate = message
-          message = @serializer.to_stat(stat, delta, type, tags: tags, sample_rate: sample_rate)
+          stat, delta, type, tags, sample_rate, cardinality = message
+          message = @serializer.to_stat(stat, delta, type, tags: tags, sample_rate: sample_rate, cardinality: cardinality)
         end
 
         message_size = message.bytesize

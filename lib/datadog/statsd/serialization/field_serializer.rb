@@ -13,8 +13,7 @@ module Datadog
 
         def format(cardinality)
           if @container_id.nil? && @external_data.nil? && cardinality.nil?
-            # Avoid the allocation unless needed.
-            return nil
+            return ""
           end
 
           field = String.new

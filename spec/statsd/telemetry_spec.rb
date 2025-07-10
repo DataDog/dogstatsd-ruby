@@ -2,7 +2,7 @@ require 'spec_helper'
 
 describe Datadog::Statsd::Telemetry do
   subject do
-    described_class.new(2,
+    described_class.new(2, container_id, external_data, cardinality,
       global_tags: global_tags,
       transport_type: :doe
     )
@@ -10,6 +10,18 @@ describe Datadog::Statsd::Telemetry do
 
   let(:global_tags) do
     []
+  end
+
+  let(:container_id) do
+    nil
+  end
+
+  let(:external_data) do
+    nil
+  end
+
+  let(:cardinality) do
+    nil
   end
 
   describe '#would_fit_in?' do
@@ -95,6 +107,51 @@ describe Datadog::Statsd::Telemetry do
         "datadog.dogstatsd.client.packets_dropped:15|c|#client:ruby,client_version:#{Datadog::Statsd::VERSION},client_transport:doe",
         "datadog.dogstatsd.client.packets_dropped_queue:8|c|#client:ruby,client_version:#{Datadog::Statsd::VERSION},client_transport:doe",
         "datadog.dogstatsd.client.packets_dropped_writer:7|c|#client:ruby,client_version:#{Datadog::Statsd::VERSION},client_transport:doe",
+      ]
+    end
+
+    it do
+      skip 'Ruby too old' if RUBY_VERSION < '2.3.0'
+      expect do
+        subject.flush
+      end.to make_allocations(12)
+    end
+  end
+
+  describe 'with origin fields' do
+    before do
+      subject.sent(metrics: 1, events: 2, service_checks: 3, bytes: 4, packets: 5)
+      subject.dropped_writer(bytes: 6, packets: 7)
+      subject.dropped_queue(bytes: 9, packets: 8)
+      subject.flush
+    end
+
+    let(:container_id) do
+      "fc7038bc73a8d3850c66ddbfb0b2901afa378bfcbb942cc384b051767e4ac6b0"
+    end
+
+    let(:external_data) do
+      "it-false,cn-comp-app,pu-abebb16c-c73e-41c9-ba37-4db4e75168ac"
+    end
+
+    let(:cardinality) do
+      "low"
+    end
+
+    it 'serializes the telemetry with origin fields' do
+      fields = "|c:fc7038bc73a8d3850c66ddbfb0b2901afa378bfcbb942cc384b051767e4ac6b0|e:it-false,cn-comp-app,pu-abebb16c-c73e-41c9-ba37-4db4e75168ac|card:low"
+      expect(subject.flush).to eq [
+        "datadog.dogstatsd.client.metrics:1|c|#client:ruby,client_version:#{Datadog::Statsd::VERSION},client_transport:doe#{fields}",
+        "datadog.dogstatsd.client.events:2|c|#client:ruby,client_version:#{Datadog::Statsd::VERSION},client_transport:doe#{fields}",
+        "datadog.dogstatsd.client.service_checks:3|c|#client:ruby,client_version:#{Datadog::Statsd::VERSION},client_transport:doe#{fields}",
+        "datadog.dogstatsd.client.bytes_sent:4|c|#client:ruby,client_version:#{Datadog::Statsd::VERSION},client_transport:doe#{fields}",
+        "datadog.dogstatsd.client.bytes_dropped:15|c|#client:ruby,client_version:#{Datadog::Statsd::VERSION},client_transport:doe#{fields}",
+        "datadog.dogstatsd.client.bytes_dropped_queue:9|c|#client:ruby,client_version:#{Datadog::Statsd::VERSION},client_transport:doe#{fields}",
+        "datadog.dogstatsd.client.bytes_dropped_writer:6|c|#client:ruby,client_version:#{Datadog::Statsd::VERSION},client_transport:doe#{fields}",
+        "datadog.dogstatsd.client.packets_sent:5|c|#client:ruby,client_version:#{Datadog::Statsd::VERSION},client_transport:doe#{fields}",
+        "datadog.dogstatsd.client.packets_dropped:15|c|#client:ruby,client_version:#{Datadog::Statsd::VERSION},client_transport:doe#{fields}",
+        "datadog.dogstatsd.client.packets_dropped_queue:8|c|#client:ruby,client_version:#{Datadog::Statsd::VERSION},client_transport:doe#{fields}",
+        "datadog.dogstatsd.client.packets_dropped_writer:7|c|#client:ruby,client_version:#{Datadog::Statsd::VERSION},client_transport:doe#{fields}",
       ]
     end
 
