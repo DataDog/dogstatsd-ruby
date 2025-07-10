@@ -132,7 +132,7 @@ describe Datadog::Statsd::Serialization::StatSerializer do
       end
 
       it 'adds the tags to the stat correctly' do
-        expect(subject.format('somecount', 42, 'c', tags: message_tags, sample_rate: 0.5)).to eq 'swag.somecount:42|c|@0.5|c:in-23|#globaltag1:value1,msgtag2:value2'
+        expect(subject.format('somecount', 42, 'c', tags: message_tags, sample_rate: 0.5)).to eq 'swag.somecount:42|c|@0.5|#globaltag1:value1,msgtag2:value2|c:in-23'
       end
     end
 
