@@ -4,26 +4,28 @@ module Datadog
   class Statsd
     module Serialization
       class StatSerializer
-        def initialize(prefix, global_tags: [])
+        def initialize(prefix, container_id, external_data, global_tags: [])
           @prefix = prefix
           @prefix_str = prefix.to_s
           @tag_serializer = TagSerializer.new(global_tags)
+          @field_serializer = FieldSerializer.new(container_id, external_data)
         end
 
-        def format(metric_name, delta, type, tags: [], sample_rate: 1)
+        def format(metric_name, delta, type, tags: [], sample_rate: 1, cardinality: nil)
           metric_name = formatted_metric_name(metric_name)
+          fields = field_serializer.format(cardinality)
 
           if sample_rate != 1
             if tags_list = tag_serializer.format(tags)
-              "#{@prefix_str}#{metric_name}:#{delta}|#{type}|@#{sample_rate}|##{tags_list}"
+              "#{@prefix_str}#{metric_name}:#{delta}|#{type}|@#{sample_rate}|##{tags_list}#{fields}"
             else
-              "#{@prefix_str}#{metric_name}:#{delta}|#{type}|@#{sample_rate}"
+              "#{@prefix_str}#{metric_name}:#{delta}|#{type}|@#{sample_rate}#{fields}"
             end
           else
             if tags_list = tag_serializer.format(tags)
-              "#{@prefix_str}#{metric_name}:#{delta}|#{type}|##{tags_list}"
+              "#{@prefix_str}#{metric_name}:#{delta}|#{type}|##{tags_list}#{fields}"
             else
-              "#{@prefix_str}#{metric_name}:#{delta}|#{type}"
+              "#{@prefix_str}#{metric_name}:#{delta}|#{type}#{fields}"
             end
           end
         end
@@ -36,6 +38,7 @@ module Datadog
 
         attr_reader :prefix
         attr_reader :tag_serializer
+        attr_reader :field_serializer
 
         if RUBY_VERSION < '3'
           def metric_name_to_string(metric_name)

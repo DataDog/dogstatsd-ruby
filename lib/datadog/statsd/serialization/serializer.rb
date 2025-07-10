@@ -6,15 +6,15 @@ module Datadog
   class Statsd
     module Serialization
       class Serializer
-        def initialize(prefix: nil, global_tags: [])
-          @stat_serializer = StatSerializer.new(prefix, global_tags: global_tags)
-          @service_check_serializer = ServiceCheckSerializer.new(global_tags: global_tags)
-          @event_serializer = EventSerializer.new(global_tags: global_tags)
+        def initialize(prefix: nil, container_id: nil, external_data: nil, global_tags: [])
+          @stat_serializer = StatSerializer.new(prefix, container_id, external_data, global_tags: global_tags)
+          @service_check_serializer = ServiceCheckSerializer.new(container_id, external_data, global_tags: global_tags)
+          @event_serializer = EventSerializer.new(container_id, external_data, global_tags: global_tags)
         end
 
         # using *args would make new allocations
-        def to_stat(name, delta, type, tags: [], sample_rate: 1)
-          stat_serializer.format(name, delta, type, tags: tags, sample_rate: sample_rate)
+        def to_stat(name, delta, type, tags: [], sample_rate: 1, cardinality: nil)
+          stat_serializer.format(name, delta, type, tags: tags, sample_rate: sample_rate, cardinality: cardinality)
         end
 
         # using *args would make new allocations

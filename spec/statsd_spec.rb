@@ -10,6 +10,9 @@ describe Datadog::Statsd do
       tags: tags,
       logger: logger,
       telemetry_flush_interval: -1,
+      # Only turn off origin detection for linux, other
+      # platforms should work as before even with it enabled.
+      origin_detection: !RUBY_PLATFORM.include?("linux"),
     )
   end
 

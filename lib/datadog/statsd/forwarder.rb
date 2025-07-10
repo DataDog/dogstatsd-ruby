@@ -22,6 +22,9 @@ module Datadog
         single_thread: false,
 
         logger: nil,
+        container_id: nil,
+        external_data: nil,
+        cardinality: nil,
 
         serializer:
       )
@@ -29,6 +32,9 @@ module Datadog
 
         @telemetry = if telemetry_flush_interval
           Telemetry.new(telemetry_flush_interval,
+            container_id,
+            external_data,
+            cardinality,
             global_tags: global_tags,
             transport_type: @transport_type
           )

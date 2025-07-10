@@ -19,7 +19,7 @@ module Datadog
       # Rough estimation of maximum telemetry message size without tags
       MAX_TELEMETRY_MESSAGE_SIZE_WT_TAGS = 50 # bytes
 
-      def initialize(flush_interval, global_tags: [], transport_type: :udp)
+      def initialize(flush_interval, container_id, external_data, cardinality, global_tags: [], transport_type: :udp)
         @flush_interval = flush_interval
         @global_tags = global_tags
         @transport_type = transport_type
@@ -32,6 +32,11 @@ module Datadog
           client_version: VERSION,
           client_transport: transport_type,
         ).format(global_tags)
+
+        @serialized_fields = Serialization::FieldSerializer.new(
+          container_id,
+          external_data
+        ).format(cardinality)
       end
 
       def would_fit_in?(max_buffer_payload_size)
@@ -98,9 +103,10 @@ module Datadog
 
       private
       attr_reader :serialized_tags
+      attr_reader :serialized_fields
 
       def pattern
-        @pattern ||= "datadog.dogstatsd.client.%s:%d|#{COUNTER_TYPE}|##{serialized_tags}"
+        @pattern ||= "datadog.dogstatsd.client.%s:%d|#{COUNTER_TYPE}|##{serialized_tags}#{serialized_fields}"
       end
 
       if Kernel.const_defined?('Process') && Process.respond_to?(:clock_gettime)

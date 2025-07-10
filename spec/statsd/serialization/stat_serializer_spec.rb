@@ -2,7 +2,15 @@ require 'spec_helper'
 
 describe Datadog::Statsd::Serialization::StatSerializer do
   subject do
-    described_class.new(prefix, global_tags: global_tags)
+    described_class.new(prefix, container_id, external_data, global_tags: global_tags)
+  end
+
+  let(:external_data) do
+    nil
+  end
+
+  let(:container_id) do
+    nil
   end
 
   let(:prefix) do
@@ -93,6 +101,51 @@ describe Datadog::Statsd::Serialization::StatSerializer do
       end
     end
 
+    context 'when having a container id' do
+      let(:container_id) do
+        'in-23'
+      end
+
+      it 'adds the container id field correctly' do
+        expect(subject.format('somecount', 42, 'c')).to eq 'somecount:42|c|c:in-23'
+      end
+    end
+
+    context 'when having a prefix, tags, sample_rate and container id' do
+      let(:prefix) do
+        'swag.'
+      end
+
+      let(:message_tags) do
+        double('message tags')
+      end
+
+      let(:container_id) do
+        'in-23'
+      end
+
+      before do
+        allow(tag_serializer)
+          .to receive(:format)
+          .with(message_tags)
+          .and_return('globaltag1:value1,msgtag2:value2')
+      end
+
+      it 'adds the tags to the stat correctly' do
+        expect(subject.format('somecount', 42, 'c', tags: message_tags, sample_rate: 0.5)).to eq 'swag.somecount:42|c|@0.5|#globaltag1:value1,msgtag2:value2|c:in-23'
+      end
+    end
+
+    context 'when having external data' do
+      let(:external_data) do
+        'cn-SomeKindOfContainerName'
+      end
+
+      it 'adds the external data field correctly' do
+        expect(subject.format('somecount', 42, 'c')).to eq 'somecount:42|c|e:cn-SomeKindOfContainerName'
+      end
+    end
+
     context "metric name contains unsupported characters" do
       it 'does not alter the provided metric name when containing ::' do
         input = 'somecount::test'
@@ -106,6 +159,21 @@ describe Datadog::Statsd::Serialization::StatSerializer do
         output = subject.format(input, 1, 'c')
         expect(output).to eq 'somecount___test:1|c'
         expect(input).to eq 'somecount:|@test'
+      end
+    end
+
+    context 'when having cardinality' do
+      it 'adds the cardinality field correctly' do
+        expect(subject.format('somecount', 42, 'c', cardinality: :high)).to eq 'somecount:42|c|card:high'
+        expect(subject.format('somecount', 42, 'c', cardinality: 'none')).to eq 'somecount:42|c|card:none'
+      end
+
+      it 'validates the cardinality is correct' do
+        expect {
+          subject.format('somecount', 42, 'c', cardinality: :potato)
+        }.to raise_error(ArgumentError) do |e|
+          expect(e.message).to eq 'Invalid cardinality potato. Valid options are none, low, orchestrator, high.'
+        end
       end
     end
 

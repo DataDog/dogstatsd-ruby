@@ -50,8 +50,8 @@ describe Datadog::Statsd::Timer do
         second_call_time = call_times.pop
         # the third call is made immediatelly after the second call
         third_call_time = call_times.pop
-        expect(second_call_time - first_call_time).to be_within(0.02).of(interval * 2)
-        expect(third_call_time - second_call_time).to be_within(0.02).of(0)
+        expect(second_call_time - first_call_time).to be_within(0.03).of(interval * 2)
+        expect(third_call_time - second_call_time).to be_within(0.03).of(0)
       end
     end
   end

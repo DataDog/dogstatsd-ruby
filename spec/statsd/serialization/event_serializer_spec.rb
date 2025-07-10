@@ -2,7 +2,15 @@ require 'spec_helper'
 
 describe Datadog::Statsd::Serialization::EventSerializer do
   subject do
-    described_class.new(global_tags: global_tags)
+    described_class.new(container_id, external_data, global_tags: global_tags)
+  end
+
+  let(:external_data) do
+    nil
+  end
+
+  let(:container_id) do
+    nil
   end
 
   let(:global_tags) do
@@ -142,6 +150,22 @@ describe Datadog::Statsd::Serialization::EventSerializer do
       it 'adds the tags to the event correctly' do
         expect(subject.format('this is a title', 'this is a longer text', tags: message_tags))
           .to eq '_e{15,21}:this is a title|this is a longer text|#globaltag1:value1,msgtag2:value2'
+      end
+    end
+
+    context 'when having a container id' do
+      let(:container_id) do
+        'in-23'
+      end
+
+      it 'adds the container id field correctly' do
+        expect(subject.format('this is a title', 'this is a longer text'))
+          .to eq '_e{15,21}:this is a title|this is a longer text|c:in-23'
+      end
+
+      it 'adds the cardinality field correctly' do
+        expect(subject.format('this is a title', 'this is a longer text', cardinality: :low))
+          .to eq '_e{15,21}:this is a title|this is a longer text|c:in-23|card:low'
       end
     end
 
