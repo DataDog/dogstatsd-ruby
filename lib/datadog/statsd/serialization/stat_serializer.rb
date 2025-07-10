@@ -17,7 +17,7 @@ module Datadog
 
           if sample_rate != 1
             if tags_list = tag_serializer.format(tags)
-              "#{@prefix_str}#{metric_name}:#{delta}|#{type}|@#{sample_rate}#{fields}|##{tags_list}"
+              "#{@prefix_str}#{metric_name}:#{delta}|#{type}|@#{sample_rate}|##{tags_list}#{fields}"
             else
               "#{@prefix_str}#{metric_name}:#{delta}|#{type}|@#{sample_rate}#{fields}"
             end
