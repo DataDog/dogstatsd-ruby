@@ -91,7 +91,29 @@ statsd = Datadog::Statsd.new('localhost', 8125, single_thread: true)
 statsd.close()
 ```
 
-### Origin detection over UDP
+### Origin detection in Kubernetes
+
+Origin detection is a method to detect the pod that DogStatsD packets are coming from and add the pod's tags to the tag list.
+
+#### Tag cardinality
+
+The tags that can be added to metrics can be found [here][tags]. The cardinality can be specified globally by setting the `DD_CARDINALITY`
+environment or by passing a `'cardinality'` field to the constructor. Cardinality can also be specified per metric by passing the value
+in the `cardinality:` option. Valid values for this parameter are `:none`, `:low`, `:orchestrator` or `:high`. If an invalid 
+value is passed, an `ArgumentError` is raised.
+
+Origin detection is achieved in a number of ways:
+
+#### CGroups
+
+On Linux the container ID can be extracted from `procfs` entries related to `cgroups`. The client reads from `/proc/self/cgroup` or 
+`/proc/self/mountinfo` to attempt to parse the container id.
+
+In cgroup v2, the container ID can be inferred by resolving the cgroup path from `/proc/self/cgroup`, combining it with the cgroup 
+mount point from `/proc/self/mountinfo]`. The resulting directory's inode is sent to the agent. Provided the agent is on the same 
+node as the client, this can be used to identify the pod's UID.
+
+### Over UDP
 
 Origin detection is a method to detect which pod DogStatsD packets are coming from, in order to add the pod's tags to the tag list.
 
@@ -105,7 +127,20 @@ env:
         fieldPath: metadata.uid
 ```
 
-The DogStatsD client attaches an internal tag, `entity_id`. The value of this tag is the content of the `DD_ENTITY_ID` environment variable, which is the pod’s UID.
+The DogStatsD client attaches an internal tag, `entity_id`. The value of this tag is the content of the `DD_ENTITY_ID` environment
+variable, which is the pod’s UID.
+
+#### DD_EXTERNAL_ENV
+
+If the pod is annotated with the label:
+
+```
+admission.datadoghq.com/enabled: "true"
+```
+
+The [admissions controller] injects an environment variable `DD_EXTERNAL_ENV`. The value of this is sent in a field with the
+metric which can be used by the agent to determine the metrics origin.
+
 
 ## Usage
 
@@ -235,3 +270,6 @@ dogstatsd-ruby is forked from Rein Henrichs' [original Statsd client](https://gi
 
 Copyright (c) 2011 Rein Henrichs. See LICENSE.txt for
 further details.
+
+[admissions controller]: https://docs.datadoghq.com/containers/cluster_agent/admission_controller/?tab=datadogoperator
+[tags]: https://docs.datadoghq.com/containers/kubernetes/tag/?tab=datadogoperator
