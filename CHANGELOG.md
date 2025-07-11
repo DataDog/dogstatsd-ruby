@@ -2,7 +2,7 @@
 
 [//]: # (comment: Don't forget to update lib/datadog/statsd/version.rb:DogStatsd::Statsd::VERSION when releasing a new version)
 
-## 5.7.0 / Unreleased
+## 5.7.0 / 2025.07.11 
 
   * [FEATURE] Added origin detection via CGroups or `DD_EXTERNAL_ENV`. Cardinality can be specified
     with a cardinality parameter. [#310][] by [@StephenWakely][]
