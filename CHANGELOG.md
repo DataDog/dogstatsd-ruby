@@ -2,6 +2,11 @@
 
 [//]: # (comment: Don't forget to update lib/datadog/statsd/version.rb:DogStatsd::Statsd::VERSION when releasing a new version)
 
+## 5.7.0 / Unreleased
+
+  * [FEATURE] Added origin detection via CGroups or `DD_EXTERNAL_ENV`. Cardinality can be specified
+    with a cardinality parameter. [#310][] by [@StephenWakely][]
+
 ## 5.6.6 / 2025.03.19
 
   * [OTHER] Rescue ThreadError when creating SenderThread. [#306][] by [@mperham][]
@@ -493,6 +498,7 @@ Future versions are likely to introduce backward incompatibilities with < Ruby 1
 [#301]: https://github.com/DataDog/dogstatsd-ruby/issues/301
 [#303]: https://github.com/DataDog/dogstatsd-ruby/issues/303
 [#306]: https://github.com/DataDog/dogstatsd-ruby/issues/306
+[#310]: https://github.com/DataDog/dogstatsd-ruby/issues/310
 [@AMekss]: https://github.com/AMekss
 [@abicky]: https://github.com/abicky
 [@adimitrov]: https://github.com/adimitrov
@@ -541,3 +547,4 @@ Future versions are likely to introduce backward incompatibilities with < Ruby 1
 [@zachmccormick]: https://github.com/zachmccormick
 [@pudiva]: https://github.com/pudiva
 [@BlakeWilliams]: https://github.com/BlakeWilliams
+[@StephenWakely]: https://github.com/StephenWakely
