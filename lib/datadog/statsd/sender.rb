@@ -104,6 +104,8 @@ module Datadog
           # start background thread
           @sender_thread = @thread_class.new(&method(:send_loop))
           @sender_thread.name = "Statsd Sender" unless Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.3')
+          # advise multi-threaded app servers to ignore this thread for the purposes of fork safety warnings
+          @sender_thread.thread_variable_set(:fork_safe, true)
         rescue ThreadError => e
           @logger.debug { "Statsd: Failed to start sender thread: #{e.message}" } if @logger
           @mx.synchronize { @done = true }
