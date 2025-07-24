@@ -48,6 +48,13 @@ describe Datadog::Statsd::Sender do
           |thds| thds.any? { |t| t.name == "Statsd Sender" }
         }
       end
+
+      it 'marks the sender thread as fork safe' do
+        subject.start
+        expect(Thread.list).to satisfy {
+          |thds| thds.any? { |t| t.thread_variable_get(:fork_safe) }
+        }
+      end
     end
 
     context 'when the sender is started' do
@@ -204,9 +211,9 @@ describe Datadog::Statsd::Sender do
 
         let(:thread_class) do
           if Thread.instance_methods.include?(:name=)
-            fake_thread = instance_double(Thread, { "alive?" => true, "name=" => true, "join" => true })
+            fake_thread = instance_double(Thread, { "alive?" => true, "name=" => true, "join" => true, "thread_variable_set" => true })
           else
-            fake_thread = instance_double(Thread, { "alive?" => true, "join" => true })
+            fake_thread = instance_double(Thread, { "alive?" => true, "join" => true, "thread_variable_set" => true })
           end
           class_double(Thread, new: fake_thread)
         end
