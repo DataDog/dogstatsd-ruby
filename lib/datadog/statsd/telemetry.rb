@@ -40,7 +40,7 @@ module Datadog
       end
 
       def would_fit_in?(max_buffer_payload_size)
-        MAX_TELEMETRY_MESSAGE_SIZE_WT_TAGS + serialized_tags.size < max_buffer_payload_size
+        MAX_TELEMETRY_MESSAGE_SIZE_WT_TAGS + serialized_tags.size + serialized_fields.size < max_buffer_payload_size
       end
 
       def reset
