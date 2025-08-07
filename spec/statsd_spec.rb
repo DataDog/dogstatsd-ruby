@@ -10,12 +10,12 @@ describe Datadog::Statsd do
       tags: tags,
       logger: logger,
       telemetry_flush_interval: -1,
-      # Only turn off origin detection for linux, other
-      # platforms should work as before even with it enabled.
-      origin_detection: !RUBY_PLATFORM.include?("linux"),
+      origin_detection: origin_detection,
+      container_id: container_id,
     )
   end
 
+  let(:container_id) { nil }
   let(:namespace) { 'sample_ns' }
   let(:sample_rate) { nil }
   let(:tags) { %w[abc def] }
@@ -25,6 +25,11 @@ describe Datadog::Statsd do
     end
   end
   let(:log) { StringIO.new }
+  let(:origin_detection) do
+      # Only turn off origin detection for linux, other
+      # platforms should work as before even with it enabled.
+      !RUBY_PLATFORM.include?("linux")
+  end
 
   before do
     allow(Socket).to receive(:new).and_return(socket)
@@ -1293,6 +1298,46 @@ describe Datadog::Statsd do
       subject.flush(sync: true)
 
       expect(socket.recv[0]).to eq_with_telemetry 'stat:1|c|#yolo'
+    end
+  end
+
+  describe 'External env' do
+    let(:tags) { nil }
+
+    before do
+      ENV['DD_EXTERNAL_ENV'] = 'it-false,cn-nginx-webserver,pu-75a2b6d5-3949-4afb-ad0d-92ff0674e759'
+    end
+
+    context 'with origin detection configured on' do
+      let(:origin_detection) { true }
+      let(:container_id) { "container" }
+
+      it 'outputs the external env value' do
+        subject.gauge('thing', 42)
+        subject.flush(sync: true)
+
+        # With the lengthy external env being included in the telemetry payload, we send multiple payloads
+        # and need to capture them all.
+        packets = []
+        while (packet = socket.recv)
+          packets << packet[0]
+        end
+        combined_message = packets.join("\n")
+
+        expect(combined_message).to eq_with_telemetry('sample_ns.thing:42|g|c:container|e:it-false,cn-nginx-webserver,pu-75a2b6d5-3949-4afb-ad0d-92ff0674e759',
+                                                      container: 'container', external_env: 'it-false,cn-nginx-webserver,pu-75a2b6d5-3949-4afb-ad0d-92ff0674e759') 
+      end
+    end
+
+    context 'with origin detection configured off' do
+      let(:origin_detection) { false }
+
+      it 'does not output the external env value' do
+        subject.gauge('thing', 42)
+        subject.flush(sync: true)
+
+        expect(socket.recv[0]).to eq_with_telemetry 'sample_ns.thing:42|g'
+      end
     end
   end
 end

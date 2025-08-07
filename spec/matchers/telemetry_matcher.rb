@@ -16,20 +16,24 @@ RSpec::Matchers.define :eq_with_telemetry do |expected_message, telemetry_option
                     packets_dropped: 0,
                     packets_dropped_queue: 0,
                     packets_dropped_writer: 0,
-                    transport: 'udp')
+                    transport: 'udp',
+                    external_env: '',
+                    container: '')
+    external_env = "|e:#{external_env}" unless external_env.empty?
+    container = "|c:#{container}" unless container.empty?
     [
       text,
-      "datadog.dogstatsd.client.metrics:#{metrics}|c|#client:ruby,client_version:#{Datadog::Statsd::VERSION},client_transport:#{transport}",
-      "datadog.dogstatsd.client.events:#{events}|c|#client:ruby,client_version:#{Datadog::Statsd::VERSION},client_transport:#{transport}",
-      "datadog.dogstatsd.client.service_checks:#{service_checks}|c|#client:ruby,client_version:#{Datadog::Statsd::VERSION},client_transport:#{transport}",
-      "datadog.dogstatsd.client.bytes_sent:#{bytes_sent}|c|#client:ruby,client_version:#{Datadog::Statsd::VERSION},client_transport:#{transport}",
-      "datadog.dogstatsd.client.bytes_dropped:#{bytes_dropped}|c|#client:ruby,client_version:#{Datadog::Statsd::VERSION},client_transport:#{transport}",
-      "datadog.dogstatsd.client.bytes_dropped_queue:#{bytes_dropped_queue}|c|#client:ruby,client_version:#{Datadog::Statsd::VERSION},client_transport:#{transport}",
-      "datadog.dogstatsd.client.bytes_dropped_writer:#{bytes_dropped_writer}|c|#client:ruby,client_version:#{Datadog::Statsd::VERSION},client_transport:#{transport}",
-      "datadog.dogstatsd.client.packets_sent:#{packets_sent}|c|#client:ruby,client_version:#{Datadog::Statsd::VERSION},client_transport:#{transport}",
-      "datadog.dogstatsd.client.packets_dropped:#{packets_dropped}|c|#client:ruby,client_version:#{Datadog::Statsd::VERSION},client_transport:#{transport}",
-      "datadog.dogstatsd.client.packets_dropped_queue:#{packets_dropped_queue}|c|#client:ruby,client_version:#{Datadog::Statsd::VERSION},client_transport:#{transport}",
-      "datadog.dogstatsd.client.packets_dropped_writer:#{packets_dropped_writer}|c|#client:ruby,client_version:#{Datadog::Statsd::VERSION},client_transport:#{transport}",
+      "datadog.dogstatsd.client.metrics:#{metrics}|c|#client:ruby,client_version:#{Datadog::Statsd::VERSION},client_transport:#{transport}#{container}#{external_env}",
+      "datadog.dogstatsd.client.events:#{events}|c|#client:ruby,client_version:#{Datadog::Statsd::VERSION},client_transport:#{transport}#{container}#{external_env}",
+      "datadog.dogstatsd.client.service_checks:#{service_checks}|c|#client:ruby,client_version:#{Datadog::Statsd::VERSION},client_transport:#{transport}#{container}#{external_env}",
+      "datadog.dogstatsd.client.bytes_sent:#{bytes_sent}|c|#client:ruby,client_version:#{Datadog::Statsd::VERSION},client_transport:#{transport}#{container}#{external_env}",
+      "datadog.dogstatsd.client.bytes_dropped:#{bytes_dropped}|c|#client:ruby,client_version:#{Datadog::Statsd::VERSION},client_transport:#{transport}#{container}#{external_env}",
+      "datadog.dogstatsd.client.bytes_dropped_queue:#{bytes_dropped_queue}|c|#client:ruby,client_version:#{Datadog::Statsd::VERSION},client_transport:#{transport}#{container}#{external_env}",
+      "datadog.dogstatsd.client.bytes_dropped_writer:#{bytes_dropped_writer}|c|#client:ruby,client_version:#{Datadog::Statsd::VERSION},client_transport:#{transport}#{container}#{external_env}",
+      "datadog.dogstatsd.client.packets_sent:#{packets_sent}|c|#client:ruby,client_version:#{Datadog::Statsd::VERSION},client_transport:#{transport}#{container}#{external_env}",
+      "datadog.dogstatsd.client.packets_dropped:#{packets_dropped}|c|#client:ruby,client_version:#{Datadog::Statsd::VERSION},client_transport:#{transport}#{container}#{external_env}",
+      "datadog.dogstatsd.client.packets_dropped_queue:#{packets_dropped_queue}|c|#client:ruby,client_version:#{Datadog::Statsd::VERSION},client_transport:#{transport}#{container}#{external_env}",
+      "datadog.dogstatsd.client.packets_dropped_writer:#{packets_dropped_writer}|c|#client:ruby,client_version:#{Datadog::Statsd::VERSION},client_transport:#{transport}#{container}#{external_env}",
     ].join("\n")
   end
 

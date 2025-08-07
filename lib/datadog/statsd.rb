@@ -124,7 +124,7 @@ module Datadog
       origin_detection_enabled = origin_detection_enabled?(origin_detection)
       container_id = get_container_id(container_id, origin_detection_enabled)
 
-      external_data = sanitize(ENV['DD_EXTERNAL_ENV'])
+      external_data = sanitize(ENV['DD_EXTERNAL_ENV']) if origin_detection_enabled
 
       @serializer = Serialization::Serializer.new(prefix: @prefix,
                                                   container_id: container_id,
