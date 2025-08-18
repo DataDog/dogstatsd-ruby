@@ -109,6 +109,7 @@ module Datadog
 
       telemetry_enable: true,
       telemetry_flush_interval: DEFAULT_TELEMETRY_FLUSH_INTERVAL,
+      telemetry_tags: nil,
 
       origin_detection: true,
       container_id: nil,
@@ -157,6 +158,7 @@ module Datadog
         sender_queue_size: sender_queue_size,
 
         telemetry_flush_interval: telemetry_enable ? telemetry_flush_interval : nil,
+        telemetry_tags: telemetry_tags,
         container_id: container_id,
         external_data: external_data,
         cardinality: @cardinality,
