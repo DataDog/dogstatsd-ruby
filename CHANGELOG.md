@@ -2,6 +2,11 @@
 
 [//]: # (comment: Don't forget to update lib/datadog/statsd/version.rb:DogStatsd::Statsd::VERSION when releasing a new version)
 
+
+## 5.7.1 / Unreleased
+
+  * [IMPROVEMENT] Suppress external env if origin detection is configured off. [#316][] by [@StephenWakely][]
+
 ## 5.7.0 / 2025.07.11 
 
   * [FEATURE] Added origin detection via CGroups or `DD_EXTERNAL_ENV`. Cardinality can be specified
@@ -499,6 +504,7 @@ Future versions are likely to introduce backward incompatibilities with < Ruby 1
 [#303]: https://github.com/DataDog/dogstatsd-ruby/issues/303
 [#306]: https://github.com/DataDog/dogstatsd-ruby/issues/306
 [#310]: https://github.com/DataDog/dogstatsd-ruby/issues/310
+[#316]: https://github.com/DataDog/dogstatsd-ruby/pull/316
 [@AMekss]: https://github.com/AMekss
 [@abicky]: https://github.com/abicky
 [@adimitrov]: https://github.com/adimitrov
