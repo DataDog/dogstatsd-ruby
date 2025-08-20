@@ -3,7 +3,7 @@
 [//]: # (comment: Don't forget to update lib/datadog/statsd/version.rb:DogStatsd::Statsd::VERSION when releasing a new version)
 
 
-## 5.7.1 / Unreleased
+## 5.7.1 / 2025.08.20
 
   * [IMPROVEMENT] Suppress external env if origin detection is configured off. [#316][] by [@StephenWakely][]
 
