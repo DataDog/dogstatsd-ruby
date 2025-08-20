@@ -17,6 +17,8 @@ module Datadog
         sender_queue_size: nil,
 
         telemetry_flush_interval: nil,
+        telemetry_tags: [],
+
         global_tags: [],
 
         single_thread: false,
@@ -35,7 +37,7 @@ module Datadog
             container_id,
             external_data,
             cardinality,
-            global_tags: global_tags,
+            global_tags: global_tags + telemetry_tags,
             transport_type: @transport_type
           )
         else
