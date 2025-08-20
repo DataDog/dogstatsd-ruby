@@ -154,10 +154,24 @@ describe Datadog::Statsd::Serialization::TagSerializer do
     end
 
     context '[testing management of env vars]' do
-      context 'when testing DD_TAGS' do
+      context 'when testing DD_TAGS with commas' do
         around do |example|
           ClimateControl.modify(
             'DD_TAGS' => 'ghi,team:qa'
+          ) do
+            example.run
+          end
+        end
+
+        it 'correctly adds individual tags' do
+          expect(subject.format([])).to eq 'ghi,team:qa'
+        end
+      end
+
+      context 'when testing DD_TAGS with spaces' do
+        around do |example|
+          ClimateControl.modify(
+            'DD_TAGS' => 'ghi team:qa'
           ) do
             example.run
           end

@@ -86,7 +86,7 @@ describe Datadog::Statsd do
           'DD_ENV' => 'staging',
           'DD_SERVICE' => 'billing-service',
           'DD_VERSION' => '0.1.0-alpha',
-          'DD_TAGS' => 'ghi,team:qa'
+          'DD_TAGS' => 'ghi team:qa'
         ) do
           example.run
         end
