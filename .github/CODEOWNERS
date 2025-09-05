@@ -4,6 +4,3 @@
 
 # All files reviwed by maintainers
 *                     @DataDog/agent-metric-pipelines
-
-# Documentation includes docs team
-*.md                  @DataDog/documentation
