@@ -3,6 +3,8 @@
 module Datadog
   class Statsd
     class Connection
+      class RetryableError < StandardError; end
+
       def initialize(telemetry: nil, logger: nil)
         @telemetry = telemetry
         @logger = logger
@@ -25,7 +27,8 @@ module Datadog
         # Try once to reconnect if the socket has been closed
         retries ||= 1
         if retries <= 1 &&
-          (boom.is_a?(Errno::ENOTCONN) or
+          (boom.is_a?(RetryableError) or
+           boom.is_a?(Errno::ENOTCONN) or
            boom.is_a?(Errno::ECONNREFUSED) or
            boom.is_a?(IOError) && boom.message =~ /closed stream/i)
           retries += 1
