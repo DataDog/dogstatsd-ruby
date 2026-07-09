@@ -113,14 +113,16 @@ describe Datadog::Statsd::UDSConnection do
       let(:fake_socket) do
         instance_double(Socket,
           connect: true,
-          sendmsg_nonblock: true
+          sendmsg_nonblock: true,
+          close: true
         )
       end
 
       let(:fake_socket_retry) do
         instance_double(Socket,
           connect: true,
-          sendmsg_nonblock: true
+          sendmsg_nonblock: true,
+          close: true
         )
       end
 
@@ -140,32 +142,23 @@ describe Datadog::Statsd::UDSConnection do
             subject.write('foobar')
           end
 
-          it 'retries on the second opened socket' # do
-          #   expect(fake_socket_retry)
-          #     .to receive(:sendmsg_nonblock)
-          #     .with('foobar')
-
-          #   subject.write('foobar')
-          # end
-
-          # FIXME: BadSocketError is not correctly caught by Connection class to retry
-          it 'does not correctly retry (1)' do
-            expect(Socket)
-              .to receive(:new)
-              .once
+          it 'retries on the second opened socket' do
+            expect(fake_socket_retry)
+              .to receive(:sendmsg_nonblock)
+              .with('foobar')
 
             subject.write('foobar')
           end
 
-          it 'does not correctly retry (2)' do
-            subject.write('foobar')
+          it 'closes the original socket before reconnecting' do
+            expect(fake_socket).to receive(:close)
 
-            expect(log.string).to match 'Statsd: Datadog::Statsd::UDSConnection::BadSocketError Errno::ECONNRESET: Connection reset by peer'
+            subject.write('foobar')
           end
 
-          it 'updates the "dropped_writer" telemetry counts' do
+          it 'updates the "sent" telemetry counts' do
             expect(telemetry)
-              .to receive(:dropped_writer)
+              .to receive(:sent)
               .with(bytes: 4, packets: 1)
 
             subject.write('test')
@@ -186,8 +179,7 @@ describe Datadog::Statsd::UDSConnection do
               end.not_to raise_error
             end
 
-            # the mecanism to retry is broken, once it's fixed, this test should pass
-            it 'logs the error message', pending: true do
+            it 'logs the error message' do
               subject.write('foobar')
               expect(log.string).to match 'Statsd: RuntimeError yolo'
             end
@@ -214,8 +206,7 @@ describe Datadog::Statsd::UDSConnection do
               end.not_to raise_error
             end
 
-            # the mecanism to retry is broken, once it's fixed, this test should pass
-            it 'logs the error message', pending: true do
+            it 'logs the error message' do
               subject.write('foobar')
               expect(log.string).to match 'Statsd: SocketError yolo'
             end
@@ -247,31 +238,23 @@ describe Datadog::Statsd::UDSConnection do
             subject.write('foobar')
           end
 
-          it 'retries on the second opened socket' # do
-          #   expect(fake_socket_retry)
-          #     .to receive(:sendmsg_nonblock)
-          #     .with('foobar')
-
-          #   subject.write('foobar')
-          # end
-
-          # FIXME: BadSocketError is not correctly caught by Connection class to retry
-          it 'does not correctly retry (1)' do
+          it 'retries on the second opened socket' do
             expect(fake_socket_retry)
-              .not_to receive(:sendmsg_nonblock)
+              .to receive(:sendmsg_nonblock)
+              .with('foobar')
 
             subject.write('foobar')
           end
 
-          it 'does not correctly retry (2)' do
-            subject.write('foobar')
+          it 'closes the original socket before reconnecting' do
+            expect(fake_socket).to receive(:close)
 
-            expect(log.string).to match 'Statsd: Datadog::Statsd::UDSConnection::BadSocketError Errno::ECONNREFUSED: Connection refused - closed stream'
+            subject.write('foobar')
           end
 
-          it 'updates the "dropped_writer" telemetry counts' do
+          it 'updates the "sent" telemetry counts' do
             expect(telemetry)
-              .to receive(:dropped_writer)
+              .to receive(:sent)
               .with(bytes: 4, packets: 1)
 
             subject.write('test')
@@ -292,8 +275,7 @@ describe Datadog::Statsd::UDSConnection do
               end.not_to raise_error
             end
 
-            # the mecanism to retry is broken, once it's fixed, this test should pass
-            it 'logs the error message', pending: true do
+            it 'logs the error message' do
               subject.write('foobar')
               expect(log.string).to match 'Statsd: RuntimeError yolo'
             end
@@ -320,10 +302,9 @@ describe Datadog::Statsd::UDSConnection do
               end.not_to raise_error
             end
 
-            # the mecanism to retry is broken, once it's fixed, this test should pass
-            it 'logs the error message', pending: true do
+            it 'logs the error message' do
               subject.write('foobar')
-              expect(log.string).to match 'Errno::ECONNREFUSED Connection refused - yolo'
+              expect(log.string).to match 'Statsd: Datadog::Statsd::UDSConnection::BadSocketError Errno::ECONNREFUSED: Connection refused - yolo'
             end
 
             it 'updates the "dropped_writer" telemetry counts' do
@@ -337,47 +318,72 @@ describe Datadog::Statsd::UDSConnection do
         end
       end
 
-      context 'when there is no socket (drop strategy)' do
+      context 'when the socket file is missing (retry strategy)' do
         before do
           allow(fake_socket)
             .to receive(:sendmsg_nonblock)
             .and_raise(Errno::ENOENT)
         end
 
-        it 'sends using the first socket' do
-          expect(fake_socket)
-            .to receive(:sendmsg_nonblock)
-            .with('foobar')
+        context 'when retrying is working' do
+          it 'tries with the initial socket' do
+            expect(fake_socket)
+              .to receive(:sendmsg_nonblock)
+              .with('foobar')
 
-          subject.write('foobar')
-        end
-
-        it 'ignores the writing failure (message dropped)' do
-          expect do
             subject.write('foobar')
-          end.not_to raise_error
+          end
+
+          it 'retries on the second opened socket' do
+            expect(fake_socket_retry)
+              .to receive(:sendmsg_nonblock)
+              .with('foobar')
+
+            subject.write('foobar')
+          end
+
+          it 'closes the original socket before reconnecting' do
+            expect(fake_socket).to receive(:close)
+
+            subject.write('foobar')
+          end
+
+          it 'updates the "sent" telemetry counts' do
+            expect(telemetry)
+              .to receive(:sent)
+              .with(bytes: 4, packets: 1)
+
+            subject.write('test')
+          end
         end
 
-        it 'does not retry to send message' do
-          expect(fake_socket_retry)
-            .not_to receive(:sendmsg_nonblock)
+        context 'when retrying fails' do
+          context 'because the socket file is still missing' do
+            before do
+              allow(fake_socket_retry)
+                .to receive(:sendmsg_nonblock)
+                .and_raise(Errno::ENOENT)
+            end
 
-          subject.write('foobar')
-        end
+            it 'ignores the connection failure' do
+              expect do
+                subject.write('foobar')
+              end.not_to raise_error
+            end
 
-        # TODO: FIXME: we got to exclude the Errno::ENOENT for the retry strategy
-        it 'logs the error message', pending: true do
-          subject.write('foobar')
+            it 'logs the error message' do
+              subject.write('foobar')
+              expect(log.string).to match 'Statsd: Datadog::Statsd::UDSConnection::BadSocketError Errno::ENOENT: No such file or directory'
+            end
 
-          expect(log.string).to match 'Statsd: Errno::ENOENT No such file or directory'
-        end
+            it 'updates the "dropped_writer" telemetry counts' do
+              expect(telemetry)
+                .to receive(:dropped_writer)
+                .with(bytes: 4, packets: 1)
 
-        it 'updates the "dropped_writer" telemetry counts' do
-          expect(telemetry)
-            .to receive(:dropped_writer)
-            .with(bytes: 4, packets: 1)
-
-          subject.write('test')
+              subject.write('test')
+            end
+          end
         end
       end
 
