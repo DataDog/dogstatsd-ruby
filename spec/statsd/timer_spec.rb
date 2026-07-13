@@ -54,6 +54,12 @@ describe Datadog::Statsd::Timer do
         expect(third_call_time - second_call_time).to be_within(0.03).of(0)
       end
     end
+
+    it 'marks the timer thread as fork safe' do
+      expect do
+        subject.start
+      end.to change { Thread.list.count { |t| t.thread_variable_get(:fork_safe) } }.by(1)
+    end
   end
 
   describe '#stop' do

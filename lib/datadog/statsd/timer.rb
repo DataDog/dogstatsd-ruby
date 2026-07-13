@@ -28,6 +28,9 @@ module Datadog
           end
         end
         @thread.name = 'Statsd Timer' unless Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.3')
+        # advise multi-threaded app servers to ignore this thread for the purposes of fork safety warnings
+        # see Puma's implementation for `:fork_safe`: https://github.com/puma/puma/blob/v7.2.0/lib/puma/cluster.rb#L374
+        @thread.thread_variable_set(:fork_safe, true)
       end
 
       def stop

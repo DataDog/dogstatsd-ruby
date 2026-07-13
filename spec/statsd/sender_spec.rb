@@ -35,6 +35,12 @@ describe Datadog::Statsd::Sender do
       end.to change { Thread.list.size }.by(1)
     end
 
+    it 'marks the sender thread as fork safe' do
+      expect do
+        subject.start
+      end.to change { Thread.list.count { |t| t.thread_variable_get(:fork_safe) } }.by(1)
+    end
+
     context 'on Ruby >= 2.3' do
       before do
         if Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.3')
@@ -204,9 +210,9 @@ describe Datadog::Statsd::Sender do
 
         let(:thread_class) do
           if Thread.instance_methods.include?(:name=)
-            fake_thread = instance_double(Thread, { "alive?" => true, "name=" => true, "join" => true })
+            fake_thread = instance_double(Thread, { "alive?" => true, "name=" => true, "join" => true, "thread_variable_set" => true })
           else
-            fake_thread = instance_double(Thread, { "alive?" => true, "join" => true })
+            fake_thread = instance_double(Thread, { "alive?" => true, "join" => true, "thread_variable_set" => true })
           end
           class_double(Thread, new: fake_thread)
         end
