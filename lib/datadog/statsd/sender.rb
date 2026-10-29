@@ -50,6 +50,8 @@ module Datadog
       def rendez_vous
         # could happen if #start hasn't be called
         return unless message_queue
+        # no companion thread to answer, e.g. it could not be re-created
+        return unless sender_thread && sender_thread.alive?
 
         # Initialize and get the thread's sync queue
         queue = (@thread_class.current[:statsd_sync_queue] ||= @queue_class.new)
@@ -81,6 +83,9 @@ module Datadog
             @message_queue = nil
             message_buffer.reset
             start
+            # the companion thread could not be re-created, don't queue
+            # messages that nothing will ever send
+            return if @done
             @flush_timer.start if @flush_timer && @flush_timer.stop?
           }
         end
@@ -106,7 +111,13 @@ module Datadog
           @sender_thread.name = "Statsd Sender" unless Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.3')
         rescue ThreadError => e
           @logger.debug { "Statsd: Failed to start sender thread: #{e.message}" } if @logger
-          @mx.synchronize { @done = true }
+          # #add calls #start while already holding @mx, and Ruby mutexes
+          # are not re-entrant
+          if @mx.owned?
+            @done = true
+          else
+            @mx.synchronize { @done = true }
+          end
         end
 
         @flush_timer.start if @flush_timer
