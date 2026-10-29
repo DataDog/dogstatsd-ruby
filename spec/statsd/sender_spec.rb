@@ -262,6 +262,11 @@ describe Datadog::Statsd::Sender do
         end.not_to raise_error
         expect(subject.send(:message_queue).length).to eq 0
       end
+
+      it 'does not wait for the missing companion thread in rendez_vous' do
+        subject.add('message')
+        Timeout.timeout(1) { subject.rendez_vous }
+      end
     end
   end
 

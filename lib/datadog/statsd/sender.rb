@@ -50,6 +50,8 @@ module Datadog
       def rendez_vous
         # could happen if #start hasn't be called
         return unless message_queue
+        # no companion thread to answer, e.g. it could not be re-created
+        return unless sender_thread && sender_thread.alive?
 
         # Initialize and get the thread's sync queue
         queue = (@thread_class.current[:statsd_sync_queue] ||= @queue_class.new)
