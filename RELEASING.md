@@ -1,24 +1,7 @@
 # Releasing dogstatsd-ruby
 
 Releases use the manually triggered [Publish workflow](https://github.com/DataDog/dogstatsd-ruby/actions/workflows/publish.yml)
-on `master`, following the trusted-publishing flow in
-[libdatadog-rb](https://github.com/DataDog/libdatadog-rb/blob/main/.github/workflows/build.yml).
-RubyGems authentication uses short-lived OIDC credentials rather than a stored API key.
-
-## Publisher configuration
-
-Register a [trusted publisher](https://guides.rubygems.org/trusted-publishing/adding-a-publisher/)
-for the `dogstatsd-ruby` gem on RubyGems.org with:
-
-- Repository owner: `DataDog`
-- Repository name: `dogstatsd-ruby`
-- Workflow filename: `publish.yml`
-- Environment: `rubygems.org`
-
-The GitHub `rubygems.org` environment must allow deployments from `master`
-and require release approval. The Octo STS `self.publish` policy grants the
-publish job a short-lived GitHub token to push the release tag. Its GitHub App
-must have permission to create tags under the repository's tag protection rules.
+on `master`.
 
 ## Release procedure
 
