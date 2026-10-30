@@ -31,6 +31,7 @@ group :test do
   if RUBY_VERSION >= '4.0'
     gem 'logger'
     gem 'irb'
+    gem 'fiddle'
   end
   if RUBY_VERSION < '3.0'
     gem 'fakefs', '~> 0.13.3'
