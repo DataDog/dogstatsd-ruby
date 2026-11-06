@@ -11,9 +11,13 @@ on `master`.
 3. Run the Publish workflow, selecting `master`, and approve its deployment
    to the `rubygems.org` environment.
 4. Confirm that the workflow succeeds and the version is available on
-   [RubyGems.org](https://rubygems.org/gems/dogstatsd-ruby).
+   [RubyGems.org](https://rubygems.org/gems/dogstatsd-ruby) and in
+   [GitHub releases](https://github.com/DataDog/dogstatsd-ruby/releases),
+   with the gem attached to the matching version tag.
 
 The workflow runs the specs, then invokes `rubygems/release-gem` using the
 existing Bundler `release` task. It builds the gem, creates and pushes its
 `v<version>` tag, publishes it with Sigstore provenance, and waits for it to
-be available on RubyGems.org. Do not create the release tag beforehand.
+be available on RubyGems.org. It then creates a GitHub release for that tag
+with generated release notes and attaches the built gem.
+Do not create the release tag beforehand.

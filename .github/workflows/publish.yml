@@ -34,3 +34,11 @@ jobs:
       - uses: rubygems/release-gem@6317d8d1f7e28c24d28f6eff169ea854948bd9f7 # v1.2.0
         with:
           token: ${{ steps.octo-sts.outputs.token }}
+      - name: Create GitHub release and attach gem
+        env:
+          GH_TOKEN: ${{ steps.octo-sts.outputs.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          version="$(ruby -Ilib -rdatadog/statsd/version -e 'puts Datadog::Statsd::VERSION')"
+          gh release create "v${version}" "pkg/dogstatsd-ruby-${version}.gem" \
+            --verify-tag --title "v${version}" --generate-notes
