@@ -25,13 +25,19 @@ jobs:
           - { os: macos-latest, ruby: '2.3' }
           - { os: macos-latest, ruby: '2.4' }
           - { os: macos-latest, ruby: '2.5' }
+          # ubuntu-latest is ubuntu-26.04, which has no builds of CRuby < 2.3.
+          - { os: ubuntu-latest, ruby: '2.1' }
+          - { os: ubuntu-latest, ruby: '2.2' }
+        include:
+          - { os: ubuntu-24.04, ruby: '2.1' }
+          - { os: ubuntu-24.04, ruby: '2.2' }
 
     steps:
       - name: Checkout repo
         uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
 
       - name: Set up Ruby
-        uses: ruby/setup-ruby@7f797815d8adceb1c412e7abefdd1ab4abc47a5f # v1.335.0
+        uses: ruby/setup-ruby@b3aaceaef7e0ee231b499e7b5f49c03fc1d32199 # v1.338.0
         with:
           ruby-version: ${{ matrix.ruby }}
           bundler-cache: true
