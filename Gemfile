@@ -27,6 +27,12 @@ end
 
 group :test do
   gem 'mocha'
+  # No longer default gems in Ruby 4.0.
+  if RUBY_VERSION >= '4.0'
+    gem 'logger'
+    gem 'irb'
+    gem 'fiddle'
+  end
   if RUBY_VERSION < '3.0'
     gem 'fakefs', '~> 0.13.3'
   else
