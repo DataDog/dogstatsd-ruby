@@ -3,6 +3,13 @@
 [//]: # (comment: Don't forget to update lib/datadog/statsd/version.rb:DogStatsd::Statsd::VERSION when releasing a new version)
 
 
+## Unreleased
+
+  * [BUGFIX] Recover from a wedged UDS socket on Datadog Agent restart.
+    `BadSocketError` now inherits from a new `Connection::RetryableError`, so
+    `Connection#write` closes the socket and reconnects instead of dropping
+    every subsequent metric. [#330][] by [@joshuay03][]
+
 ## 5.7.1 / 2025.08.20
 
   * [IMPROVEMENT] Suppress external env if origin detection is configured off. [#316][] by [@StephenWakely][]
@@ -505,6 +512,7 @@ Future versions are likely to introduce backward incompatibilities with < Ruby 1
 [#306]: https://github.com/DataDog/dogstatsd-ruby/issues/306
 [#310]: https://github.com/DataDog/dogstatsd-ruby/issues/310
 [#316]: https://github.com/DataDog/dogstatsd-ruby/pull/316
+[#330]: https://github.com/DataDog/dogstatsd-ruby/pull/330
 [@AMekss]: https://github.com/AMekss
 [@abicky]: https://github.com/abicky
 [@adimitrov]: https://github.com/adimitrov
@@ -527,6 +535,7 @@ Future versions are likely to introduce backward incompatibilities with < Ruby 1
 [@janester]: https://github.com/janester
 [@jhawthorn]: https://github.com/jhawthorn
 [@jordan-brough]: https://github.com/jordan-brough
+[@joshuay03]: https://github.com/joshuay03
 [@jtzemp]: https://github.com/jtzemp
 [@kazu9su]: https://github.com/kazu9su
 [@kazwolfe]: https://github.com/kazwolfe
