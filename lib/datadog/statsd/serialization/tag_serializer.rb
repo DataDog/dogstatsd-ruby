@@ -78,10 +78,17 @@ module Datadog
           tag.delete('|,')
         end
 
+        # DD_TAGS is comma separated here, but the Datadog Agent and the
+        # Heroku buildpack document it as space separated. Split on commas
+        # when there is one (so existing values, including tag values that
+        # contain spaces, keep working), otherwise split on whitespace.
         def dd_tags(env = ENV)
           return {} unless dd_tags = env['DD_TAGS']
 
-          to_tags_hash(dd_tags.split(','))
+          separator = dd_tags.include?(',') ? ',' : /\s+/
+          tags = dd_tags.split(separator).map(&:strip).reject(&:empty?)
+
+          to_tags_hash(tags)
         end
 
         def default_tags(env = ENV)

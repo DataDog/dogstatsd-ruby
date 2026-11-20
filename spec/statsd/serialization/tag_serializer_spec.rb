@@ -180,6 +180,34 @@ describe Datadog::Statsd::Serialization::TagSerializer do
         end
       end
 
+      context 'when testing space separated DD_TAGS' do
+        around do |example|
+          ClimateControl.modify(
+            'DD_TAGS' => ' ghi team:qa  env:staging '
+          ) do
+            example.run
+          end
+        end
+
+        it 'correctly adds individual tags' do
+          expect(subject.format([])).to eq 'ghi,team:qa,env:staging'
+        end
+      end
+
+      context 'when testing comma separated DD_TAGS with spaces in a value' do
+        around do |example|
+          ClimateControl.modify(
+            'DD_TAGS' => 'team:my team, env:qa'
+          ) do
+            example.run
+          end
+        end
+
+        it 'keeps splitting on commas only' do
+          expect(subject.format([])).to eq 'team:my team,env:qa'
+        end
+      end
+
       context 'when testing DD_ENTITY_ID' do
         around do |example|
           ClimateControl.modify(
