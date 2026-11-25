@@ -268,6 +268,24 @@ describe Datadog::Statsd::Sender do
         Timeout.timeout(1) { subject.rendez_vous }
       end
     end
+
+    context 'when the sender thread cannot be started' do
+      let(:thread_class) { class_double(Thread) }
+
+      before do
+        allow(thread_class).to receive(:new).and_raise(ThreadError, "can't create Thread")
+        subject.start
+      end
+
+      after do
+        subject.stop
+      end
+
+      it 'does not raise in flush' do
+        expect { subject.flush }.not_to raise_error
+        expect { subject.flush(sync: true) }.not_to raise_error
+      end
+    end
   end
 
   describe '#flush' do

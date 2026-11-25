@@ -38,7 +38,7 @@ module Datadog
           @logger.debug { "Statsd: can't flush: no message queue ready" } if @logger
           return
         end
-        if !sender_thread.alive?
+        if sender_thread.nil? || !sender_thread.alive?
           @logger.debug { "Statsd: can't flush: no sender_thread alive" } if @logger
           return
         end
