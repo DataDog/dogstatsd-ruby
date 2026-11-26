@@ -5,7 +5,7 @@ require_relative 'connection'
 module Datadog
   class Statsd
     class UDSConnection < Connection
-      class BadSocketError < StandardError; end
+      class BadSocketError < RetryableError; end
 
       # DogStatsd unix socket path
       attr_reader :socket_path
@@ -39,9 +39,6 @@ module Datadog
         connect unless @socket
         @socket.sendmsg_nonblock(message)
       rescue Errno::ECONNREFUSED, Errno::ECONNRESET, Errno::ENOENT => e
-        # TODO: FIXME: This error should be considered as a retryable error in the
-        # Connection class. An even better solution would be to make BadSocketError inherit
-        # from a specific retryable error class in the Connection class.
         raise BadSocketError, "#{e.class}: #{e}"
       end
     end
