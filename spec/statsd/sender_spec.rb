@@ -239,6 +239,53 @@ describe Datadog::Statsd::Sender do
         end
       end
     end
+
+    context 'when the sender thread died and a new one cannot be started' do
+      let(:thread_class) { class_double(Thread) }
+      let(:dead_thread) { Thread.new {}.tap(&:join) }
+
+      before do
+        allow(thread_class).to receive(:new).and_return(dead_thread)
+        subject.start
+        allow(thread_class).to receive(:new).and_raise(ThreadError, "can't create Thread")
+        allow(message_buffer).to receive(:reset)
+      end
+
+      after do
+        subject.stop
+      end
+
+      it 'drops the messages without raising' do
+        expect do
+          subject.add('message')
+          subject.add('message')
+        end.not_to raise_error
+        expect(subject.send(:message_queue).length).to eq 0
+      end
+
+      it 'does not wait for the missing companion thread in rendez_vous' do
+        subject.add('message')
+        Timeout.timeout(1) { subject.rendez_vous }
+      end
+    end
+
+    context 'when the sender thread cannot be started' do
+      let(:thread_class) { class_double(Thread) }
+
+      before do
+        allow(thread_class).to receive(:new).and_raise(ThreadError, "can't create Thread")
+        subject.start
+      end
+
+      after do
+        subject.stop
+      end
+
+      it 'does not raise in flush' do
+        expect { subject.flush }.not_to raise_error
+        expect { subject.flush(sync: true) }.not_to raise_error
+      end
+    end
   end
 
   describe '#flush' do
