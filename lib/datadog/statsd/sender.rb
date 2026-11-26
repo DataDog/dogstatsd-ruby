@@ -53,7 +53,7 @@ module Datadog
         # no companion thread to answer, e.g. it could not be re-created
         return unless sender_thread && sender_thread.alive?
 
-        # Initialize and get the thread's sync queue
+        # initialize and get the thread's sync queue
         queue = (@thread_class.current[:statsd_sync_queue] ||= @queue_class.new)
         # tell sender-thread to notify us in the current
         # thread's queue
@@ -109,6 +109,9 @@ module Datadog
           # start background thread
           @sender_thread = @thread_class.new(&method(:send_loop))
           @sender_thread.name = "Statsd Sender" unless Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.3')
+          # advise multi-threaded app servers to ignore this thread for the purposes of fork safety warnings
+          # see Puma's implementation for `:fork_safe`: https://github.com/puma/puma/blob/v7.2.0/lib/puma/cluster.rb#L374
+          @sender_thread.thread_variable_set(:fork_safe, true)
         rescue ThreadError => e
           @logger.debug { "Statsd: Failed to start sender thread: #{e.message}" } if @logger
           # #add calls #start while already holding @mx, and Ruby mutexes
